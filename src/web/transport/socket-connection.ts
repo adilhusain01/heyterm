@@ -1,5 +1,6 @@
 // The real backend: WebSockets to the Callsign server on this Mac, reconnecting when it restarts.
 
+import { pageToken } from "./page-token.ts";
 import type { CallsignConnection, ConnectionHandlers, TerminalChannel } from "./connection.ts";
 import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
 
@@ -14,6 +15,7 @@ export class SocketConnection implements CallsignConnection {
     let attempt = 0;
     let retryTimer: number | undefined;
     const open = () => {
+      if (!pageToken()) return handlers.onStatus("needs_token");
       handlers.onStatus("connecting");
       const socket = new WebSocket(socketUrl("/ws"));
       this.socket = socket;
@@ -66,5 +68,6 @@ export class SocketConnection implements CallsignConnection {
 
 function socketUrl(path: string): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}${path}`;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${protocol}//${window.location.host}${path}${separator}token=${encodeURIComponent(pageToken() ?? "")}`;
 }

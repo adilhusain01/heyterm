@@ -11,7 +11,7 @@ export type SessionState =
   | "failed"
   | "stopped";
 
-export type AgentKind = "claude" | "shell";
+export type AgentKind = "claude" | "codex" | "gemini";
 
 export type RiskLevel = "low" | "high";
 
@@ -76,7 +76,7 @@ export interface SessionView {
   pending?: PendingRequest;
   // A dialog Callsign was holding when it restarted: it is on screen in the terminal, and typed text would land in it.
   blockedByTerminalDialog?: boolean;
-  claudeSessionId?: string;
+  agentSessionId?: string;
   // Where Claude saves this session's conversation; the file exists only once a message was sent.
   transcriptPath?: string;
   // Activity since the session was last looked at, newest last.
@@ -128,7 +128,7 @@ export type RouterAction =
   | { type: "catch_up"; session?: string }
   | { type: "status"; session: string }
   | { type: "focus"; session: string }
-  | { type: "spawn"; project: string; task?: string }
+  | { type: "spawn"; project: string; task?: string; agent?: AgentKind }
   | { type: "close"; session: string; confirmed: boolean }
   | { type: "resume"; session: string }
   | { type: "confirm" }
@@ -147,4 +147,5 @@ export interface RoutingContext {
   focusedSession?: string;
   hasPendingPreview: boolean;
   pendingClarifyOptions?: string[];
+  recentlyClosedNames?: string[];
 }

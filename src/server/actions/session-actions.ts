@@ -69,7 +69,12 @@ export class SessionActions {
   private async spawn(action: Extract<SessionAction, { type: "spawn" }>, focus: (sessionName: string) => void): Promise<Feedback> {
     const project = await this.projects.find(action.project);
     if (!project) return { text: `I could not find a project called ${action.project}.`, tone: "warning", speak: true };
-    const session = await this.launcher.start(project.path, project.name, action.task);
+    let session;
+    try {
+      session = await this.launcher.start(project.path, project.name, action.task, action.agent);
+    } catch (error) {
+      return { text: error instanceof Error ? error.message : String(error), tone: "warning", speak: true };
+    }
     focus(session.name);
     const taskNote = action.task ? " It gets the task once it is ready." : "";
     return { text: `Starting ${session.name}.${taskNote}`, tone: "success", speak: false };
@@ -78,7 +83,12 @@ export class SessionActions {
   private async resume(sessionName: string, focus: (sessionName: string) => void): Promise<Feedback> {
     const closed = this.registry.recentlyClosedSessions().find((session) => session.name === sessionName);
     if (!closed) return { text: `${sessionName} is not in the recently closed list.`, tone: "warning", speak: true };
-    const session = await this.launcher.resume(closed);
+    let session;
+    try {
+      session = await this.launcher.resume(closed);
+    } catch (error) {
+      return { text: error instanceof Error ? error.message : String(error), tone: "warning", speak: true };
+    }
     focus(session.name);
     return { text: `Bringing back ${session.name}.`, tone: "success", speak: false };
   }

@@ -226,6 +226,7 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
       focusedSession: focusOverride ?? this.focusedSession,
       hasPendingPreview: this.controls.preview !== undefined,
       pendingClarifyOptions: this.controls.clarify?.options,
+      recentlyClosedNames: this.registry.recentlyClosedSessions().map((session) => session.name),
     };
   }
 

@@ -20,7 +20,7 @@ export class SessionLifecycle {
     const payload = event.payload;
     switch (event.name) {
       case "SessionStart":
-        return SessionLifecycle.moveTo({ ...session, claudeSessionId: stringField(payload, "session_id") || session.claudeSessionId, transcriptPath: stringField(payload, "transcript_path") || session.transcriptPath }, "idle", event.receivedAt);
+        return SessionLifecycle.moveTo({ ...session, agentSessionId: stringField(payload, "session_id") || session.agentSessionId, transcriptPath: stringField(payload, "transcript_path") || session.transcriptPath }, "idle", event.receivedAt);
       case "UserPromptSubmit": {
         const prompt = stringField(payload, "prompt");
         const withPrompt = SessionLifecycle.addActivity({ ...session, lastPrompt: prompt, pending: undefined }, "prompt", prompt, event.receivedAt);

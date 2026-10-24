@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { UserSettingsHooks } from "./user-settings-hooks.ts";
 
-const scriptPath = "/Users/dev/.callsign/hooks/forward-existing-event.sh";
+const scriptPath = "/Users/dev/.callsign/hooks/callsign-forward.cjs";
 
 const userOwnHook = { matcher: "Bash", hooks: [{ type: "command", command: "/Users/dev/bin/lint-guard.sh" }] };
 
@@ -10,7 +10,7 @@ describe("UserSettingsHooks.withCallsign", () => {
     const settings = UserSettingsHooks.withCallsign({}, scriptPath);
     const hooks = settings.hooks as Record<string, unknown[]>;
     expect(Object.keys(hooks)).toContain("PermissionRequest");
-    expect(JSON.stringify(hooks.Stop)).toContain(`${scriptPath}' Stop`);
+    expect(JSON.stringify(hooks.Stop)).toContain("callsign-forward.cjs\\\" external Stop");
   });
 
   it("keeps every other setting and the user's own hooks", () => {
@@ -32,6 +32,11 @@ describe("UserSettingsHooks.withoutCallsign", () => {
   it("removes only Callsign's hooks and leaves the user's", () => {
     const connected = UserSettingsHooks.withCallsign({ theme: "dark", hooks: { PreToolUse: [userOwnHook] } }, scriptPath);
     expect(UserSettingsHooks.withoutCallsign(connected)).toEqual({ theme: "dark", hooks: { PreToolUse: [userOwnHook] } });
+  });
+
+  it("also removes the hooks an older Callsign added as a shell script", () => {
+    const olderEntry = { hooks: [{ type: "command", command: "'/Users/dev/.callsign/hooks/forward-existing-event.sh' Stop" }] };
+    expect(UserSettingsHooks.withoutCallsign({ hooks: { Stop: [olderEntry] } })).toEqual({});
   });
 
   it("drops the hooks key when nothing else was in it", () => {

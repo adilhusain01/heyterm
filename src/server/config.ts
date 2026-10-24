@@ -10,6 +10,7 @@ export interface CallsignConfig {
   dataDirectory: string;
   projectRoots: string[];
   routerModel: string;
+  // Only to stop sessions left by versions that ran them in tmux.
   tmuxSocketName: string;
   // A web origin allowed besides Callsign's own, for the Vite dev server.
   developmentOrigin?: string;
@@ -29,7 +30,8 @@ export async function loadConfig(): Promise<CallsignConfig> {
   const home = os.homedir();
   const dataDirectory = process.env.CALLSIGN_DATA_DIRECTORY ?? path.join(home, ".callsign");
   const saved = await new UserConfig(dataDirectory).load();
-  const environmentRoots = process.env.CALLSIGN_PROJECT_ROOTS?.split(":").filter(Boolean);
+  // Separated the way PATH is: ":" on macOS and Linux, ";" on Windows, where paths contain ":".
+  const environmentRoots = process.env.CALLSIGN_PROJECT_ROOTS?.split(path.delimiter).filter(Boolean);
   const projectRoots = environmentRoots ?? saved.projectRoots ?? defaultProjectRoots.map((root) => path.join(home, root)).filter((root) => existsSync(root));
   return {
     port: Number(process.env.CALLSIGN_PORT ?? 4747),

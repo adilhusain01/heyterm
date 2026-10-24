@@ -7,8 +7,14 @@ import os from "node:os";
 import path from "node:path";
 import { UserSettingsHooks } from "./user-settings-hooks.ts";
 
+// The user's own Claude Code settings file. CALLSIGN_CLAUDE_SETTINGS_PATH points Callsign alone at
+// another file, for tests, without changing where the agents themselves look.
+export function claudeUserSettingsPath(): string {
+  return process.env.CALLSIGN_CLAUDE_SETTINGS_PATH ?? path.join(process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude"), "settings.json");
+}
+
 export class ExistingSessionConnector {
-  private readonly settingsPath = path.join(process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude"), "settings.json");
+  private readonly settingsPath = claudeUserSettingsPath();
 
   constructor(
     private readonly scriptPath: string,

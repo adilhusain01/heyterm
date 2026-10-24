@@ -66,5 +66,6 @@ function Stat({ label, value, title }: { label: string; value: string; title?: s
 
 function ConnectionMark({ status }: { status: string }) {
   if (status === "open") return null;
+  if (status === "needs_token") return <span className="rounded-mark bg-permission/15 px-1.5 py-0.5 text-[12.5px] text-permission">Open Callsign by running callsign in a terminal</span>;
   return <span className="rounded-mark bg-permission/15 px-1.5 py-0.5 text-[12.5px] text-permission">{status === "connecting" ? "Connecting" : "Reconnecting"}</span>;
 }

@@ -6,6 +6,7 @@ import { stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { AgentAdapters } from "../agents/agent-adapters.ts";
 import type { ExistingSessionConnector } from "../hooks/existing-session-connector.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { UserConfig } from "./user-config.ts";
@@ -25,14 +26,22 @@ export class SetupService {
   ) {}
 
   async status(): Promise<SetupStatus> {
-    const [tmuxVersion, claudeVersion, projectList, existingSessionsConnected] = await Promise.all([
-      commandVersion("tmux", ["-V"], /tmux\s+(\S+)/),
-      commandVersion("claude", ["--version"], /(\d+\.\d+\.\d+)/),
+    const [agents, projectList, existingSessionsConnected, saved] = await Promise.all([
+      Promise.all(
+        AgentAdapters.all().map(async (adapter) => ({
+          kind: adapter.kind,
+          label: adapter.label,
+          installHint: adapter.installHint,
+          version: await commandVersion(adapter.program, ["--version"], /(\d+\.\d+(?:\.\d+)?)/),
+        })),
+      ),
       this.projects.list(),
       this.connector.isConnected(),
+      this.userConfig.load(),
     ]);
+    const claudeVersion = agents.find((agent) => agent.kind === "claude")?.version;
     return {
-      tmuxVersion,
+      agents,
       claudeVersion,
       testedClaudeVersion,
       claudeVersionIsTested: claudeVersion !== undefined && compareVersions(claudeVersion, testedClaudeVersion) >= 0,
@@ -43,6 +52,7 @@ export class SetupService {
       routerSource: process.env.ANTHROPIC_API_KEY ? "api" : "claude-code",
       routerModel: this.routerModel,
       macVoiceAvailable: process.platform === "darwin",
+      keepRunningWithoutPage: saved.keepRunningWithoutPage ?? false,
     };
   }
 
@@ -57,13 +67,19 @@ export class SetupService {
   }
 
   async setExistingSessionsConnected(connected: boolean): Promise<void> {
+    await this.userConfig.update({ showOwnTerminalSessions: connected });
     if (connected) await this.connector.connect();
     else await this.connector.disconnect();
+  }
+
+  async setKeepRunningWithoutPage(keepRunning: boolean): Promise<void> {
+    await this.userConfig.update({ keepRunningWithoutPage: keepRunning });
   }
 }
 
 async function commandVersion(command: string, args: string[], pattern: RegExp): Promise<string | undefined> {
-  const output = await execFileAsync(command, args, { timeout: 5_000 }).then(
+  // On Windows the agents are .cmd shims, which only a shell finds.
+  const output = await execFileAsync(command, args, { timeout: 10_000, shell: process.platform === "win32" }).then(
     ({ stdout }) => stdout,
     () => "",
   );

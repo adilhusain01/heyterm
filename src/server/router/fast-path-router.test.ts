@@ -172,6 +172,21 @@ describe("talking to a session", () => {
   });
 });
 
+describe("other agents and closed sessions", () => {
+  it("starts a Codex or Gemini session when the user names the agent", () => {
+    expect(router.route("start a codex session in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio", agent: "codex" });
+    expect(router.route("open gemini in peeker and fix the menu", makeContext())).toEqual({ type: "spawn", project: "peeker", agent: "gemini", task: "fix the menu" });
+  });
+
+  it("starts Claude Code when no agent is named, as before", () => {
+    expect(router.route("start a session in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio" });
+  });
+
+  it("brings back a recently closed session at once, without asking the assistant", () => {
+    expect(router.route("bring back ultron", makeContext({ recentlyClosedNames: ["ultron"] }))).toEqual({ type: "resume", session: "ultron" });
+  });
+});
+
 describe("with the assistant in the middle", () => {
   const routerBesideAssistant = new FastPathRouter({ sendUnaddressedWordsToFocusedSession: false });
 

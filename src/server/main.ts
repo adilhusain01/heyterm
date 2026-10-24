@@ -1,14 +1,17 @@
-// Starts Callsign: hooks, sessions, the router and the local server.
+// Starts Callsign: hooks, terminals, sessions, the assistant and the local server. Every way of
+// stopping (the stop command, Ctrl+C, Quit in the page, closing the last page) ends in stop().
 
+import { execFile } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { ActionExecutor } from "./actions/action-executor.ts";
 import { DecisionActions } from "./actions/decision-actions.ts";
 import { SessionActions } from "./actions/session-actions.ts";
 import { createAssistant } from "./conductor/create-assistant.ts";
 import { loadConfig } from "./config.ts";
-import { HeldHookRequests } from "./hooks/held-hook-requests.ts";
 import { ExistingSessionConnector } from "./hooks/existing-session-connector.ts";
+import { HeldHookRequests } from "./hooks/held-hook-requests.ts";
 import { HookInstaller } from "./hooks/hook-installer.ts";
 import { CallsignHttpServer } from "./http/callsign-http-server.ts";
 import { EventHub } from "./http/event-hub.ts";
@@ -20,33 +23,41 @@ import { AuditLog } from "./safety/audit-log.ts";
 import { SessionLauncher } from "./sessions/session-launcher.ts";
 import { SessionRegistry } from "./sessions/session-registry.ts";
 import { StateStore } from "./sessions/state-store.ts";
+import { TrustDialogWatcher } from "./sessions/trust-dialog-watcher.ts";
 import { SetupService } from "./setup/setup-service.ts";
 import { UserConfig } from "./setup/user-config.ts";
-import { TrustDialogWatcher } from "./sessions/trust-dialog-watcher.ts";
-import { isTmuxInstalled, TmuxServer } from "./tmux/tmux-server.ts";
+import { TerminalHost } from "./terminals/terminal-host.ts";
 import { MacVoice } from "./voice/mac-voice.ts";
 
-// Starts every part of Callsign and resolves once the server is listening.
-export async function startCallsign(): Promise<void> {
-  const config = await loadConfig();
-  if (!(await isTmuxInstalled())) {
-    console.error("Callsign runs every session in tmux, and tmux is not installed. Install it with: brew install tmux");
-    process.exit(1);
-  }
+const execFileAsync = promisify(execFile);
 
+// A reload or a moment offline is not closing Callsign; this long with no page open is.
+const closedPageGraceMilliseconds = 15_000;
+
+export interface RunningCallsign {
+  url: string;
+  token: string;
+  stop(reason: string): Promise<void>;
+}
+
+export async function startCallsign(): Promise<RunningCallsign> {
+  const config = await loadConfig();
+  const userConfig = new UserConfig(config.dataDirectory);
+  const savedChoices = await userConfig.load();
   const hooks = await new HookInstaller(config.dataDirectory, config.port).install();
-  const tmux = new TmuxServer(config.tmuxSocketName);
+  await stopSessionsFromOlderVersion(config.tmuxSocketName);
+
+  const host = new TerminalHost();
   const heldRequests = new HeldHookRequests();
   const store = new StateStore(config.dataDirectory);
   const registry = new SessionRegistry(store, heldRequests);
   const saved = await store.load();
   registry.restore(saved.sessions, saved.recentlyClosed);
 
-  const launcher = new SessionLauncher(tmux, registry, hooks.settingsPath);
-  await launcher.reconcileWithTmux();
-  new TrustDialogWatcher(tmux, registry).start();
-  // Sessions whose Claude quit by itself move to "Recently closed", where they can be brought back.
-  setInterval(() => void launcher.sweepEndedSessions().catch(() => undefined), 3_000).unref();
+  const launcher = new SessionLauncher(host, registry, { claudeSettingsPath: hooks.settingsPath, forwardScriptPath: hooks.forwardScriptPath });
+  launcher.restoreAfterStart();
+  const trustWatcher = new TrustDialogWatcher(host, registry);
+  trustWatcher.start();
 
   const projects = new ProjectCatalog(config.projectRoots);
   const audit = new AuditLog(config.dataDirectory);
@@ -59,16 +70,66 @@ export async function startCallsign(): Promise<void> {
   registry.on("changed", () => assistant.noteSessions(registry.list()));
   assistant.noteSessions(registry.list());
 
-  const connector = new ExistingSessionConnector(hooks.existingSessionScriptPath, path.join(config.dataDirectory, "backups"));
-  const setup = new SetupService(projects, new UserConfig(config.dataDirectory), connector, config.routerModel);
+  // Sessions from the user's own terminals: hooks go into their Claude settings only while Callsign runs.
+  const connector = new ExistingSessionConnector(hooks.forwardScriptPath, path.join(config.dataDirectory, "backups"));
+  const showOwnTerminalSessions = savedChoices.showOwnTerminalSessions ?? (await connector.isConnected());
+  if (savedChoices.showOwnTerminalSessions === undefined && showOwnTerminalSessions) await userConfig.update({ showOwnTerminalSessions });
+  if (showOwnTerminalSessions) await connector.connect().catch((error: Error) => console.error(error.message));
+
+  const setup = new SetupService(projects, userConfig, connector, config.routerModel);
   const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant);
   const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin);
-  const server = new CallsignHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(tmux));
+  const server = new CallsignHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host));
   await server.listen();
 
-  const sessionCount = registry.list().length;
-  console.log(`Callsign is listening on http://127.0.0.1:${config.port}`);
+  let closedPageTimer: NodeJS.Timeout | undefined;
+  let stopping: Promise<void> | undefined;
+  const stop = (reason: string): Promise<void> => {
+    stopping ??= (async () => {
+      console.log(`\nStopping Callsign (${reason}).`);
+      clearTimeout(closedPageTimer);
+      trustWatcher.stop();
+      assistant.close();
+      launcher.shutdown();
+      // Leave the user's Claude settings as they were before Callsign started.
+      if ((await userConfig.load()).showOwnTerminalSessions) await connector.disconnect().catch(() => undefined);
+      await registry.saveNow().catch(() => undefined);
+      await server.close();
+      console.log("Callsign stopped. Its sessions are under Recently closed next time.");
+    })();
+    return stopping;
+  };
+  const stopAndExit = (reason: string) => void stop(reason).then(() => process.exit(0));
+
+  let pageWasOpen = false;
+  hub.onPageCountChange = (count) => {
+    clearTimeout(closedPageTimer);
+    if (count > 0) {
+      pageWasOpen = true;
+      return;
+    }
+    if (!pageWasOpen) return;
+    closedPageTimer = setTimeout(() => {
+      void userConfig.load().then((choices) => {
+        if (!choices.keepRunningWithoutPage) stopAndExit("the last Callsign page was closed");
+      });
+    }, closedPageGraceMilliseconds);
+  };
+  hub.onQuitRequest = () => stopAndExit("Quit in the page");
+  server.onShutdownRequest = () => stopAndExit("callsign stop");
+  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) process.once(signal, () => stopAndExit(signal));
+
+  const url = `http://127.0.0.1:${config.port}`;
+  console.log(`Callsign is listening on ${url}`);
   console.log(`Projects from: ${config.projectRoots.join(", ") || "no project folders found"}`);
   console.log(`Assistant: ${config.routerModel} on ${process.env.ANTHROPIC_API_KEY ? "your Anthropic API key" : "your Claude Code login"}`);
-  if (sessionCount > 0) console.log(`Picked up ${sessionCount} running session${sessionCount === 1 ? "" : "s"}.`);
+  console.log("Stop it with Ctrl+C, callsign stop, or Quit in the page.");
+  return { url, token: hooks.token, stop };
+}
+
+// Versions before the move to Callsign's own terminals ran sessions in tmux. Those sessions are
+// stopped here; their saved copies are offered under "Recently closed" to bring back.
+async function stopSessionsFromOlderVersion(tmuxSocketName: string): Promise<void> {
+  if (process.platform === "win32") return;
+  await execFileAsync("tmux", ["-L", tmuxSocketName, "kill-server"], { timeout: 5_000 }).catch(() => undefined);
 }

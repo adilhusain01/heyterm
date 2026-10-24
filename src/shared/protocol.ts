@@ -1,7 +1,7 @@
 // Messages between the Callsign server and the web UI over /ws.
 
 import type { SessionDigest } from "./catch-up.ts";
-import type { AnnouncementMode, RouterAction, SessionView } from "./types.ts";
+import type { AgentKind, AnnouncementMode, RouterAction, SessionView } from "./types.ts";
 
 export interface Feedback {
   text: string;
@@ -38,8 +38,16 @@ export interface ClosedSessionView {
 }
 
 // What the Setup screen shows: what is installed, which folders hold projects, what is connected.
+export interface AgentStatus {
+  kind: AgentKind;
+  label: string;
+  version?: string;
+  installHint: string;
+}
+
 export interface SetupStatus {
-  tmuxVersion?: string;
+  // Every coding agent Callsign can run, with its version when it is installed.
+  agents: AgentStatus[];
   claudeVersion?: string;
   // The Claude Code release Callsign was last checked against; older ones may lack a hook it needs.
   testedClaudeVersion: string;
@@ -52,6 +60,7 @@ export interface SetupStatus {
   routerModel: string;
   // The server runs on a Mac and can speak with the system voice.
   macVoiceAvailable: boolean;
+  keepRunningWithoutPage: boolean;
 }
 
 export type ConversationEntryKind = "user" | "assistant" | "tool" | "event" | "error";
@@ -93,5 +102,8 @@ export type ClientMessage =
   | { type: "setup_refresh" }
   | { type: "set_project_roots"; roots: string[] }
   | { type: "connect_existing_sessions"; connected: boolean }
+  | { type: "set_keep_running"; keepRunning: boolean }
+  // Stop Callsign and every session in it.
+  | { type: "quit" }
   | { type: "speak"; text: string; id: number }
   | { type: "stop_speaking" };

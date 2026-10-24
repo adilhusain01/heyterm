@@ -1,48 +1,46 @@
-// One browser terminal pane: a tmux client in a pseudo-terminal, streamed over a WebSocket.
+// One browser terminal pane: the session's terminal streamed over a WebSocket. Closing the pane
+// only stops watching; the session keeps running.
 
-import pty from "@lydell/node-pty";
 import type { WebSocket } from "ws";
-import type { TmuxServer } from "../tmux/tmux-server.ts";
+import type { TerminalHost } from "../terminals/terminal-host.ts";
 
 type TerminalClientMessage = { type: "input"; data: string } | { type: "resize"; columns: number; rows: number };
 
-export class TerminalBridge {
-  constructor(private readonly tmux: TmuxServer) {}
+// Typing and pastes are small; anything larger is not a person at a keyboard.
+const largestInputBytes = 64 * 1024;
 
-  async connect(socket: WebSocket, sessionName: string, columns: number, rows: number): Promise<void> {
-    if (!(await this.tmux.hasSession(sessionName))) {
+export class TerminalBridge {
+  constructor(private readonly host: TerminalHost) {}
+
+  connect(socket: WebSocket, sessionName: string, columns: number, rows: number): void {
+    const viewer = {
+      send: (data: string) => {
+        if (socket.readyState === socket.OPEN) socket.send(data);
+      },
+      close: () => socket.close(1000, "session ended"),
+    };
+    const attachment = this.host.attach(sessionName, viewer, columns, rows);
+    if (!attachment) {
       socket.close(4404, "no such session");
       return;
     }
-    const { file, args } = this.tmux.attachCommand(sessionName);
-    const terminal = pty.spawn(file, args, {
-      name: "xterm-256color",
-      cols: clampSize(columns, 80),
-      rows: clampSize(rows, 24),
-      env: { ...process.env, TERM: "xterm-256color" } as Record<string, string>,
-    });
-    terminal.onData((data) => {
-      if (socket.readyState === socket.OPEN) socket.send(data);
-    });
-    terminal.onExit(() => socket.close(1000, "session ended"));
     socket.on("message", (raw) => {
-      const message = parseMessage(raw.toString());
-      if (message?.type === "input") terminal.write(message.data);
-      if (message?.type === "resize") terminal.resize(clampSize(message.columns, 80), clampSize(message.rows, 24));
+      const text = raw.toString();
+      if (text.length > largestInputBytes) return;
+      const message = parseMessage(text);
+      if (message?.type === "input") attachment.write(message.data);
+      if (message?.type === "resize") attachment.resize(message.columns, message.rows);
     });
-    // Closing the pane detaches this tmux client; the session itself keeps running.
-    socket.on("close", () => terminal.kill());
+    socket.on("close", () => attachment.detach());
   }
-}
-
-function clampSize(value: number, fallback: number): number {
-  return Number.isFinite(value) && value >= 10 && value <= 500 ? Math.floor(value) : fallback;
 }
 
 function parseMessage(text: string): TerminalClientMessage | undefined {
   try {
     const message = JSON.parse(text) as TerminalClientMessage;
-    return message.type === "input" || message.type === "resize" ? message : undefined;
+    if (message.type === "input" && typeof message.data === "string") return message;
+    if (message.type === "resize" && Number.isFinite(message.columns) && Number.isFinite(message.rows)) return message;
+    return undefined;
   } catch {
     return undefined;
   }

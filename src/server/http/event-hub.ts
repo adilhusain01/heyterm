@@ -13,6 +13,9 @@ const snapshotThrottleMilliseconds = 50;
 
 export class EventHub {
   private readonly sockets = new Set<WebSocket>();
+  // How many Callsign pages are open, so closing the last one can close Callsign.
+  onPageCountChange: (count: number) => void = () => undefined;
+  onQuitRequest: () => void = () => undefined;
   private snapshotTimer: NodeJS.Timeout | undefined;
   private projectNames: string[] = [];
 
@@ -36,11 +39,15 @@ export class EventHub {
 
   connect(socket: WebSocket): void {
     this.sockets.add(socket);
+    this.onPageCountChange(this.sockets.size);
     socket.send(JSON.stringify(this.snapshot()));
     socket.send(JSON.stringify({ type: "conversation", entries: this.assistant.conversation() } satisfies ServerMessage));
     void this.sendSetup();
     socket.on("message", (raw) => void this.receive(raw.toString(), socket));
-    socket.on("close", () => this.sockets.delete(socket));
+    socket.on("close", () => {
+      this.sockets.delete(socket);
+      this.onPageCountChange(this.sockets.size);
+    });
   }
 
   private async receive(text: string, socket: WebSocket): Promise<void> {
@@ -57,6 +64,11 @@ export class EventHub {
       if (message.type === "setup_refresh") await this.sendSetup();
       if (message.type === "set_project_roots") await this.changeProjectRoots(message.roots);
       if (message.type === "connect_existing_sessions") await this.connectExistingSessions(message.connected === true);
+      if (message.type === "quit") return this.onQuitRequest();
+      if (message.type === "set_keep_running") {
+        await this.setup.setKeepRunningWithoutPage(message.keepRunning === true);
+        await this.sendSetup();
+      }
       if (message.type === "speak") {
         const id = Number(message.id);
         this.macVoice.speak(String(message.text), () => {

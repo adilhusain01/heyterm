@@ -34,8 +34,8 @@ export function App({ connection, announcer }: { connection: CallsignConnection;
   }, [announcer, setSpeaking]);
   useUnlockSoundOnFirstGesture(announcer);
 
-  // A new user missing tmux or Claude Code sees what to install before anything else.
-  const isMissingTools = setup !== undefined && (!setup.tmuxVersion || !setup.claudeVersion);
+  // A new user with no coding agent installed sees what to install before anything else.
+  const isMissingTools = setup !== undefined && setup.agents.every((agent) => !agent.version);
   useEffect(() => {
     if (isMissingTools) setSetupOpen(true);
   }, [isMissingTools]);

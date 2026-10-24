@@ -6,6 +6,11 @@ import path from "node:path";
 export interface UserConfigValues {
   projectRoots?: string[];
   routerModel?: string;
+  // Whether sessions started in the user's own terminals show up. Callsign adds its hooks to their
+  // Claude settings while it runs and takes them out when it stops.
+  showOwnTerminalSessions?: boolean;
+  // Keep running after the last Callsign page is closed. Off by default: closing Callsign closes it.
+  keepRunningWithoutPage?: boolean;
 }
 
 export class UserConfig {

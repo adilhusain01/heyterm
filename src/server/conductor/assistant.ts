@@ -57,6 +57,11 @@ export class Assistant extends EventEmitter<AssistantEvents> {
     this.record("event", text);
   }
 
+  close(): void {
+    clearTimeout(this.groupTimer);
+    this.conductor.close();
+  }
+
   conversation(): ConversationEntry[] {
     return this.entries;
   }

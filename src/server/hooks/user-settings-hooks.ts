@@ -1,19 +1,18 @@
 // Adds Callsign's hooks to, and removes them from, the user's own Claude Code settings, leaving
 // everything else in the file exactly as it was. Pure: settings in, settings out.
 
+import { HookCommands } from "./hook-commands.ts";
 import { forwardedHookEvents, hookGroup } from "./hook-installer.ts";
 
 type Settings = Record<string, unknown>;
 type HookGroup = { hooks?: Array<{ command?: string }> };
 
-// Every hook command Callsign adds runs this script, which is how its entries are told apart.
-const callsignScriptName = "forward-existing-event.sh";
 
 export class UserSettingsHooks {
   static withCallsign(settings: Settings, scriptPath: string): Settings {
     const cleaned = UserSettingsHooks.withoutCallsign(settings);
     const hooks = { ...((cleaned.hooks as Record<string, HookGroup[]> | undefined) ?? {}) };
-    for (const eventName of forwardedHookEvents) hooks[eventName] = [...(hooks[eventName] ?? []), hookGroup(scriptPath, eventName)];
+    for (const eventName of forwardedHookEvents) hooks[eventName] = [...(hooks[eventName] ?? []), hookGroup(HookCommands.forExistingSessions(scriptPath, eventName), eventName)];
     return { ...cleaned, hooks };
   }
 
@@ -36,5 +35,5 @@ export class UserSettingsHooks {
 }
 
 function isCallsignGroup(group: HookGroup): boolean {
-  return (group.hooks ?? []).some((hook) => hook.command?.includes(callsignScriptName));
+  return (group.hooks ?? []).some((hook) => HookCommands.isCallsign(hook.command ?? ""));
 }

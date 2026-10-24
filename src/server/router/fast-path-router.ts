@@ -3,11 +3,13 @@
 import { HeadAnswerRouter } from "./head-answer-router.ts";
 import { SpokenNameMatcher } from "./spoken-name-matcher.ts";
 import { SpokenPhrases, normalizedPhrase, spokenOrdinal, textFromWord, withoutNameFiller, wordSpans, type WordSpan } from "./utterance-text.ts";
-import type { RouterAction, RoutingContext, SessionView } from "../../shared/types.ts";
+import type { AgentKind, RouterAction, RoutingContext, SessionView } from "../../shared/types.ts";
 
 interface SessionCommand {
   pattern: RegExp;
   build: (session: string) => RouterAction;
+  // Names a closed session rather than a running one.
+  isResume?: boolean;
 }
 
 // Each pattern captures the words naming the session.
@@ -17,10 +19,10 @@ const sessionCommands: SessionCommand[] = [
   { pattern: /^(?:go to|show me|show|switch to|focus on|focus|look at|bring up|open) (.+)$/, build: (session) => ({ type: "focus", session }) },
   { pattern: /^(?:close|kill|end|shut down|quit|exit) (.+)$/, build: (session) => ({ type: "close", session, confirmed: false }) },
   { pattern: /^(?:stop|interrupt|pause|halt|hold) (.+)$/, build: (session) => ({ type: "interrupt", session }) },
-  { pattern: /^(?:bring back|resume|reopen|restart) (.+)$/, build: (session) => ({ type: "resume", session }) },
+  { pattern: /^(?:bring back|resume|reopen|restart) (.+)$/, build: (session) => ({ type: "resume", session }), isResume: true },
 ];
 
-const spawnPattern = /^(?:start|open|spin up|create|launch|begin)(?: a| an)?(?: new)?(?: (?:session|agent|claude|terminal))? (?:in|on|for|at) /;
+const spawnPattern = /^(?:start|open|spin up|create|launch|begin)(?: a| an)?(?: new)?(?: (claude|codex|gemini))?(?: (?:session|agent|terminal))? (?:in|on|for|at) /;
 const taskJoinWords = new Set(["and", "to", "then", "so"]);
 
 export interface FastPathOptions {
@@ -39,7 +41,7 @@ export class FastPathRouter {
     return (
       this.routeControlPhrase(phrase, context) ??
       this.routeSpawn(utterance, spans, context) ??
-      this.routeSessionCommand(phrase, sessionMatcher) ??
+      this.routeSessionCommand(phrase, sessionMatcher, context) ??
       this.routeTell(utterance, spans, sessionMatcher) ??
       new HeadAnswerRouter().route(utterance, phrase, context, sessionMatcher) ??
       this.routeAddressed(utterance, spans, sessionMatcher) ??
@@ -78,16 +80,21 @@ export class FastPathRouter {
       let taskWordIndex = firstProjectWord + wordCount;
       while (spans[taskWordIndex] && taskJoinWords.has(spans[taskWordIndex]!.word)) taskWordIndex += 1;
       const task = textFromWord(utterance, spans, taskWordIndex);
-      return task ? { type: "spawn", project: project.name, task } : { type: "spawn", project: project.name };
+      // Claude Code is the default, so it is not named in the action.
+      const agent: AgentKind | undefined = prefix[1] === "codex" || prefix[1] === "gemini" ? prefix[1] : undefined;
+      return { type: "spawn", project: project.name, ...(agent ? { agent } : {}), ...(task ? { task } : {}) };
     }
     return undefined;
   }
 
-  private routeSessionCommand(phrase: string, sessionMatcher: SpokenNameMatcher): RouterAction | undefined {
+  private routeSessionCommand(phrase: string, sessionMatcher: SpokenNameMatcher, context: RoutingContext): RouterAction | undefined {
     for (const command of sessionCommands) {
       const match = command.pattern.exec(phrase);
       if (!match?.[1]) continue;
-      const session = sessionMatcher.findBest(withoutNameFiller(match[1].split(" ")).join(" "));
+      const spokenName = withoutNameFiller(match[1].split(" ")).join(" ");
+      // Bringing back looks among closed sessions first; everything else among running ones.
+      const closedMatch = command.isResume ? new SpokenNameMatcher(context.recentlyClosedNames ?? []).findBest(spokenName) : undefined;
+      const session = closedMatch ?? sessionMatcher.findBest(spokenName);
       if (session) return command.build(session.name);
     }
     return undefined;

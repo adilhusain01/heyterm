@@ -8,7 +8,7 @@ export class RequestGuard {
 
   constructor(
     private readonly port: number,
-    private readonly hookToken: string,
+    private readonly token: string,
     developmentOrigin?: string,
   ) {
     this.allowedOrigins = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
@@ -26,9 +26,13 @@ export class RequestGuard {
     return fetchSite !== "cross-site";
   }
 
-  hasHookToken(request: IncomingMessage): boolean {
-    const presented = Buffer.from(String(request.headers["x-callsign-token"] ?? ""));
-    const expected = Buffer.from(this.hookToken);
+  // The secret in ~/.callsign/token (readable by this user only). Hooks send it as a header; the page,
+  // which cannot set headers on a WebSocket, sends it in the address. Another user on the same
+  // computer can reach 127.0.0.1 but cannot read the token, so cannot type into these terminals.
+  hasToken(request: IncomingMessage): boolean {
+    const fromAddress = new URL(request.url ?? "/", "http://127.0.0.1").searchParams.get("token");
+    const presented = Buffer.from(String(request.headers["x-callsign-token"] ?? fromAddress ?? ""));
+    const expected = Buffer.from(this.token);
     return presented.length === expected.length && timingSafeEqual(presented, expected);
   }
 }

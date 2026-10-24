@@ -92,12 +92,12 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
 
   // An event from a session the user started in their own terminal, known by its Claude session id.
   async applyExternalHookEvent(name: HookEventName, payload: Record<string, unknown>, receivedAt: number): Promise<string> {
-    const claudeSessionId = typeof payload.session_id === "string" ? payload.session_id : "";
-    if (!claudeSessionId) return "";
-    let session = this.list().find((known) => known.origin === "external" && known.claudeSessionId === claudeSessionId);
+    const agentSessionId = typeof payload.session_id === "string" ? payload.session_id : "";
+    if (!agentSessionId) return "";
+    let session = this.list().find((known) => known.origin === "external" && known.agentSessionId === agentSessionId);
     if (!session) {
       if (name === "SessionEnd") return "";
-      session = this.newExternalSession(claudeSessionId, payload, receivedAt);
+      session = this.newExternalSession(agentSessionId, payload, receivedAt);
       this.set(session);
     }
     const answer = await this.applyHookEvent({ name, sessionName: session.name, payload, receivedAt });
@@ -105,7 +105,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     return answer;
   }
 
-  private newExternalSession(claudeSessionId: string, payload: Record<string, unknown>, now: number): SessionView {
+  private newExternalSession(agentSessionId: string, payload: Record<string, unknown>, now: number): SessionView {
     const workingDirectory = typeof payload.cwd === "string" ? payload.cwd : "";
     const sessionTitle = typeof payload.session_title === "string" ? payload.session_title : undefined;
     const name = ExternalSessionNaming.nameFor({ sessionTitle, workingDirectory }, [...this.sessions.keys()]);
@@ -119,7 +119,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
       stateSince: now,
       createdAt: now,
       lastSeenAt: now,
-      claudeSessionId,
+      agentSessionId,
       activitySinceSeen: [],
       waitedMillisecondsToday: 0,
     };
@@ -152,6 +152,13 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   private set(session: SessionView): void {
     this.sessions.set(session.name, session);
     this.announceChange();
+  }
+
+  // Writes the saved copy now, for shutdown, instead of waiting for the next quiet moment.
+  async saveNow(): Promise<void> {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = undefined;
+    await this.store.save({ sessions: this.list(), recentlyClosed: this.recentlyClosed });
   }
 
   private resetWaitsOnNewDay(now: number): void {

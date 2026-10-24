@@ -5,6 +5,7 @@ import { query, type HookCallback, type McpSdkServerConfigWithInstance, type Que
 import { execFileSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { conductorSystemPrompt } from "./conductor-prompt.ts";
+import { withoutInheritedMarkers } from "../terminals/environment.ts";
 import { TurnQueue, type TurnPriority } from "./turn-queue.ts";
 import type { ConversationEntryKind } from "../../shared/protocol.ts";
 
@@ -46,6 +47,15 @@ export class Conductor extends EventEmitter<ConductorEvents> {
       this.turns.add({ text, resolve, reject }, priority);
       this.startNextTurn();
     });
+  }
+
+  // Callsign is stopping: end the assistant's process and fail anything still waiting.
+  close(): void {
+    const session = this.session;
+    this.session = undefined;
+    session?.close();
+    this.finishTurn(undefined, new Error("Callsign is stopping."));
+    for (let turn = this.turns.next(); turn; turn = this.turns.next()) turn.reject(new Error("Callsign is stopping."));
   }
 
   private startNextTurn(): void {
@@ -106,7 +116,7 @@ export class Conductor extends EventEmitter<ConductorEvents> {
         hooks: { PreToolUse: [{ hooks: [this.options.beforeTool], timeout: 120 }] },
         canUseTool: async (_toolName, input) => ({ behavior: "allow", updatedInput: input }),
         // CALLSIGN_ROUTER keeps the user's connected-session hooks from treating this as a session of theirs.
-        env: { ...withoutClaudeCodeVariables(process.env), CALLSIGN_ROUTER: "1" },
+        env: { ...withoutInheritedMarkers(process.env), CALLSIGN_ROUTER: "1" },
       },
     });
     void this.readSession(this.session);
@@ -154,13 +164,4 @@ function claudeExecutablePath(): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-function withoutClaudeCodeVariables(environment: NodeJS.ProcessEnv): Record<string, string> {
-  const kept: Record<string, string> = {};
-  for (const [key, value] of Object.entries(environment)) {
-    if (value === undefined || key === "CALLSIGN_SESSION" || key === "CLAUDECODE" || key.startsWith("CLAUDE_CODE_")) continue;
-    kept[key] = value;
-  }
-  return kept;
 }

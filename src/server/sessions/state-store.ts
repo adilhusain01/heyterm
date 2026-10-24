@@ -9,6 +9,12 @@ export interface SavedState {
   recentlyClosed: SessionView[];
 }
 
+// Sessions saved by older versions: every one was Claude Code, and its id was called claudeSessionId.
+function upgraded(saved: SessionView & { claudeSessionId?: string }): SessionView {
+  const { claudeSessionId, ...session } = saved;
+  return { ...session, agent: session.agent ?? "claude", agentSessionId: session.agentSessionId ?? claudeSessionId };
+}
+
 export class StateStore {
   private readonly filePath: string;
 
@@ -21,7 +27,7 @@ export class StateStore {
     if (!text) return { sessions: [], recentlyClosed: [] };
     try {
       const parsed = JSON.parse(text) as Partial<SavedState>;
-      return { sessions: parsed.sessions ?? [], recentlyClosed: parsed.recentlyClosed ?? [] };
+      return { sessions: (parsed.sessions ?? []).map(upgraded), recentlyClosed: (parsed.recentlyClosed ?? []).map(upgraded) };
     } catch {
       return { sessions: [], recentlyClosed: [] };
     }

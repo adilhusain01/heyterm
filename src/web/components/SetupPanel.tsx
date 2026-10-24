@@ -64,19 +64,18 @@ function InstallSteps() {
 function SetupSections({ setup }: { setup: SetupStatus }) {
   return (
     <>
-      <Section title="Tools">
-        <CheckRow ok={setup.tmuxVersion !== undefined} label="tmux" value={setup.tmuxVersion ?? "Not installed"} fix={setup.tmuxVersion ? undefined : "brew install tmux (macOS) or sudo apt install tmux (Linux)"} />
-        <CheckRow
-          ok={setup.claudeVersionIsTested}
-          label="Claude Code"
-          value={setup.claudeVersion ?? "Not installed"}
-          fix={!setup.claudeVersion ? "Install from code.claude.com" : setup.claudeVersionIsTested ? undefined : `Callsign was checked against ${setup.testedClaudeVersion}. Run claude update.`}
-        />
+      <Section title="Coding agents">
+        {setup.agents.map((agent) => {
+          const outdatedClaude = agent.kind === "claude" && agent.version && !setup.claudeVersionIsTested;
+          const fix = !agent.version ? agent.installHint : outdatedClaude ? `Callsign was checked against ${setup.testedClaudeVersion}. Run claude update.` : undefined;
+          return <CheckRow key={agent.kind} ok={Boolean(agent.version) && !outdatedClaude} label={agent.label} value={agent.version ?? "Not installed"} fix={fix} />;
+        })}
         <CheckRow ok label="Node" value={setup.nodeVersion} />
       </Section>
       <VoiceSection />
       <ProjectFoldersSection setup={setup} />
       <ExistingSessionsSection connected={setup.existingSessionsConnected} />
+      <RunningSection keepRunning={setup.keepRunningWithoutPage} />
       <Section title="The assistant">
         <p className="text-meta leading-relaxed text-ink-muted">
           Approvals, answers and commands that name a session happen on this computer at once. Everything else goes to the assistant, <span className="font-mono text-ink">{setup.routerModel}</span>,{" "}
@@ -158,11 +157,28 @@ function ExistingSessionsSection({ connected }: { connected: boolean }) {
     <Section title="Claude sessions you start yourself">
       <p className="text-meta leading-relaxed text-ink-muted">
         {connected
-          ? "Connected. Sessions from any terminal show up here; Callsign answers their permissions and questions and tells you when they finish. It can't type into them."
-          : "Connect to see the sessions you start in your own terminals too. Callsign adds its hooks to ~/.claude/settings.json, keeps a backup of the file first, and takes them out again when you disconnect."}
+          ? "On. Claude sessions from any terminal show up here; Callsign answers their permissions and questions and tells you when they finish. It can't type into them. Its hooks are in ~/.claude/settings.json only while Callsign runs."
+          : "Turn on to see the Claude sessions you start in your own terminals too. While Callsign runs, its hooks sit in ~/.claude/settings.json (backed up first); they come out when it stops or when you turn this off."}
       </p>
       <div>
-        <PanelButton onClick={() => connection.send({ type: "connect_existing_sessions", connected: !connected })}>{connected ? "Disconnect" : "Connect my sessions"}</PanelButton>
+        <PanelButton onClick={() => connection.send({ type: "connect_existing_sessions", connected: !connected })}>{connected ? "Turn off" : "Show my own sessions"}</PanelButton>
+      </div>
+    </Section>
+  );
+}
+
+function RunningSection({ keepRunning }: { keepRunning: boolean }) {
+  const { connection } = useCallsign();
+  return (
+    <Section title="Closing Callsign">
+      <p className="text-meta leading-relaxed text-ink-muted">
+        {keepRunning
+          ? "Callsign keeps running when you close this page. Stop it with Quit, or callsign stop in a terminal."
+          : "Closing the last Callsign page closes Callsign and every session in it after 15 seconds. Sessions come back from Recently closed."}
+      </p>
+      <div className="flex gap-1">
+        <PanelButton onClick={() => connection.send({ type: "set_keep_running", keepRunning: !keepRunning })}>{keepRunning ? "Close with the page" : "Keep running without the page"}</PanelButton>
+        <PanelButton onClick={() => connection.send({ type: "quit" })}>Quit Callsign</PanelButton>
       </div>
     </Section>
   );

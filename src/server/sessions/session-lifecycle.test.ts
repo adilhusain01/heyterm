@@ -26,7 +26,7 @@ describe("SessionLifecycle", () => {
   it("is idle once the agent has started", () => {
     const session = SessionLifecycle.apply(makeSession(), makeEvent("SessionStart", { session_id: "abc", source: "startup" }));
     expect(session.state).toBe("idle");
-    expect(session.claudeSessionId).toBe("abc");
+    expect(session.agentSessionId).toBe("abc");
   });
 
   it("remembers where Claude saves the conversation, so bring back knows whether there is one", () => {

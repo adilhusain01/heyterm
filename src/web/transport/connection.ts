@@ -3,7 +3,8 @@
 
 import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
 
-export type ConnectionStatus = "connecting" | "open" | "closed";
+// "needs_token": the page was opened without the secret the callsign command gives it.
+export type ConnectionStatus = "connecting" | "open" | "closed" | "needs_token";
 
 export interface ConnectionHandlers {
   onMessage: (message: ServerMessage) => void;
