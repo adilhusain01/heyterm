@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useCallsign } from "../app-context.tsx";
+import { isPlayground } from "../playground/is-playground.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { CloseIcon } from "./icons.tsx";
 import type { SetupStatus } from "../../shared/protocol.ts";
@@ -32,9 +33,29 @@ export function SetupPanel({ onClose }: { onClose: () => void }) {
             <CloseIcon />
           </button>
         </header>
-        {setup ? <SetupSections setup={setup} /> : <p className="px-3 text-[13px] text-ink-muted">Checking this computer…</p>}
+        {isPlayground ? <InstallSteps /> : setup ? <SetupSections setup={setup} /> : <p className="px-3 text-[13px] text-ink-muted">Checking this computer…</p>}
       </aside>
     </div>
+  );
+}
+
+function InstallSteps() {
+  return (
+    <>
+      <Section title="This is the playground">
+        <p className="text-[13px] leading-relaxed text-ink-muted">
+          The three agents here are simulated, so you can try Callsign without installing anything. Speak with Wispr Flow (hold Fn) or type into the bar at the bottom. Try "catch me
+          up", "approve", "after", "confirm", or "api, run the tests".
+        </p>
+      </Section>
+      <Section title="Run it on your own sessions">
+        <p className="text-[13px] text-ink-muted">You need macOS or Linux, Node.js 20+, tmux and Claude Code.</p>
+        <pre className="overflow-x-auto rounded-inner border border-line bg-canvas px-2.5 py-2 font-mono text-[12px] leading-relaxed text-ink">
+          {["brew install tmux", "npx callsign-cli doctor", "npx callsign-cli"].join("\n")}
+        </pre>
+      </Section>
+      <VoiceSection />
+    </>
   );
 }
 

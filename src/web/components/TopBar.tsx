@@ -1,6 +1,7 @@
 // Connection, how long agents have waited on you today, the hands-off meter and the sound mode.
 
 import { useCallsign } from "../app-context.tsx";
+import { isPlayground } from "../playground/is-playground.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "./icons.tsx";
@@ -30,6 +31,7 @@ export function TopBar({ onOpenSetup }: { onOpenSetup: () => void }) {
       <div className="flex items-center gap-2">
         <span className="font-mono text-[13px] font-medium tracking-tight text-ink">callsign</span>
         <ConnectionMark status={connectionStatus} />
+        {isPlayground && <span className="rounded-mark border border-line px-1.5 py-0.5 text-[11px] text-ink-muted">Playground · simulated agents</span>}
       </div>
       <div className="ml-auto flex items-center gap-5 text-[12px] text-ink-muted">
         <Stat label="Waited on you today" value={shortDuration(waitedToday)} />
@@ -48,7 +50,7 @@ export function TopBar({ onOpenSetup }: { onOpenSetup: () => void }) {
           <span>{modeLabel[mode]}</span>
         </button>
         <button type="button" onClick={onOpenSetup} className="press h-8 cursor-pointer rounded-inner border border-line bg-raised px-2.5 text-ink shadow-press hover:border-line-strong">
-          Setup
+          {isPlayground ? "Install" : "Setup"}
         </button>
       </div>
     </header>

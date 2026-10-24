@@ -86,6 +86,7 @@ npm run dev        # server with reload on :4747, UI with reload on :5173
 npm test           # 110 tests
 npm run typecheck
 npm run build      # dist/web and dist/server/cli.js
+npm run build:playground   # dist/playground: the same UI on three simulated agents, a static site anyone can open
 ```
 
 `docs/SPEC.md` is the behaviour Callsign promises, and the tests are written from it. Pure decisions (routing, risk, session states, the attention queue) live in their own files with tests beside them.

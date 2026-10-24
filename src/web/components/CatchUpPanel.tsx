@@ -44,7 +44,7 @@ export function CatchUpPanel() {
               <span className="font-mono text-[13px] text-ink">{digest.sessionName}</span>
               <span className={`text-[11px] ${display.textClass}`}>{display.label}</span>
               <span className="ml-auto text-[11px] text-ink-faint">
-                {digest.commands.length} commands, {digest.changedFiles.length} files
+                {plural(digest.commands.length, "command")}, {plural(digest.changedFiles.length, "file")}
               </span>
             </span>
             {digest.lead && <span className="text-[13px] leading-snug text-ink-muted">{digest.lead}</span>}
@@ -54,4 +54,8 @@ export function CatchUpPanel() {
       })}
     </section>
   );
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }

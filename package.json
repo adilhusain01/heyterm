@@ -7,7 +7,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "dev": "node scripts/dev.mjs",
     "build": "vite build && esbuild src/server/cli.ts --bundle --platform=node --format=esm --packages=external --target=node20 --outfile=dist/server/cli.js",
-    "start": "tsx src/server/serve.ts"
+    "start": "tsx src/server/serve.ts",
+    "build:playground": "vite build --mode playground --outDir ../../dist/playground"
   },
   "license": "UNLICENSED",
   "type": "module",
