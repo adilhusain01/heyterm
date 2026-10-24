@@ -26,7 +26,7 @@ export function CatchUpPanel() {
           <CloseIcon size={14} />
         </button>
       </header>
-      {digests.length === 0 && <p className="px-3 pb-2 text-[13px] text-ink-muted">Nothing new.</p>}
+      {digests.length === 0 && <p className="px-3 pb-2 text-meta text-ink-muted">Nothing new.</p>}
       {digests.map((digest) => {
         const display = stateDisplay[digest.state];
         return (
@@ -41,14 +41,14 @@ export function CatchUpPanel() {
           >
             <span className="flex items-center gap-2">
               <span className={`size-2 rounded-mark ${display.markClass}`} />
-              <span className="font-mono text-[13px] text-ink">{digest.sessionName}</span>
-              <span className={`text-[11px] ${display.textClass}`}>{display.label}</span>
-              <span className="ml-auto text-[11px] text-ink-faint">
+              <span className="font-mono text-meta text-ink">{digest.sessionName}</span>
+              <span className={`text-[12.5px] ${display.textClass}`}>{display.label}</span>
+              <span className="ml-auto text-[12.5px] text-ink-faint">
                 {plural(digest.commands.length, "command")}, {plural(digest.changedFiles.length, "file")}
               </span>
             </span>
-            {digest.lead && <span className="text-[13px] leading-snug text-ink-muted">{digest.lead}</span>}
-            {digest.changedFiles.length > 0 && <span className="truncate font-mono text-[11px] text-ink-faint">{digest.changedFiles.join("  ")}</span>}
+            {digest.lead && <span className="text-meta leading-snug text-ink-muted">{digest.lead}</span>}
+            {digest.changedFiles.length > 0 && <span className="truncate font-mono text-[12.5px] text-ink-faint">{digest.changedFiles.join("  ")}</span>}
           </button>
         );
       })}

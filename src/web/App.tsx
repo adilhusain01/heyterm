@@ -28,6 +28,10 @@ export function App({ connection, announcer }: { connection: CallsignConnection;
 
   useServerMessages(connection, announcer);
   useChosenVoice(connection, announcer);
+  const setSpeaking = useCallsignStore((state) => state.setSpeaking);
+  useEffect(() => {
+    announcer.onSpeakingChange = setSpeaking;
+  }, [announcer, setSpeaking]);
   useUnlockSoundOnFirstGesture(announcer);
 
   // A new user missing tmux or Claude Code sees what to install before anything else.

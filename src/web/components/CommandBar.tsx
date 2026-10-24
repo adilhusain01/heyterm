@@ -6,7 +6,9 @@ import { useCallsign } from "../app-context.tsx";
 import { DictationDetector } from "../dictation-detector.ts";
 import { ListeningState, type Listening } from "../listening-state.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
-import { MicrophoneIcon } from "./icons.tsx";
+import { useOrbState } from "../state/use-orb-state.ts";
+import { AssistantOrb } from "../ui/AssistantOrb.tsx";
+import { Kbd } from "../ui/Hint.tsx";
 import { PendingStrip } from "./PendingStrip.tsx";
 
 export function CommandBar() {
@@ -37,6 +39,10 @@ export function CommandBar() {
 
   useKeepFocus(inputRef, typingSession === undefined);
   const listening = useListening(inputRef);
+  const orbState = useOrbState();
+  const setBarState = useCallsignStore((state) => state.setBarState);
+  useEffect(() => setBarState({ listening }), [listening, setBarState]);
+  useEffect(() => setBarState({ barHasText: text.trim().length > 0 }), [text, setBarState]);
 
   // Dictation pasted while nothing had the cursor goes into the bar instead of disappearing.
   useEffect(() => {
@@ -56,23 +62,23 @@ export function CommandBar() {
   }, [announcer]);
 
   return (
-    <footer className="shrink-0 border-t border-line bg-panel p-2">
+    <footer className="shrink-0 border-t border-line bg-panel px-2 pt-2 pb-2.5">
       <div className="mx-auto flex max-w-[1100px] flex-col gap-1.5">
         <PendingStrip control={control} />
         {typingSession && (
-          <button type="button" onClick={() => setTypingSession(undefined)} className="cursor-pointer rounded-inner border border-line bg-raised px-3 py-1.5 text-left text-[12px] text-ink-muted">
+          <button type="button" onClick={() => setTypingSession(undefined)} className="cursor-pointer rounded-inner border border-line bg-raised px-3 py-1.5 text-left text-meta text-ink-muted hover:text-ink">
             Typing into <span className="font-mono text-ink">{typingSession}</span>. Click here to talk to Callsign again.
           </button>
         )}
         {!typingSession && listening !== "listening" && listening !== "typing_in_terminal" && (
-          <button type="button" onClick={() => inputRef.current?.focus()} className="cursor-pointer rounded-inner border border-permission/40 bg-permission/10 px-3 py-1.5 text-left text-[12px] text-permission">
+          <button type="button" onClick={() => inputRef.current?.focus()} className="enter-rise cursor-pointer rounded-inner border border-permission/40 bg-permission/10 px-3 py-1.5 text-left text-meta text-permission">
             {notListeningText[listening]}
           </button>
         )}
         <label
-          className={`flex h-12 items-center gap-3 rounded-outer border bg-canvas px-3 ${listening === "listening" ? "border-ink/50" : "border-line-strong"}`}
+          className={`flex h-13 items-center gap-3 rounded-outer border bg-tray pr-2 pl-3.5 shadow-tray transition-colors duration-200 ${orbState === "deaf" ? "border-line" : "border-line-strong focus-within:border-ink/40"}`}
         >
-          <MicrophoneIcon size={18} className={`shrink-0 ${listening === "listening" ? "text-ink" : "text-ink-faint"}`} />
+          <AssistantOrb state={orbState} size={26} />
           <input
             ref={inputRef}
             value={text}
@@ -94,13 +100,15 @@ export function CommandBar() {
                 setText("");
               }
             }}
-            placeholder={'Speak with Wispr Flow or any dictation tool. Try "catch me up"'}
+            placeholder={'Talk to Callsign. Hold your dictation key and try "what is everyone doing?"'}
             aria-label="Talk to Callsign"
-            className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-faint"
+            className="h-full min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-faint"
             autoComplete="off"
             spellCheck={false}
           />
-          <kbd className="hidden shrink-0 rounded-mark border border-line px-1.5 py-0.5 font-mono text-[11px] text-ink-faint sm:block">Enter</kbd>
+          <span className="hidden sm:block">
+            <Kbd>Enter</Kbd>
+          </span>
         </label>
       </div>
     </footer>

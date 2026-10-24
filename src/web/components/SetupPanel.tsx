@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useCallsign } from "../app-context.tsx";
 import { isPlayground } from "../playground/is-playground.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
+import { Key } from "../ui/Key.tsx";
 import { VoiceChoice } from "../voice/voice-choice.ts";
 import { CloseIcon } from "./icons.tsx";
 import type { SetupStatus } from "../../shared/protocol.ts";
@@ -34,7 +35,7 @@ export function SetupPanel({ onClose }: { onClose: () => void }) {
             <CloseIcon />
           </button>
         </header>
-        {isPlayground ? <InstallSteps /> : setup ? <SetupSections setup={setup} /> : <p className="px-3 text-[13px] text-ink-muted">Checking this computer…</p>}
+        {isPlayground ? <InstallSteps /> : setup ? <SetupSections setup={setup} /> : <p className="px-3 text-meta text-ink-muted">Checking this computer…</p>}
       </aside>
     </div>
   );
@@ -44,14 +45,14 @@ function InstallSteps() {
   return (
     <>
       <Section title="This is the playground">
-        <p className="text-[13px] leading-relaxed text-ink-muted">
+        <p className="text-meta leading-relaxed text-ink-muted">
           The three agents here are simulated, so you can try Callsign without installing anything. Speak with Wispr Flow (hold Fn) or type into the bar at the bottom. Try "catch me
           up", "approve", "after", "confirm", or "api, run the tests".
         </p>
       </Section>
       <Section title="Run it on your own sessions">
-        <p className="text-[13px] text-ink-muted">You need macOS or Linux, Node.js 20+, tmux and Claude Code.</p>
-        <pre className="overflow-x-auto rounded-inner border border-line bg-canvas px-2.5 py-2 font-mono text-[12px] leading-relaxed text-ink">
+        <p className="text-meta text-ink-muted">You need macOS or Linux, Node.js 20+, tmux and Claude Code.</p>
+        <pre className="overflow-x-auto rounded-inner border border-line bg-tray px-2.5 py-2 font-mono shadow-tray text-[12.5px] leading-relaxed text-ink">
           {["brew install tmux", "npx callsign-cli doctor", "npx callsign-cli"].join("\n")}
         </pre>
       </Section>
@@ -77,7 +78,7 @@ function SetupSections({ setup }: { setup: SetupStatus }) {
       <ProjectFoldersSection setup={setup} />
       <ExistingSessionsSection connected={setup.existingSessionsConnected} />
       <Section title="The assistant">
-        <p className="text-[13px] leading-relaxed text-ink-muted">
+        <p className="text-meta leading-relaxed text-ink-muted">
           Approvals, answers and commands that name a session happen on this computer at once. Everything else goes to the assistant, <span className="font-mono text-ink">{setup.routerModel}</span>,{" "}
           {setup.routerSource === "api" ? "through your Anthropic API key." : "through your own Claude Code login, so there is no key to set up."} It can run commands on this Mac; anything risky waits for you to say confirm.
         </p>
@@ -95,7 +96,7 @@ function VoiceSection() {
   const [notificationPermission, setNotificationPermission] = useState(() => ("Notification" in window ? Notification.permission : "denied"));
   return (
     <Section title="Voice">
-      <p className="text-[13px] leading-relaxed text-ink-muted">
+      <p className="text-meta leading-relaxed text-ink-muted">
         Callsign reads whatever your dictation tool types into the bar at the bottom. With Wispr Flow, hold Fn and speak. macOS Dictation and plain typing work too.
       </p>
       {macVoiceAvailable && (
@@ -108,7 +109,7 @@ function VoiceSection() {
               Browser voice
             </ChoiceButton>
           </div>
-          <p className="text-[12px] text-ink-faint">Mac voice uses the voice set in System Settings, Accessibility, Spoken Content. Siri voices work there and nowhere else.</p>
+          <p className="text-[12.5px] text-ink-faint">Mac voice uses the voice set in System Settings, Accessibility, Spoken Content. Siri voices work there and nowhere else.</p>
         </div>
       )}
       <div className="flex gap-1">
@@ -125,7 +126,7 @@ function VoiceSection() {
           <PanelButton onClick={() => void Notification.requestPermission().then(setNotificationPermission)}>Allow notifications</PanelButton>
         )}
       </div>
-      <p className="text-[12px] text-ink-faint">Use headphones, so the spoken alerts never end up in your own dictation.</p>
+      <p className="text-[12.5px] text-ink-faint">Use headphones, so the spoken alerts never end up in your own dictation.</p>
     </Section>
   );
 }
@@ -136,13 +137,13 @@ function ProjectFoldersSection({ setup }: { setup: SetupStatus }) {
   useEffect(() => setText(setup.projectRoots.join("\n")), [setup.projectRoots]);
   return (
     <Section title="Project folders">
-      <p className="text-[13px] text-ink-muted">Folders that hold your git repositories, one per line. {setup.projectCount} {setup.projectCount === 1 ? "project" : "projects"} found.</p>
+      <p className="text-meta text-ink-muted">Folders that hold your git repositories, one per line. {setup.projectCount} {setup.projectCount === 1 ? "project" : "projects"} found.</p>
       <textarea
         value={text}
         onChange={(event) => setText(event.target.value)}
         rows={3}
         spellCheck={false}
-        className="rounded-inner border border-line bg-canvas px-2.5 py-2 font-mono text-[12px] leading-relaxed text-ink outline-none focus:border-line-strong"
+        className="rounded-inner border border-line bg-tray px-2.5 py-2 font-mono shadow-tray text-[12.5px] leading-relaxed text-ink outline-none focus:border-line-strong"
       />
       <div>
         <PanelButton onClick={() => connection.send({ type: "set_project_roots", roots: text.split("\n") })}>Save folders</PanelButton>
@@ -155,7 +156,7 @@ function ExistingSessionsSection({ connected }: { connected: boolean }) {
   const { connection } = useCallsign();
   return (
     <Section title="Claude sessions you start yourself">
-      <p className="text-[13px] leading-relaxed text-ink-muted">
+      <p className="text-meta leading-relaxed text-ink-muted">
         {connected
           ? "Connected. Sessions from any terminal show up here; Callsign answers their permissions and questions and tells you when they finish. It can't type into them."
           : "Connect to see the sessions you start in your own terminals too. Callsign adds its hooks to ~/.claude/settings.json, keeps a backup of the file first, and takes them out again when you disconnect."}
@@ -170,7 +171,7 @@ function ExistingSessionsSection({ connected }: { connected: boolean }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2 rounded-outer border border-line bg-raised p-3">
-      <h3 className="text-[13px] font-medium text-ink">{title}</h3>
+      <h3 className="text-meta font-medium text-ink">{title}</h3>
       {children}
     </section>
   );
@@ -179,12 +180,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function CheckRow({ ok, label, value, fix }: { ok: boolean; label: string; value: string; fix?: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-2 text-[13px]">
+      <div className="flex items-center gap-2 text-meta">
         <span className={`size-2 rounded-mark ${ok ? "bg-finished" : "bg-permission"}`} />
         <span className="text-ink">{label}</span>
-        <span className="ml-auto font-mono text-[12px] text-ink-muted">{value}</span>
+        <span className="ml-auto font-mono text-[12.5px] text-ink-muted">{value}</span>
       </div>
-      {fix && <p className="pl-4 font-mono text-[12px] text-permission">{fix}</p>}
+      {fix && <p className="pl-4 font-mono text-[12.5px] text-permission">{fix}</p>}
     </div>
   );
 }
@@ -196,7 +197,7 @@ function ChoiceButton({ selected, onClick, children }: { selected: boolean; onCl
       role="radio"
       aria-checked={selected}
       onClick={onClick}
-      className={`press h-8 cursor-pointer rounded-inner border px-3 text-[13px] ${selected ? "border-ink/60 bg-canvas text-ink" : "border-line bg-panel text-ink-muted shadow-press hover:border-line-strong hover:text-ink"}`}
+      className={`press h-8 cursor-pointer rounded-inner border px-3 text-meta font-medium ${selected ? "border-line bg-key text-ink shadow-key ring-1 ring-ink/50" : "key-lift border-line bg-key text-ink-muted shadow-key hover:bg-key-hover hover:text-ink"}`}
     >
       {children}
     </button>
@@ -204,9 +205,5 @@ function ChoiceButton({ selected, onClick, children }: { selected: boolean; onCl
 }
 
 function PanelButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} className="press h-8 cursor-pointer rounded-inner border border-line bg-panel px-3 text-[13px] text-ink shadow-press hover:border-line-strong">
-      {children}
-    </button>
-  );
+  return <Key onClick={onClick}>{children}</Key>;
 }

@@ -4,6 +4,7 @@ import { useCallsign } from "../app-context.tsx";
 import { isPlayground } from "../playground/is-playground.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
+import { Key } from "../ui/Key.tsx";
 import { SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "./icons.tsx";
 import { isWaitingOnUser, shortDuration } from "./session-display.ts";
 import type { AnnouncementMode } from "../../shared/types.ts";
@@ -28,30 +29,27 @@ export function TopBar({ onOpenSetup }: { onOpenSetup: () => void }) {
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-4 border-b border-line bg-panel px-4">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[13px] font-medium tracking-tight text-ink">callsign</span>
+      <div className="flex items-center gap-2.5">
+        <span className="font-mono text-meta font-medium tracking-tight text-ink">callsign</span>
         <ConnectionMark status={connectionStatus} />
-        {isPlayground && <span className="rounded-mark border border-line px-1.5 py-0.5 text-[11px] text-ink-muted">Playground · simulated agents</span>}
+        {isPlayground && <span className="rounded-mark border border-line px-1.5 py-0.5 text-[12.5px] text-ink-muted">Playground, simulated agents</span>}
       </div>
-      <div className="ml-auto flex items-center gap-5 text-[12px] text-ink-muted">
+      <div className="ml-auto flex items-center gap-2 text-meta text-ink-muted">
         <Stat label="Waited on you today" value={shortDuration(waitedToday)} />
         <Stat
           label="Hands off"
           value={voiceShare === undefined ? "–" : `${Math.round(voiceShare * 100)}%`}
           title={`${handsOff.voice} by voice, ${handsOff.keyboard} by keyboard, ${handsOff.pointer} by pointer today`}
         />
-        <button
-          type="button"
+        <Key
           onClick={() => perform({ type: "mode", mode: nextMode[mode] })}
-          className="press flex h-8 cursor-pointer items-center gap-1.5 rounded-inner border border-line bg-raised px-2.5 text-ink shadow-press hover:border-line-strong"
           title="Speaking says everything, Quiet only permissions and questions, Muted plays sounds only. Or say: be quiet, mute, talk to me."
+          className="ml-2"
         >
           <ModeIcon size={15} />
           <span>{modeLabel[mode]}</span>
-        </button>
-        <button type="button" onClick={onOpenSetup} className="press h-8 cursor-pointer rounded-inner border border-line bg-raised px-2.5 text-ink shadow-press hover:border-line-strong">
-          {isPlayground ? "Install" : "Setup"}
-        </button>
+        </Key>
+        <Key onClick={onOpenSetup}>{isPlayground ? "Install" : "Setup"}</Key>
       </div>
     </header>
   );
@@ -59,14 +57,14 @@ export function TopBar({ onOpenSetup }: { onOpenSetup: () => void }) {
 
 function Stat({ label, value, title }: { label: string; value: string; title?: string }) {
   return (
-    <span className="hidden items-baseline gap-1.5 sm:flex" title={title}>
+    <span className="hidden h-8 items-center gap-2 rounded-inner border border-line bg-tray px-2.5 shadow-tray md:flex" title={title}>
       <span>{label}</span>
-      <span className="font-mono text-[13px] text-ink tabular-nums">{value}</span>
+      <span className="font-mono text-ink tabular-nums">{value}</span>
     </span>
   );
 }
 
 function ConnectionMark({ status }: { status: string }) {
   if (status === "open") return null;
-  return <span className="rounded-mark bg-permission/15 px-1.5 py-0.5 text-[11px] text-permission">{status === "connecting" ? "Connecting" : "Reconnecting"}</span>;
+  return <span className="rounded-mark bg-permission/15 px-1.5 py-0.5 text-[12.5px] text-permission">{status === "connecting" ? "Connecting" : "Reconnecting"}</span>;
 }

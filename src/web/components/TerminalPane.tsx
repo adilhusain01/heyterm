@@ -9,6 +9,7 @@ import { useCallsign } from "../app-context.tsx";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { CloseIcon, ExpandIcon, KeyboardIcon } from "./icons.tsx";
+import { StateMark } from "../ui/StateMark.tsx";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
 import type { SessionView } from "../../shared/types.ts";
 
@@ -16,7 +17,7 @@ import type { SessionView } from "../../shared/types.ts";
 const keystrokeBurstMilliseconds = 2_000;
 
 const terminalTheme = {
-  background: "#0a0c0f",
+  background: "#07090b",
   foreground: "#e8ebef",
   cursor: "#e8ebef",
   cursorAccent: "#0a0c0f",
@@ -89,15 +90,15 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   const borderClass = isTyping ? "border-ink/60" : isFocused ? "border-line-strong" : "border-line";
 
   return (
-    <section ref={paneRef} className={`flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-outer border bg-canvas ${borderClass} ${display.ringClass}`}>
-      <header className="flex h-9 shrink-0 items-center gap-2 border-b border-line bg-panel px-3">
-        <span className={`size-2 rounded-mark ${display.markClass}`} />
-        <span className="truncate font-mono text-[12px] text-ink">{session.name}</span>
-        <span className={`text-[11px] ${display.textClass}`}>{display.label}</span>
-        {isWaitingOnUser(session.state) && <span className="font-mono text-[11px] text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
+    <section ref={paneRef} className={`flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-outer border bg-tray transition-colors duration-200 ${borderClass} ${display.ringClass}`}>
+      <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
+        <StateMark state={session.state} />
+        <span className="truncate font-mono text-meta text-ink">{session.name}</span>
+        <span className={`text-[12.5px] ${display.textClass}`}>{display.label}</span>
+        {isWaitingOnUser(session.state) && <span className="font-mono text-[12.5px] text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
         <div className="ml-auto flex items-center gap-0.5">
           {isTyping && (
-            <span className="mr-1 flex items-center gap-1 text-[11px] text-ink-muted">
+            <span className="mr-1 flex items-center gap-1 text-[12.5px] text-ink-muted">
               <KeyboardIcon size={13} /> Typing here
             </span>
           )}
@@ -123,7 +124,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
 
 function PaneButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className="press flex size-7 cursor-pointer items-center justify-center rounded-inner text-ink-muted hover:bg-raised hover:text-ink">
+    <button type="button" aria-label={label} title={label} onClick={onClick} className="press flex size-7 cursor-pointer items-center justify-center rounded-[6px] text-ink-muted hover:bg-raised hover:text-ink">
       {children}
     </button>
   );

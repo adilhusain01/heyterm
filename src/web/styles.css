@@ -5,29 +5,52 @@
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
 
+  /* Surfaces: a tray sits in, a key stands out. See docs/DESIGN.md. */
   --color-canvas: #0a0c0f;
-  --color-panel: #111419;
-  --color-raised: #181c22;
-  --color-line: #232931;
-  --color-line-strong: #333b46;
-  --color-ink: #e8ebef;
-  --color-ink-muted: #9099a6;
-  --color-ink-faint: #5d6672;
+  --color-tray: #07090b;
+  --color-panel: #101317;
+  --color-raised: #161a1f;
+  --color-key: #1c2128;
+  --color-key-hover: #222830;
+  --color-line: #20262d;
+  --color-line-strong: #2f3741;
 
+  --color-ink: #eceef1;
+  --color-ink-muted: #9aa3ae;
+  --color-ink-faint: #67707b;
+
+  /* State colours: each means one session state and nothing else. */
   --color-working: #6ea8fe;
   --color-permission: #f3b440;
   --color-question: #b39cff;
   --color-trust: #f3b440;
   --color-failed: #f2706b;
   --color-finished: #5bd18b;
-  --color-idle: #5d6672;
+  --color-idle: #67707b;
 
-  --radius-outer: 10px;
-  --radius-inner: 6px;
-  --radius-mark: 2px;
+  /* Concentric: inner = outer - the 4px between them. */
+  --radius-outer: 12px;
+  --radius-inner: 8px;
+  --radius-mark: 3px;
+
+  --text-meta: 13px;
+  --text-meta--line-height: 1.4;
+  --text-body: 15px;
+  --text-body--line-height: 1.5;
+  --text-title: 16px;
+  --text-title--line-height: 1.35;
+
+  /* Only keys cast a shadow; trays are inset. */
+  --shadow-key: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 1px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.22);
+  --shadow-key-hover: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 2px rgb(0 0 0 / 0.45), 0 4px 10px rgb(0 0 0 / 0.26);
+  --shadow-tray: inset 0 1px 2px rgb(0 0 0 / 0.55);
+  --shadow-press: var(--shadow-key);
 
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
-  --shadow-press: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 1px 2px rgb(0 0 0 / 0.5);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --duration-press: 120ms;
+  --duration-enter: 200ms;
+  --duration-state: 240ms;
 }
 
 html,
@@ -56,10 +79,69 @@ body {
 }
 
 .press {
-  transition: transform 120ms var(--ease-out-strong);
+  transition:
+    transform var(--duration-press) var(--ease-out-strong),
+    box-shadow var(--duration-press) var(--ease-out-strong),
+    background-color var(--duration-press) ease;
 }
 .press:active {
   transform: scale(0.97);
+}
+/* Keys lift a pixel under a fine pointer only; touch never sees a hover. */
+@media (hover: hover) and (pointer: fine) {
+  .key-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-key-hover);
+  }
+  .key-lift:active {
+    transform: scale(0.97);
+  }
+}
+
+/* The assistant orb: dots ripple outward while thinking, pulse while speaking. */
+@keyframes orb-ripple {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@keyframes orb-pulse {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.orb-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity var(--duration-state) var(--ease-out-strong);
+}
+.orb-thinking .orb-dot {
+  animation: orb-ripple 1100ms var(--ease-in-out-strong) infinite;
+  animation-delay: calc(var(--ring) * 110ms);
+}
+.orb-speaking .orb-dot {
+  animation: orb-pulse 700ms var(--ease-in-out-strong) infinite;
+  animation-delay: calc(var(--ring) * 60ms);
+}
+
+/* A status line swapping to its next words. */
+.status-swap {
+  transition:
+    opacity var(--duration-state) var(--ease-out-strong),
+    transform var(--duration-state) var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(3px);
+  }
 }
 
 /* The send preview's countdown, driven by a CSS variable for its length. */
@@ -93,8 +175,19 @@ body {
       transform: none;
     }
   }
-  .press:active {
+  .press:active,
+  .key-lift:hover,
+  .key-lift:active {
     transform: none;
+  }
+  .orb-thinking .orb-dot,
+  .orb-speaking .orb-dot {
+    animation: none;
+  }
+  .status-swap {
+    @starting-style {
+      transform: none;
+    }
   }
   .spin {
     animation-duration: 2s;

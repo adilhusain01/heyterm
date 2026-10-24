@@ -7,6 +7,7 @@ import type { ClosedSessionView, ControlState, ConversationEntry, ServerMessage,
 import type { SessionView } from "../../shared/types.ts";
 import type { ConnectionStatus } from "../transport/connection.ts";
 import { VoiceChoice, type Voice } from "../voice/voice-choice.ts";
+import type { Listening } from "../listening-state.ts";
 
 interface CallsignState {
   connectionStatus: ConnectionStatus;
@@ -23,6 +24,11 @@ interface CallsignState {
   catchUp: SessionDigest[] | undefined;
   setup: SetupStatus | undefined;
   conversation: ConversationEntry[];
+  // Callsign is talking right now.
+  speaking: boolean;
+  // Whether dictation would reach the bar, and whether words are in it now.
+  listening: Listening;
+  barHasText: boolean;
   handsOff: HandsOffTally;
   // The voice the user picked in Setup; undefined means the default for this computer.
   voicePreference: Voice | undefined;
@@ -33,6 +39,8 @@ interface CallsignState {
   closeCatchUp: () => void;
   recordAction: (source: ActionSource) => void;
   setVoicePreference: (voice: Voice) => void;
+  setSpeaking: (speaking: boolean) => void;
+  setBarState: (barState: { listening?: Listening; barHasText?: boolean }) => void;
 }
 
 export const useCallsignStore = create<CallsignState>((set) => ({
@@ -48,6 +56,9 @@ export const useCallsignStore = create<CallsignState>((set) => ({
   catchUp: undefined,
   setup: undefined,
   conversation: [],
+  speaking: false,
+  listening: "listening",
+  barHasText: false,
   handsOff: HandsOffTally.loadToday(),
   voicePreference: VoiceChoice.savedPreference(),
 
@@ -72,6 +83,8 @@ export const useCallsignStore = create<CallsignState>((set) => ({
   setTypingSession: (typingSession) => set({ typingSession }),
   closeCatchUp: () => set({ catchUp: undefined }),
   recordAction: (source) => set((state) => ({ handsOff: state.handsOff.withAction(source) })),
+  setSpeaking: (speaking) => set({ speaking }),
+  setBarState: (barState) => set(barState),
   setVoicePreference: (voicePreference) => {
     VoiceChoice.savePreference(voicePreference);
     set({ voicePreference });

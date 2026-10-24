@@ -3,6 +3,8 @@
 
 import { useCallsign } from "../app-context.tsx";
 import { useCallsignStore } from "../state/callsign-store.ts";
+import { AssistantOrb } from "../ui/AssistantOrb.tsx";
+import { Key } from "../ui/Key.tsx";
 import type { ControlState } from "../../shared/protocol.ts";
 
 export function PendingStrip({ control }: { control: ControlState }) {
@@ -13,10 +15,10 @@ export function PendingStrip({ control }: { control: ControlState }) {
     const remaining = Math.max(0, control.preview.deadline - Date.now());
     return (
       <div key={control.preview.deadline} className="enter-rise relative overflow-hidden rounded-inner border border-line bg-raised px-3 py-2">
-        <div className="flex items-baseline gap-2 text-[13px]">
+        <div className="flex items-baseline gap-2 text-meta">
           <span className="shrink-0 font-mono text-ink-muted">to {control.preview.session}</span>
           <span className="min-w-0 flex-1 truncate text-ink">{control.preview.text}</span>
-          <span className="shrink-0 text-[11px] text-ink-faint">say cancel to stop</span>
+          <span className="shrink-0 text-[12.5px] text-ink-faint">say cancel to stop</span>
           <StripButton onClick={() => perform({ type: "send_now" })}>Send now</StripButton>
           <StripButton onClick={() => perform({ type: "cancel" })}>Cancel</StripButton>
         </div>
@@ -27,7 +29,7 @@ export function PendingStrip({ control }: { control: ControlState }) {
 
   if (control.confirmation) {
     return (
-      <div className="enter-rise flex items-center gap-2 rounded-inner border border-permission/60 bg-permission/10 px-3 py-2 text-[13px]">
+      <div className="enter-rise flex items-center gap-2 rounded-inner border border-permission/60 bg-permission/10 px-3 py-2 text-meta">
         <span className="min-w-0 flex-1 text-ink">
           Say <span className="font-medium">confirm</span> to {control.confirmation}.
         </span>
@@ -39,7 +41,7 @@ export function PendingStrip({ control }: { control: ControlState }) {
 
   if (control.clarify) {
     return (
-      <div className="enter-rise flex flex-wrap items-center gap-2 rounded-inner border border-line bg-raised px-3 py-2 text-[13px]">
+      <div className="enter-rise flex flex-wrap items-center gap-2 rounded-inner border border-line bg-raised px-3 py-2 text-meta">
         <span className="text-ink">{control.clarify.question}</span>
         {control.clarify.options.map((option, index) => (
           <StripButton key={option} onClick={() => perform({ type: "choose", index })}>
@@ -53,8 +55,8 @@ export function PendingStrip({ control }: { control: ControlState }) {
 
   if (control.routing) {
     return (
-      <div className="flex items-center gap-2 px-1 text-[12px] text-ink-muted">
-        <span className="spin size-3 rounded-full border border-ink-faint border-t-ink" />
+      <div className="flex items-center gap-2 px-1 text-[12.5px] text-ink-muted lg:hidden">
+        <AssistantOrb state="thinking" size={16} />
         Thinking
       </div>
     );
@@ -63,16 +65,16 @@ export function PendingStrip({ control }: { control: ControlState }) {
   // Below the width where the conversation column shows, its latest reply sits here instead.
   return (
     <>
-      {latestReply && <p className="truncate px-1 text-[12px] text-ink-muted lg:hidden">{latestReply}</p>}
-      {control.lastHeard && <p className={`truncate px-1 text-[12px] text-ink-faint ${latestReply ? "hidden lg:block" : ""}`}>Heard: {control.lastHeard}</p>}
+      {latestReply && <p className="truncate px-1 text-[12.5px] text-ink-muted lg:hidden">{latestReply}</p>}
+      {control.lastHeard && <p className={`truncate px-1 text-[12.5px] text-ink-faint ${latestReply ? "hidden lg:block" : ""}`}>Heard: {control.lastHeard}</p>}
     </>
   );
 }
 
 function StripButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="press h-7 shrink-0 cursor-pointer rounded-inner border border-line bg-panel px-2.5 text-[12px] text-ink shadow-press hover:border-line-strong">
+    <Key size="small" className="shrink-0" onClick={onClick}>
       {children}
-    </button>
+    </Key>
   );
 }

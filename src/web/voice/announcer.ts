@@ -33,6 +33,9 @@ export class Announcer {
   private voice: Voice = "browser";
   private macSpeaker: MacSpeaker | undefined;
   private macSpeechEndsAt = 0;
+  private macSpeechTimer: number | undefined;
+  // Tells the page when Callsign starts and stops talking, for the assistant orb.
+  onSpeakingChange: (speaking: boolean) => void = () => undefined;
 
   useVoice(voice: Voice, macSpeaker: MacSpeaker | undefined): void {
     this.voice = voice;
@@ -108,13 +111,19 @@ export class Announcer {
     if (this.macSpeaker && Date.now() < this.macSpeechEndsAt) {
       this.macSpeaker.stop();
       this.macSpeechEndsAt = 0;
+      window.clearTimeout(this.macSpeechTimer);
+      this.onSpeakingChange(false);
     }
   }
 
   private speak(text: string): void {
     if (this.voice === "mac" && this.macSpeaker) {
       this.macSpeaker.speak(text);
-      this.macSpeechEndsAt = Date.now() + text.length * macSpeechMillisecondsPerCharacter + 1_000;
+      const speechMilliseconds = text.length * macSpeechMillisecondsPerCharacter + 1_000;
+      this.macSpeechEndsAt = Date.now() + speechMilliseconds;
+      this.onSpeakingChange(true);
+      window.clearTimeout(this.macSpeechTimer);
+      this.macSpeechTimer = window.setTimeout(() => this.onSpeakingChange(false), speechMilliseconds);
       return;
     }
     const synthesis = window.speechSynthesis;
@@ -123,6 +132,9 @@ export class Announcer {
     utterance.rate = 1.08;
     const voice = preferredVoice(synthesis.getVoices());
     if (voice) utterance.voice = voice;
+    utterance.onstart = () => this.onSpeakingChange(true);
+    utterance.onend = () => this.onSpeakingChange(false);
+    utterance.onerror = () => this.onSpeakingChange(false);
     synthesis.speak(utterance);
   }
 }

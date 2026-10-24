@@ -18,19 +18,19 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
           </p>
         </div>
         <div className="rounded-outer border border-line bg-panel p-1">
-          <p className="px-3 pt-2.5 pb-2 text-[13px] text-ink-muted">Hold your dictation key and say:</p>
+          <p className="px-3 pt-2.5 pb-2 text-meta text-ink-muted">Hold your dictation key and say:</p>
           <p className="rounded-inner bg-raised px-3 py-2.5 font-mono text-[14px] text-ink">start a session in {exampleProject} and explain how it is laid out</p>
         </div>
         {projects.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <p className="text-[13px] text-ink-muted">Or pick a project:</p>
+            <p className="text-meta text-ink-muted">Or pick a project:</p>
             <div className="flex flex-wrap gap-1">
               {projects.slice(0, 10).map((project) => (
                 <button
                   key={project}
                   type="button"
                   onClick={() => perform({ type: "spawn", project })}
-                  className="press h-8 cursor-pointer rounded-inner border border-line bg-panel px-3 font-mono text-[12px] text-ink shadow-press hover:border-line-strong"
+                  className="press key-lift h-8 cursor-pointer rounded-inner border border-line bg-key px-3 font-mono text-meta text-ink shadow-key hover:bg-key-hover"
                 >
                   {project}
                 </button>
@@ -38,7 +38,7 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
             </div>
           </div>
         ) : (
-          <p className="text-[13px] text-ink-muted">
+          <p className="text-meta text-ink-muted">
             No projects found yet.{" "}
             <button type="button" onClick={onOpenSetup} className="cursor-pointer text-ink underline underline-offset-2">
               Add your project folders
@@ -46,7 +46,7 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
             .
           </p>
         )}
-        <p className="text-[12px] text-ink-faint">
+        <p className="text-[12.5px] text-ink-faint">
           Already have Claude running in other terminals?{" "}
           <button type="button" onClick={onOpenSetup} className="cursor-pointer text-ink-muted underline underline-offset-2">
             Connect those sessions
