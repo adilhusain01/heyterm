@@ -46,6 +46,11 @@ function shortenedForSpeech(text: string): string {
 }
 
 export class ConductorSafety {
+  // The developer's standing rule: nothing reads, lists or changes their PrivateKeys folder.
+  static touchesPrivateKeys(_toolName: string, input: Record<string, unknown>): boolean {
+    return /privatekeys/i.test(JSON.stringify(input ?? {}));
+  }
+
   static commandDecision(command: string): { needsConfirm: false } | { needsConfirm: true; reason: string } {
     const assessment = PermissionRisk.assess({ toolName: "Bash", toolInput: { command }, projectPath: "" });
     if (assessment.risk !== "high") return { needsConfirm: false };

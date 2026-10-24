@@ -30,8 +30,14 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
   const { executor, audit } = dependencies;
   let assistant: Assistant | undefined;
 
-  const beforeCommand: HookCallback = async (input) => {
-    const command = input.hook_event_name === "PreToolUse" ? String((input.tool_input as { command?: unknown } | undefined)?.command ?? "") : "";
+  const beforeTool: HookCallback = async (input) => {
+    if (input.hook_event_name !== "PreToolUse") return {};
+    const toolInput = (input.tool_input ?? {}) as Record<string, unknown>;
+    if (ConductorSafety.touchesPrivateKeys(input.tool_name, toolInput)) {
+      return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "The PrivateKeys folder is off limits. Do not try another way." } };
+    }
+    if (input.tool_name !== "Bash") return {};
+    const command = String(toolInput.command ?? "");
     const decision = ConductorSafety.commandDecision(command);
     if (!decision.needsConfirm) return {};
     assistant?.sayNow(`I want to run a command that ${decision.reason}. Say confirm to let me, or cancel.`);
@@ -50,7 +56,7 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
     model: dependencies.model,
     workingDirectory: dependencies.workingDirectory,
     tools: createConductorTools(dependencies),
-    beforeCommand,
+    beforeTool,
   });
   assistant = new Assistant(conductor, () => executor.situation(), () => executor.currentMode());
   return assistant;

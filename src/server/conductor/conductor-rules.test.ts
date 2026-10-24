@@ -72,3 +72,16 @@ describe("ConductorSafety.commandDecision", () => {
     expect(ConductorSafety.commandDecision("git push origin main")).toEqual({ needsConfirm: true, reason: "pushes to a remote" });
   });
 });
+
+describe("ConductorSafety.touchesPrivateKeys", () => {
+  it("refuses any tool aimed at the PrivateKeys folder", () => {
+    expect(ConductorSafety.touchesPrivateKeys("Read", { file_path: "/Users/me/PrivateKeys/wallet.txt" })).toBe(true);
+    expect(ConductorSafety.touchesPrivateKeys("Bash", { command: "cat ~/Documents/PrivateKeys/*" })).toBe(true);
+    expect(ConductorSafety.touchesPrivateKeys("Grep", { pattern: "key", path: "/Users/me/privatekeys" })).toBe(true);
+  });
+
+  it("leaves everything else alone", () => {
+    expect(ConductorSafety.touchesPrivateKeys("Read", { file_path: "/Users/me/project/src/keys.ts" })).toBe(false);
+    expect(ConductorSafety.touchesPrivateKeys("Bash", { command: "git status" })).toBe(false);
+  });
+});

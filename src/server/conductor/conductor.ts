@@ -15,7 +15,7 @@ interface ConductorOptions {
   model: string;
   workingDirectory: string;
   tools: McpSdkServerConfigWithInstance;
-  beforeCommand: HookCallback;
+  beforeTool: HookCallback;
 }
 
 interface QueuedTurn {
@@ -94,15 +94,16 @@ export class Conductor extends EventEmitter<ConductorEvents> {
       options: {
         model: this.options.model,
         effort: "low",
-        systemPrompt: conductorSystemPrompt,
+        // Everything Claude Code can do, with the voice rules on top.
+        systemPrompt: { type: "preset", preset: "claude_code", append: conductorSystemPrompt },
         cwd: this.options.workingDirectory,
         pathToClaudeCodeExecutable: claudeExecutablePath(),
-        // The user's own settings, hooks and CLAUDE.md belong to their coding sessions, not to Callsign.
-        settingSources: [],
+        // The user's own setup: their MCP servers, skills, CLAUDE.md and permission rules.
+        settingSources: ["user"],
         persistSession: false,
-        tools: ["Bash", "Read", "Glob", "Grep", "WebSearch", "WebFetch"],
+        tools: { type: "preset", preset: "claude_code" },
         mcpServers: { callsign: this.options.tools },
-        hooks: { PreToolUse: [{ matcher: "Bash", hooks: [this.options.beforeCommand], timeout: 120 }] },
+        hooks: { PreToolUse: [{ hooks: [this.options.beforeTool], timeout: 120 }] },
         canUseTool: async (_toolName, input) => ({ behavior: "allow", updatedInput: input }),
         // CALLSIGN_ROUTER keeps the user's connected-session hooks from treating this as a session of theirs.
         env: { ...withoutClaudeCodeVariables(process.env), CALLSIGN_ROUTER: "1" },
