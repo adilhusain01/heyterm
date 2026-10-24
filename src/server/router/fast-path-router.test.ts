@@ -57,7 +57,7 @@ const router = new FastPathRouter();
 
 describe("approvals", () => {
   const session = makeSession("bookboy", { state: "needs_permission", pending: migratePermission });
-  const head: AttentionItem = { sessionName: "bookboy", kind: "permission", since: 0, headline: "", requestId: "p1" };
+  const head: AttentionItem = { sessionName: "bookboy", kind: "permission", since: 0, headline: "", spoken: "", requestId: "p1" };
 
   it("approves the permission at the top of the queue on a yes", () => {
     for (const utterance of ["Yes.", "approve", "Yeah, go ahead.", "allow it"]) {
@@ -93,7 +93,7 @@ describe("approvals", () => {
 
 describe("answers to a question", () => {
   const session = makeSession("bookboy", { state: "asked", pending: neonQuestion });
-  const head: AttentionItem = { sessionName: "bookboy", kind: "question", since: 0, headline: "", requestId: "q1" };
+  const head: AttentionItem = { sessionName: "bookboy", kind: "question", since: 0, headline: "", spoken: "", requestId: "q1" };
 
   it("answers with the option the user named", () => {
     expect(router.route("Neon.", contextWithHead(session, head))).toEqual({
@@ -139,7 +139,7 @@ describe("talking to a session", () => {
 
   it("sends plain words to a session that asked something in text, without a preview", () => {
     const session = makeSession("synqed", { state: "asked", lastMessage: "Should I also update the README?" });
-    const head: AttentionItem = { sessionName: "synqed", kind: "question", since: 0, headline: "" };
+    const head: AttentionItem = { sessionName: "synqed", kind: "question", since: 0, headline: "", spoken: "" };
     expect(router.route("Yes, update it too.", contextWithHead(session, head))).toEqual({
       type: "send",
       session: "synqed",
@@ -159,7 +159,7 @@ describe("talking to a session", () => {
 
   it("never types into a session showing a dialog left open across a restart", () => {
     const session = makeSession("synqed", { state: "asked", blockedByTerminalDialog: true });
-    const head: AttentionItem = { sessionName: "synqed", kind: "question", since: 0, headline: "" };
+    const head: AttentionItem = { sessionName: "synqed", kind: "question", since: 0, headline: "", spoken: "" };
     expect(router.route("Blue.", contextWithHead(session, head))).toBeUndefined();
   });
 
@@ -214,7 +214,7 @@ describe("session commands", () => {
 
   it("trusts a folder for the session waiting on it", () => {
     const session = makeSession("bookboy", { state: "needs_trust" });
-    const head: AttentionItem = { sessionName: "bookboy", kind: "trust", since: 0, headline: "" };
+    const head: AttentionItem = { sessionName: "bookboy", kind: "trust", since: 0, headline: "", spoken: "" };
     expect(router.route("Trust it.", contextWithHead(session, head))).toEqual({ type: "trust", session: "bookboy" });
     expect(router.route("yes", contextWithHead(session, head))).toEqual({ type: "trust", session: "bookboy" });
   });

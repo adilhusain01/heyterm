@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useCallsign } from "../app-context.tsx";
 import { isPlayground } from "../playground/is-playground.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
+import { VoiceChoice } from "../voice/voice-choice.ts";
 import { CloseIcon } from "./icons.tsx";
 import type { SetupStatus } from "../../shared/protocol.ts";
 
@@ -87,18 +88,35 @@ function SetupSections({ setup }: { setup: SetupStatus }) {
 
 function VoiceSection() {
   const { announcer } = useCallsign();
+  const macVoiceAvailable = useCallsignStore((state) => state.setup?.macVoiceAvailable ?? false);
+  const preference = useCallsignStore((state) => state.voicePreference);
+  const setVoicePreference = useCallsignStore((state) => state.setVoicePreference);
+  const voice = VoiceChoice.effective({ preference, macVoiceAvailable });
   const [notificationPermission, setNotificationPermission] = useState(() => ("Notification" in window ? Notification.permission : "denied"));
   return (
     <Section title="Voice">
       <p className="text-[13px] leading-relaxed text-ink-muted">
         Callsign reads whatever your dictation tool types into the bar at the bottom. With Wispr Flow, hold Fn and speak. macOS Dictation and plain typing work too.
       </p>
+      {macVoiceAvailable && (
+        <div className="flex flex-col gap-1.5">
+          <div role="radiogroup" aria-label="Speaking voice" className="flex gap-1">
+            <ChoiceButton selected={voice === "mac"} onClick={() => setVoicePreference("mac")}>
+              Mac voice
+            </ChoiceButton>
+            <ChoiceButton selected={voice === "browser"} onClick={() => setVoicePreference("browser")}>
+              Browser voice
+            </ChoiceButton>
+          </div>
+          <p className="text-[12px] text-ink-faint">Mac voice uses the voice set in System Settings, Accessibility, Spoken Content. Siri voices work there and nowhere else.</p>
+        </div>
+      )}
       <div className="flex gap-1">
         <PanelButton
           onClick={() => {
             announcer.unlock();
             announcer.earcons.play("finished");
-            announcer.noteFeedback({ text: "Callsign can talk to you.", tone: "info", speak: true });
+            announcer.speakNow("Callsign can talk to you.");
           }}
         >
           Test sound
@@ -168,6 +186,20 @@ function CheckRow({ ok, label, value, fix }: { ok: boolean; label: string; value
       </div>
       {fix && <p className="pl-4 font-mono text-[12px] text-permission">{fix}</p>}
     </div>
+  );
+}
+
+function ChoiceButton({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      className={`press h-8 cursor-pointer rounded-inner border px-3 text-[13px] ${selected ? "border-ink/60 bg-canvas text-ink" : "border-line bg-panel text-ink-muted shadow-press hover:border-line-strong hover:text-ink"}`}
+    >
+      {children}
+    </button>
   );
 }
 

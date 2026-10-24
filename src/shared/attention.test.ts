@@ -96,23 +96,54 @@ describe("AttentionQueue.build", () => {
   });
 });
 
-describe("AnnouncementText.forItems", () => {
-  const permissionItem: AttentionItem = { sessionName: "bookboy", kind: "permission", since: 0, headline: "bookboy wants to run pnpm db:migrate" };
-  const finishedItem: AttentionItem = { sessionName: "peeker", kind: "finished", since: 0, headline: "peeker finished: Fixed the menu." };
+describe("spoken lines", () => {
+  function spokenFor(session: SessionView): string | undefined {
+    return AttentionQueue.build([session])[0]?.spoken;
+  }
 
-  it("speaks one item as its headline", () => {
-    expect(AnnouncementText.forItems([permissionItem], "speak")).toBe("bookboy wants to run pnpm db:migrate");
+  it("says what a permission needs from the user, never the command itself", () => {
+    expect(spokenFor(makeSession("bookboy", { state: "needs_permission", pending: permission }))).toBe("bookboy wants to run a command. Say approve or deny.");
+  });
+
+  it("names the risk of a high-risk command and asks for confirm", () => {
+    const risky: PendingRequest = { ...permission, summary: "git push --force origin main", risk: "high", riskReasons: ["force pushes"] };
+    expect(spokenFor(makeSession("bookboy", { state: "needs_permission", pending: risky }))).toBe("bookboy wants to run a command that force pushes. Say confirm or no.");
+  });
+
+  it("says a file edit is a file edit", () => {
+    const edit: PendingRequest = { ...permission, toolName: "Edit", summary: "edit src/app.ts" };
+    expect(spokenFor(makeSession("bookboy", { state: "needs_permission", pending: edit }))).toBe("bookboy wants to edit a file. Say approve or deny.");
+  });
+
+  it("reads a question with its choices, since those are what the user answers with", () => {
+    expect(spokenFor(makeSession("synqed", { state: "asked", pending: question }))).toBe("synqed asks: Which database? Neon or Supabase.");
+  });
+
+  it("says finished work is done without reading the agent's report", () => {
+    expect(spokenFor(makeSession("peeker", { state: "done", stateSince: 100, lastSeenAt: 0, lastMessage: "Fixed the phone menu. Also ran the tests." }))).toBe("peeker is done.");
+  });
+
+  it("asks for the trust and names a failure", () => {
+    expect(spokenFor(makeSession("ultron", { state: "needs_trust" }))).toBe("ultron needs you to trust its folder. Say trust it.");
+    expect(spokenFor(makeSession("ultron", { state: "failed" }))).toBe("ultron stopped on an error.");
+  });
+});
+
+describe("AnnouncementText.forItems", () => {
+  const permissionItem: AttentionItem = { sessionName: "bookboy", kind: "permission", since: 0, headline: "bookboy wants to run pnpm db:migrate", spoken: "bookboy wants to run a command. Say approve or deny." };
+  const finishedItem: AttentionItem = { sessionName: "peeker", kind: "finished", since: 0, headline: "peeker finished: Fixed the menu.", spoken: "peeker is done." };
+
+  it("speaks one item as its spoken line", () => {
+    expect(AnnouncementText.forItems([permissionItem], "speak")).toBe("bookboy wants to run a command. Say approve or deny.");
   });
 
   it("speaks several items as one line that starts with the count", () => {
-    expect(AnnouncementText.forItems([permissionItem, finishedItem], "speak")).toBe(
-      "Two sessions need you. bookboy wants to run pnpm db:migrate. peeker finished: Fixed the menu.",
-    );
+    expect(AnnouncementText.forItems([permissionItem, finishedItem], "speak")).toBe("Two sessions need you. bookboy wants to run a command. Say approve or deny. peeker is done.");
   });
 
   it("speaks only permissions and questions in quiet mode", () => {
     expect(AnnouncementText.forItems([finishedItem], "quiet")).toBeUndefined();
-    expect(AnnouncementText.forItems([permissionItem, finishedItem], "quiet")).toBe("bookboy wants to run pnpm db:migrate");
+    expect(AnnouncementText.forItems([permissionItem, finishedItem], "quiet")).toBe("bookboy wants to run a command. Say approve or deny.");
   });
 
   it("speaks nothing when muted", () => {

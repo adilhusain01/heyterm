@@ -18,9 +18,8 @@ export class AnnouncementText {
     if (mode === "mute") return undefined;
     const spoken = mode === "quiet" ? items.filter((item) => kindsSpokenInQuietMode.includes(item.kind)) : items;
     if (spoken.length === 0) return undefined;
-    if (spoken.length === 1) return spoken[0]!.headline;
-    const headlines = spoken.map((item) => item.headline.replace(/[.\s]+$/, "")).join(". ");
-    return `${capitalize(countWord(spoken.length))} sessions need you. ${headlines}.`;
+    if (spoken.length === 1) return spoken[0]!.spoken;
+    return `${capitalize(countWord(spoken.length))} sessions need you. ${spoken.map((item) => item.spoken).join(" ")}`;
   }
 }
 
@@ -30,21 +29,26 @@ function attentionItemFor(session: SessionView): AttentionItem | undefined {
   switch (session.state) {
     case "needs_permission":
       if (pending?.kind !== "permission") return undefined;
-      return { ...base, kind: "permission", headline: permissionHeadline(session.name, pending), requestId: pending.requestId };
+      return { ...base, kind: "permission", headline: permissionHeadline(session.name, pending), spoken: permissionSpoken(session.name, pending), requestId: pending.requestId };
     case "asked":
-      if (session.blockedByTerminalDialog) return { ...base, kind: "question", headline: `${session.name} is waiting on a dialog in its terminal` };
-      if (pending?.kind === "question") {
-        return { ...base, kind: "question", headline: questionHeadline(session.name, pending), requestId: pending.requestId };
+      if (session.blockedByTerminalDialog) {
+        const headline = `${session.name} is waiting on a dialog in its terminal`;
+        return { ...base, kind: "question", headline, spoken: `${headline}.` };
       }
-      return { ...base, kind: "question", headline: `${session.name} asks: ${lastQuestionSentence(session.lastMessage ?? "")}` };
+      if (pending?.kind === "question") {
+        const headline = questionHeadline(session.name, pending);
+        return { ...base, kind: "question", headline, spoken: endSentence(headline), requestId: pending.requestId };
+      }
+      const headline = `${session.name} asks: ${lastQuestionSentence(session.lastMessage ?? "")}`;
+      return { ...base, kind: "question", headline, spoken: endSentence(headline) };
     case "needs_trust":
-      return { ...base, kind: "trust", headline: `${session.name} needs you to trust its folder` };
+      return { ...base, kind: "trust", headline: `${session.name} needs you to trust its folder`, spoken: `${session.name} needs you to trust its folder. Say trust it.` };
     case "failed":
-      return { ...base, kind: "failed", headline: `${session.name} stopped on an error` };
+      return { ...base, kind: "failed", headline: `${session.name} stopped on an error`, spoken: `${session.name} stopped on an error.` };
     case "done": {
       if (session.lastSeenAt >= session.stateSince) return undefined;
       const lead = firstSentence(session.lastMessage ?? "");
-      return { ...base, kind: "finished", headline: lead ? `${session.name} finished: ${lead}` : `${session.name} finished` };
+      return { ...base, kind: "finished", headline: lead ? `${session.name} finished: ${lead}` : `${session.name} finished`, spoken: `${session.name} is done.` };
     }
     default:
       return undefined;
@@ -55,6 +59,19 @@ function permissionHeadline(sessionName: string, pending: PendingPermission): st
   if (pending.toolName === "Bash") return `${sessionName} wants to run ${pending.summary}`;
   if (/^(edit|fetch|use) /.test(pending.summary)) return `${sessionName} wants to ${pending.summary}`;
   return `${sessionName} wants to use ${pending.summary}`;
+}
+
+const editingTools = ["Edit", "Write", "MultiEdit", "NotebookEdit"];
+
+function permissionSpoken(sessionName: string, pending: PendingPermission): string {
+  if (pending.risk === "high") return `${sessionName} wants to run a command that ${pending.riskReasons[0] ?? "is risky"}. Say confirm or no.`;
+  if (pending.toolName === "Bash") return `${sessionName} wants to run a command. Say approve or deny.`;
+  if (editingTools.includes(pending.toolName)) return `${sessionName} wants to edit a file. Say approve or deny.`;
+  return `${sessionName} wants to use a tool. Say approve or deny.`;
+}
+
+function endSentence(text: string): string {
+  return /[.?!]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`;
 }
 
 function questionHeadline(sessionName: string, pending: PendingQuestion): string {

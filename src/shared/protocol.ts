@@ -50,6 +50,8 @@ export interface SetupStatus {
   existingSessionsConnected: boolean;
   routerSource: "api" | "claude-code";
   routerModel: string;
+  // The server runs on a Mac and can speak with the system voice.
+  macVoiceAvailable: boolean;
 }
 
 export type ServerMessage =
@@ -74,4 +76,6 @@ export type ClientMessage =
   | { type: "focus"; session: string }
   | { type: "setup_refresh" }
   | { type: "set_project_roots"; roots: string[] }
-  | { type: "connect_existing_sessions"; connected: boolean };
+  | { type: "connect_existing_sessions"; connected: boolean }
+  | { type: "speak"; text: string }
+  | { type: "stop_speaking" };

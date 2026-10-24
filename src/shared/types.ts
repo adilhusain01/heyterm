@@ -91,7 +91,10 @@ export interface AttentionItem {
   sessionName: string;
   kind: AttentionKind;
   since: number;
+  // What is shown on screen; may quote the command or the agent's words.
   headline: string;
+  // What is said out loud: what the session wants and what to say back, never a command or code.
+  spoken: string;
   requestId?: string;
 }
 

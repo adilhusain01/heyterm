@@ -5,6 +5,7 @@ import type { ActionExecutor } from "../actions/action-executor.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
 import type { SetupService } from "../setup/setup-service.ts";
+import type { MacVoice } from "../voice/mac-voice.ts";
 import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
 
 const snapshotThrottleMilliseconds = 50;
@@ -19,6 +20,7 @@ export class EventHub {
     private readonly executor: ActionExecutor,
     private readonly projects: ProjectCatalog,
     private readonly setup: SetupService,
+    private readonly macVoice: MacVoice,
   ) {
     registry.on("changed", () => this.scheduleSnapshot());
     executor.on("changed", () => this.scheduleSnapshot());
@@ -50,6 +52,8 @@ export class EventHub {
       if (message.type === "setup_refresh") await this.sendSetup();
       if (message.type === "set_project_roots") await this.changeProjectRoots(message.roots);
       if (message.type === "connect_existing_sessions") await this.connectExistingSessions(message.connected === true);
+      if (message.type === "speak") this.macVoice.speak(String(message.text));
+      if (message.type === "stop_speaking") this.macVoice.stop();
     } catch (error) {
       // A failed command is told to the user; it must never take the server down.
       const reason = error instanceof Error ? error.message.split("\n")[0] : String(error);

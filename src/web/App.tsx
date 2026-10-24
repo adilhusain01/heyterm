@@ -12,6 +12,7 @@ import { TopBar } from "./components/TopBar.tsx";
 import { WelcomeState } from "./components/WelcomeState.tsx";
 import { useCallsignStore } from "./state/callsign-store.ts";
 import type { CallsignConnection } from "./transport/connection.ts";
+import { VoiceChoice } from "./voice/voice-choice.ts";
 import type { Announcer } from "./voice/announcer.ts";
 import type { ServerMessage } from "../shared/protocol.ts";
 import type { AttentionItem } from "../shared/types.ts";
@@ -24,6 +25,7 @@ export function App({ connection, announcer }: { connection: CallsignConnection;
   const closeSetup = useCallback(() => setSetupOpen(false), []);
 
   useServerMessages(connection, announcer);
+  useChosenVoice(connection, announcer);
   useUnlockSoundOnFirstGesture(announcer);
 
   // A new user missing tmux or Claude Code sees what to install before anything else.
@@ -73,6 +75,20 @@ function useServerMessages(connection: CallsignConnection, announcer: Announcer)
       },
     });
   }, [connection, announcer, applyServerMessage, setConnectionStatus]);
+}
+
+// Points the announcer at the Mac's voice or the browser's, following Setup.
+function useChosenVoice(connection: CallsignConnection, announcer: Announcer) {
+  const macVoiceAvailable = useCallsignStore((state) => state.setup?.macVoiceAvailable ?? false);
+  const preference = useCallsignStore((state) => state.voicePreference);
+  useEffect(() => {
+    const voice = VoiceChoice.effective({ preference, macVoiceAvailable });
+    const macSpeaker = {
+      speak: (text: string) => connection.send({ type: "speak", text }),
+      stop: () => connection.send({ type: "stop_speaking" }),
+    };
+    announcer.useVoice(voice, voice === "mac" ? macSpeaker : undefined);
+  }, [connection, announcer, preference, macVoiceAvailable]);
 }
 
 // Browsers keep a page silent until the user clicks or presses a key on it once.

@@ -17,6 +17,7 @@ import { FastPathRouter } from "./router/fast-path-router.ts";
 import { ModelRouter } from "./router/model-router.ts";
 import { AuditLog } from "./safety/audit-log.ts";
 import { SessionLauncher } from "./sessions/session-launcher.ts";
+import { MacVoice } from "./voice/mac-voice.ts";
 import { SessionRegistry } from "./sessions/session-registry.ts";
 import { StateStore } from "./sessions/state-store.ts";
 import { SetupService } from "./setup/setup-service.ts";
@@ -60,7 +61,7 @@ export async function startCallsign(): Promise<void> {
 
   const connector = new ExistingSessionConnector(hooks.existingSessionScriptPath, path.join(config.dataDirectory, "backups"));
   const setup = new SetupService(projects, new UserConfig(config.dataDirectory), connector, config.routerModel);
-  const hub = new EventHub(registry, executor, projects, setup);
+  const hub = new EventHub(registry, executor, projects, setup, new MacVoice());
   const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin);
   const server = new CallsignHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(tmux));
   await server.listen();

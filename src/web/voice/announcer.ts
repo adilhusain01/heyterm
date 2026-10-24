@@ -3,6 +3,7 @@
 
 import { AnnouncementText, AttentionQueue } from "../../shared/attention.ts";
 import { Earcons } from "./earcons.ts";
+import type { Voice } from "./voice-choice.ts";
 import type { Feedback } from "../../shared/protocol.ts";
 import type { AnnouncementMode, AttentionItem, SessionView } from "../../shared/types.ts";
 
@@ -10,6 +11,14 @@ import type { AnnouncementMode, AttentionItem, SessionView } from "../../shared/
 const groupingMilliseconds = 1_200;
 // Nothing is spoken until the command bar has been quiet this long.
 const quietAfterInputMilliseconds = 1_500;
+// A rough speaking rate, to know whether the Mac may still be talking when the user starts dictating.
+const macSpeechMillisecondsPerCharacter = 75;
+
+// Speaks through the server with the Mac's own voice.
+export interface MacSpeaker {
+  speak(text: string): void;
+  stop(): void;
+}
 
 export class Announcer {
   readonly earcons = new Earcons();
@@ -18,6 +27,14 @@ export class Announcer {
   private waitingItems: AttentionItem[] = [];
   private groupTimer: number | undefined;
   private lastInputAt = 0;
+  private voice: Voice = "browser";
+  private macSpeaker: MacSpeaker | undefined;
+  private macSpeechEndsAt = 0;
+
+  useVoice(voice: Voice, macSpeaker: MacSpeaker | undefined): void {
+    this.voice = voice;
+    this.macSpeaker = macSpeaker;
+  }
 
   // Compares the new queue with the last one and announces what is new.
   noteSessions(sessions: SessionView[]): AttentionItem[] {
@@ -41,7 +58,14 @@ export class Announcer {
   // Called on every change in the command bar: the user may be dictating right now.
   noteInputActivity(): void {
     this.lastInputAt = Date.now();
-    window.speechSynthesis?.cancel();
+    this.stopSpeaking();
+  }
+
+  // Says a line at once, cutting off anything still being said. Used by the voice test too.
+  speakNow(text: string): void {
+    if (this.mode === "mute") return;
+    this.stopSpeaking();
+    this.speak(text);
   }
 
   unlock(): void {
@@ -66,13 +90,20 @@ export class Announcer {
     if (text) this.speak(text);
   }
 
-  private speakNow(text: string): void {
-    if (this.mode === "mute") return;
+  private stopSpeaking(): void {
     window.speechSynthesis?.cancel();
-    this.speak(text);
+    if (this.macSpeaker && Date.now() < this.macSpeechEndsAt) {
+      this.macSpeaker.stop();
+      this.macSpeechEndsAt = 0;
+    }
   }
 
   private speak(text: string): void {
+    if (this.voice === "mac" && this.macSpeaker) {
+      this.macSpeaker.speak(text);
+      this.macSpeechEndsAt = Date.now() + text.length * macSpeechMillisecondsPerCharacter + 1_000;
+      return;
+    }
     const synthesis = window.speechSynthesis;
     if (!synthesis) return;
     const utterance = new SpeechSynthesisUtterance(text);

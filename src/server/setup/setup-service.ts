@@ -42,6 +42,7 @@ export class SetupService {
       existingSessionsConnected,
       routerSource: process.env.ANTHROPIC_API_KEY ? "api" : "claude-code",
       routerModel: this.routerModel,
+      macVoiceAvailable: process.platform === "darwin",
     };
   }
 
