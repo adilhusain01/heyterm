@@ -115,6 +115,10 @@ export class Conductor extends EventEmitter<ConductorEvents> {
         persistSession: false,
         tools: { type: "preset", preset: "claude_code" },
         mcpServers: { callsign: this.options.tools },
+        // The mode the developer's own Claude Code sessions run in (their plan's default), so the
+        // assistant asks exactly when Claude Code would. Callsign's own tools only act on sessions.
+        permissionMode: "auto",
+        allowedTools: ["mcp__callsign"],
         hooks: { PreToolUse: [{ hooks: [this.options.beforeTool], timeout: 120 }] },
         // The assistant asks the developer in words, not with an on-screen question.
         disallowedTools: ["AskUserQuestion"],

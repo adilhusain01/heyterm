@@ -35,6 +35,9 @@ export class CallsignHttpServer {
       if (!this.guard.isFromThisMac(request) || !this.guard.hasToken(request)) return socket.destroy();
       const url = new URL(request.url ?? "/", "http://127.0.0.1");
       this.sockets.handleUpgrade(request, socket, head, (webSocket) => {
+        // A bad frame (too large, malformed) makes ws close that one socket with a reason. Without a
+        // listener, the same error would end the whole server.
+        webSocket.on("error", () => undefined);
         if (url.pathname === "/ws") return this.hub.connect(webSocket);
         if (url.pathname === "/pty") {
           const columns = Number(url.searchParams.get("columns"));

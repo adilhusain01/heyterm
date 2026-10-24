@@ -43,7 +43,7 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
   const askDeveloper = async (toolName: string, toolInput: Record<string, unknown>): Promise<boolean> => {
     const summary = PermissionRisk.assess({ toolName, toolInput, projectPath: dependencies.workingDirectory });
     const risk = summary.risk === "high" ? ` It ${summary.riskReasons[0]}.` : "";
-    assistant?.sayNow(`I need your OK to ${toolName === "Bash" ? "run a command" : `use ${toolName}`}.${risk} Say approve or deny.`);
+    assistant?.sayNow(`I need your OK to ${spokenToolUse(toolName)}.${risk} Say approve or deny.`);
     const approved = await executor.waitForSpokenApproval(`let the assistant ${toolName === "Bash" ? `run ${summary.summary}` : summary.summary}`);
     await audit.record({ session: "assistant", decision: approved ? "approved" : "denied", subject: summary.summary, decidedBy: approved ? "spoken approval" : "no or no answer" });
     return approved;
@@ -58,4 +58,14 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
   });
   assistant = new Assistant(conductor, () => executor.situation(), () => executor.currentMode());
   return assistant;
+}
+
+// What a tool call is, in words that can be said out loud.
+function spokenToolUse(toolName: string): string {
+  if (toolName === "Bash") return "run a command";
+  if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(toolName)) return "change a file";
+  if (toolName === "WebFetch") return "open a web page";
+  const service = /^mcp__([^_]+(?:_[^_]+)*)__(.+)$/.exec(toolName);
+  if (service) return `use ${service[1]!.replaceAll("_", " ")} to ${service[2]!.replaceAll("_", " ")}`;
+  return `use ${toolName}`;
 }

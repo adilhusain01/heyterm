@@ -3,6 +3,7 @@
 import { EventEmitter } from "node:events";
 import { DecisionActions } from "./decision-actions.ts";
 import { PendingControls } from "./pending-controls.ts";
+import { UtteranceLimits } from "./utterance-limits.ts";
 import { SessionActions } from "./session-actions.ts";
 import { AttentionQueue } from "../../shared/attention.ts";
 import { acceptsText, type FastPathRouter } from "../router/fast-path-router.ts";
@@ -72,8 +73,12 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
   }
 
   async handleUtterance(text: string, source: InputSource, focusOverride?: string): Promise<void> {
-    const utterance = text.trim();
-    if (!utterance) return;
+    const checked = UtteranceLimits.check(text);
+    if (!checked.ok) {
+      if (checked.reason === "too_long") this.tell({ text: "That was far longer than speech, so I left it. Say it in a sentence or two.", tone: "warning", speak: true });
+      return;
+    }
+    const utterance = checked.utterance;
     this.lastHeard = utterance;
     this.emit("changed");
     const context = await this.routingContext(focusOverride);
