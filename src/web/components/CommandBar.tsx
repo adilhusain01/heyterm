@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useCallsign } from "../app-context.tsx";
 import { DictationDetector } from "../dictation-detector.ts";
+import { ListeningState, type Listening } from "../listening-state.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { MicrophoneIcon } from "./icons.tsx";
 import { PendingStrip } from "./PendingStrip.tsx";
@@ -35,6 +36,24 @@ export function CommandBar() {
   }, []);
 
   useKeepFocus(inputRef, typingSession === undefined);
+  const listening = useListening(inputRef);
+
+  // Dictation pasted while nothing had the cursor goes into the bar instead of disappearing.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      if (!ListeningState.pasteBelongsToBar(ListeningState.focusedElement(document.activeElement, inputRef.current))) return;
+      const pasted = event.clipboardData?.getData("text/plain") ?? "";
+      if (!pasted.trim()) return;
+      event.preventDefault();
+      const next = textRef.current ? `${textRef.current} ${pasted}` : pasted;
+      detector.current.recordChange(textRef.current, next, Date.now());
+      announcer.noteInputActivity();
+      setText(next);
+      inputRef.current?.focus();
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [announcer]);
 
   return (
     <footer className="shrink-0 border-t border-line bg-panel p-2">
@@ -45,8 +64,15 @@ export function CommandBar() {
             Typing into <span className="font-mono text-ink">{typingSession}</span>. Click here to talk to Callsign again.
           </button>
         )}
-        <label className="flex h-12 items-center gap-3 rounded-outer border border-line-strong bg-canvas px-3 focus-within:border-ink/50">
-          <MicrophoneIcon size={18} className="shrink-0 text-ink-muted" />
+        {!typingSession && listening !== "listening" && listening !== "typing_in_terminal" && (
+          <button type="button" onClick={() => inputRef.current?.focus()} className="cursor-pointer rounded-inner border border-permission/40 bg-permission/10 px-3 py-1.5 text-left text-[12px] text-permission">
+            {notListeningText[listening]}
+          </button>
+        )}
+        <label
+          className={`flex h-12 items-center gap-3 rounded-outer border bg-canvas px-3 ${listening === "listening" ? "border-ink/50" : "border-line-strong"}`}
+        >
+          <MicrophoneIcon size={18} className={`shrink-0 ${listening === "listening" ? "text-ink" : "text-ink-faint"}`} />
           <input
             ref={inputRef}
             value={text}
@@ -79,6 +105,32 @@ export function CommandBar() {
       </div>
     </footer>
   );
+}
+
+const notListeningText: Record<Exclude<Listening, "listening" | "typing_in_terminal">, string> = {
+  window_in_background: "Not listening: another app is in front, so dictation goes there. Bring this window forward to talk.",
+  not_listening: "Not listening. Click here, then speak.",
+};
+
+// Follows whether dictation would land in the bar: the window must be in front and the bar must have the cursor.
+function useListening(inputRef: React.RefObject<HTMLInputElement | null>): Listening {
+  const read = () => ListeningState.of({ windowHasFocus: document.hasFocus(), focusedElement: ListeningState.focusedElement(document.activeElement, inputRef.current) });
+  const [listening, setListening] = useState<Listening>("listening");
+  useEffect(() => {
+    // Focus events fire before activeElement settles, so read on the next tick.
+    const update = () => window.setTimeout(() => setListening(read()), 0);
+    update();
+    const events = ["focusin", "focusout"] as const;
+    for (const name of events) document.addEventListener(name, update);
+    window.addEventListener("focus", update);
+    window.addEventListener("blur", update);
+    return () => {
+      for (const name of events) document.removeEventListener(name, update);
+      window.removeEventListener("focus", update);
+      window.removeEventListener("blur", update);
+    };
+  }, []);
+  return listening;
 }
 
 // Brings focus back to the command bar whenever nothing else should have it, so dictation never
