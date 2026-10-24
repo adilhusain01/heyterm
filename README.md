@@ -24,7 +24,9 @@ python3 scripts/measure-waits.py
 | "go to whisker" / "stop synqed" / "close peeker" / "bring back peeker" | focus, interrupt, close and resume |
 | "be quiet" / "mute" / "talk to me" | announcements for questions and permissions only, sounds only, or everything |
 
-Common commands are understood on your computer at once. Anything else goes to Claude (Opus 5.5 at low effort) through your own Claude Code login, so there is no API key to set up.
+Those happen at once on your computer. Everything else goes to the assistant in the middle: Claude (Opus 5.5 at low effort) on the Agent SDK, through your own Claude Code login, so there is no API key to set up. Ask it anything ("what is everyone doing?", "what changed in callsign today?", "start a session in portfolio and fix the header") and it answers out loud, reads sessions, sends them work and runs commands on your Mac. A risky command it wants to run waits for you to say "confirm". When a session needs you, the assistant tells you what it wants and what to say, in plain words, without reading the command out.
+
+Callsign speaks with your Mac's own voice (whatever is set in System Settings, Accessibility, Spoken Content; Siri voices work there), or the browser's voice if you pick it in Setup.
 
 ## Getting started
 
@@ -75,8 +77,8 @@ All optional; see `.env.example`.
 | --- | --- |
 | `CALLSIGN_PORT` | the port (default 4747) |
 | `CALLSIGN_PROJECT_ROOTS` | project folders, separated by `:` (Setup saves the same thing) |
-| `CALLSIGN_ROUTER_MODEL` | the model for unclear commands (default `claude-opus-5-5`) |
-| `ANTHROPIC_API_KEY` | route unclear commands through the Claude API instead of your Claude Code login |
+| `CALLSIGN_ROUTER_MODEL` | the assistant's model (default `claude-opus-5-5`) |
+| `ANTHROPIC_API_KEY` | run the assistant on the Claude API instead of your Claude Code login |
 
 ## Development
 
@@ -92,3 +94,5 @@ npm run build:playground   # dist/playground: the same UI on three simulated age
 `docs/SPEC.md` is the behaviour Callsign promises, and the tests are written from it. Pure decisions (routing, risk, session states, the attention queue) live in their own files with tests beside them.
 
 Built for [No Hands: The Wispr Challenge](https://www.wemakedevs.org/wispr) by WeMakeDevs and Wispr Flow.
+
+The behaviour is specified in `docs/SPEC.md` and the look in `docs/DESIGN.md`.

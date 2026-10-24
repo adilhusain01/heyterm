@@ -28,11 +28,13 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 
 - The command bar holds focus whenever no terminal is in typing mode, so Wispr's text always lands there.
 - Text that arrives in one burst (two or more characters in one input event) is treated as dictation and sent after 600 ms of quiet; a keyboard adds one character per event. Short answers such as "Yes." count as dictation too. Typed text waits for Enter. The split also feeds the hands-off meter, with key presses in a terminal pane counted as keyboard use.
-- The fast path handles the common commands without a model: approve, deny, confirm, cancel, catch me up, what is X doing, go to X, close X, start a session in X, tell X to ..., X: ..., quiet, speak, the first/second one. Anything else goes to the model router.
+- The fast path handles the common commands without a model: approve, deny, confirm, cancel, catch me up, what is X doing, go to X, close X, start a session in X, tell X to ..., X: ..., quiet, speak, the first/second one. Anything else, including "catch me up", status questions and a confirm that nothing in Callsign is waiting for, goes to the assistant.
 - Session names are matched by spelling and by sound ("synced" finds Synqed, "book boy" finds BookBoy, "peaker" finds Peeker).
-- With no name, words go to the session at the top of the attention queue when it asked something, otherwise to the focused session.
+- With no name, an answer goes to the session at the top of the attention queue when it asked something; any other words go to the assistant, which decides where they belong.
 - Every send shows a preview ("to bookboy: go with Neon") with a 1.5 second countdown. "cancel", "no", "wait" or Escape stops it; "send" sends at once. Answers to a question that was just read out go without a countdown.
-- A model router (Claude Opus 5.5 at low effort through `claude -p` on the user's own Claude login, or the API when `ANTHROPIC_API_KEY` is set) returns one structured action. What sessions said is passed to it as data, never as instructions.
+- The assistant is one long-lived Claude conversation (Opus 5.5 at low effort, Agent SDK, the user's own Claude login or the API when `ANTHROPIC_API_KEY` is set). Each turn carries the current situation: every session, its state and its last words. What sessions said is wrapped as data, never instructions. Its tools read a session's screen and last message, send it work, answer, approve, deny, start, close, bring back, interrupt and show sessions; it also runs Bash, Read, Glob, Grep and web search. It can approve, never confirm: a high-risk request still needs the user's own "confirm". Its own high-risk commands are held by a PreToolUse hook until the user says confirm, or denied after a minute.
+- When something newly needs the user, the assistant is told and says what the session wants and the exact reply, in a sentence or two, without reading commands, paths or code aloud. If it has not answered in 9 seconds, a plain line is said instead.
+- Replies are spoken up to a line of `---`; anything after it is shown only. The conversation column shows what the user said, the replies, the assistant's steps and what happened in the sessions.
 
 ## Sessions started outside Callsign
 
