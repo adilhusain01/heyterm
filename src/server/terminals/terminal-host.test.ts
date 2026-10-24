@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { LaunchCommand } from "./launch-command.ts";
 import { TerminalHost } from "./terminal-host.ts";
 
 const posixOnly = process.platform === "win32" ? describe.skip : describe;
@@ -18,6 +19,15 @@ async function waitFor(check: () => boolean | Promise<boolean>, milliseconds = 5
   }
   throw new Error("timed out");
 }
+
+describe("TerminalHost on every system", () => {
+  it("starts a program through the system's own shell and reads what it printed", async () => {
+    const host = makeHost();
+    const { file, args } = LaunchCommand.forPlatform("node", ["-e", "console.log('hello from ' + process.platform); setTimeout(() => {}, 3000)"]);
+    host.createSession({ name: "anywhere", workingDirectory: process.cwd(), program: file, args, environment: {} });
+    await waitFor(async () => (await host.captureScreen("anywhere")).includes(`hello from ${process.platform}`), 15_000);
+  });
+});
 
 afterEach(() => {
   for (const host of hosts.splice(0)) host.shutdown();

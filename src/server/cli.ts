@@ -61,7 +61,8 @@ async function runDoctor(options: { quietWhenHealthy?: boolean } = {}): Promise<
   const nodeMajor = Number(process.versions.node.split(".")[0]);
   const agents = await Promise.all(AgentAdapters.all().map(async (adapter) => ({ adapter, version: await versionOf(adapter.program) })));
   const hasAnAgent = agents.some((agent) => agent.version);
-  const healthy = nodeMajor >= 20 && hasAnAgent;
+  // Callsign starts without an agent too: its Setup screen says what to install.
+  const healthy = nodeMajor >= 20;
   if (healthy && options.quietWhenHealthy) return true;
   console.log(`${nodeMajor >= 20 ? "ok " : "!! "} ${"Node.js".padEnd(12)} ${process.versions.node}${nodeMajor >= 20 ? "" : "\n    Install Node.js 20 or newer from nodejs.org."}`);
   for (const { adapter, version } of agents) {
