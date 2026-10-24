@@ -1,6 +1,6 @@
 // How each session state looks and reads, from one table so every view agrees.
 
-import type { SessionState } from "../../shared/types.ts";
+import type { AttentionKind, SessionState, SessionView } from "../../shared/types.ts";
 
 interface StateDisplay {
   label: string;
@@ -27,6 +27,12 @@ const waitingStates: SessionState[] = ["needs_permission", "asked", "needs_trust
 
 export function isWaitingOnUser(state: SessionState): boolean {
   return waitingStates.includes(state);
+}
+
+// What to say to a session's message. Callsign cannot type into a session in the user's own terminal.
+export function messageVoiceHint(session: Pick<SessionView, "name" | "origin">, kind: AttentionKind): string {
+  if (kind !== "question") return `Say go to ${session.name}, or catch me up`;
+  return session.origin === "external" ? "Reply in your own terminal" : `Answer out loud, or say ${session.name} and your reply`;
 }
 
 // "45s", "4m", "1h 12m"

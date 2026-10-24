@@ -2,7 +2,7 @@
 
 import { useCallsign } from "../app-context.tsx";
 import { useServerNow } from "../state/use-server-now.ts";
-import { shortDuration } from "./session-display.ts";
+import { messageVoiceHint, shortDuration } from "./session-display.ts";
 import type { AttentionItem, PendingPermission, PendingQuestion, SessionView } from "../../shared/types.ts";
 
 const kindAccent: Record<AttentionItem["kind"], string> = {
@@ -105,7 +105,7 @@ function MessageBody({ item, session }: { item: AttentionItem; session: SessionV
   return (
     <div className="flex flex-col gap-2 px-3 pb-2.5">
       <p className="text-[13px] leading-snug text-ink">{headline.charAt(0).toUpperCase() + headline.slice(1)}</p>
-      <VoiceHint text={item.kind === "question" ? `Answer out loud, or say ${session.name} and your reply` : `Say go to ${session.name}, or catch me up`} />
+      <VoiceHint text={messageVoiceHint(session, item.kind)} />
       <div className="flex gap-1">
         <ActionButton onClick={() => perform({ type: "focus", session: session.name })}>Open</ActionButton>
       </div>
