@@ -27,6 +27,9 @@ export class Announcer {
   private waitingItems: AttentionItem[] = [];
   private groupTimer: number | undefined;
   private lastInputAt = 0;
+  private waitingLines: string[] = [];
+  // Without a server that narrates (the playground), the page puts arrivals into words itself.
+  speaksArrivalsItself = false;
   private voice: Voice = "browser";
   private macSpeaker: MacSpeaker | undefined;
   private macSpeechEndsAt = 0;
@@ -47,6 +50,14 @@ export class Announcer {
     const arrived = queue.filter((item) => !previous.has(itemKey(item)));
     if (arrived.length > 0) this.queueAnnouncement(arrived);
     return arrived;
+  }
+
+  // A line from the assistant; said once the user has stopped dictating.
+  sayWhenQuiet(text: string): void {
+    if (this.mode === "mute") return;
+    this.waitingLines.push(text);
+    window.clearTimeout(this.groupTimer);
+    this.groupTimer = window.setTimeout(() => this.speakWaitingItems(), 0);
   }
 
   noteFeedback(feedback: Feedback): void {
@@ -85,8 +96,10 @@ export class Announcer {
       this.groupTimer = window.setTimeout(() => this.speakWaitingItems(), quietAfterInputMilliseconds - sinceInput);
       return;
     }
-    const text = AnnouncementText.forItems(this.waitingItems, this.mode);
+    const arrivals = this.speaksArrivalsItself ? AnnouncementText.forItems(this.waitingItems, this.mode) : undefined;
+    const text = [arrivals, ...this.waitingLines].filter(Boolean).join(" ");
     this.waitingItems = [];
+    this.waitingLines = [];
     if (text) this.speak(text);
   }
 

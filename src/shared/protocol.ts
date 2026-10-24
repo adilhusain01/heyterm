@@ -27,7 +27,7 @@ export interface ControlState {
   confirmation?: string;
   mode: AnnouncementMode;
   focusedSession?: string;
-  // True while the model router is thinking about an utterance.
+  // True while the assistant is working on something the user said or something that happened.
   routing: boolean;
   lastHeard?: string;
 }
@@ -54,6 +54,17 @@ export interface SetupStatus {
   macVoiceAvailable: boolean;
 }
 
+export type ConversationEntryKind = "user" | "assistant" | "tool" | "event" | "error";
+
+// One line of the conversation with the assistant: what the user said, what it replied, the
+// commands and session actions it took, and what happened in the sessions.
+export interface ConversationEntry {
+  id: number;
+  at: number;
+  kind: ConversationEntryKind;
+  text: string;
+}
+
 export type ServerMessage =
   | {
       type: "snapshot";
@@ -66,7 +77,10 @@ export type ServerMessage =
   | { type: "feedback"; feedback: Feedback }
   | { type: "focus"; session: string }
   | { type: "catch_up"; digests: SessionDigest[] }
-  | { type: "setup"; setup: SetupStatus };
+  | { type: "setup"; setup: SetupStatus }
+  | { type: "conversation"; entries: ConversationEntry[] }
+  // A line the assistant says out loud.
+  | { type: "say"; text: string };
 
 export type InputSource = "voice" | "keyboard";
 

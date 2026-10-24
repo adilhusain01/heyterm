@@ -1,0 +1,120 @@
+// What the assistant can do to sessions. Each tool returns plain words for the assistant to read,
+// and never speaks by itself: the assistant decides what the user hears.
+
+import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
+import { z } from "zod";
+import type { ActionExecutor } from "../actions/action-executor.ts";
+import type { DecisionActions } from "../actions/decision-actions.ts";
+import type { SessionActions } from "../actions/session-actions.ts";
+import type { ProjectCatalog } from "../projects/project-catalog.ts";
+import type { SessionLauncher } from "../sessions/session-launcher.ts";
+import type { SessionRegistry } from "../sessions/session-registry.ts";
+import type { SessionView } from "../../shared/types.ts";
+
+// The last part of a terminal screen is what matters; the rest is scrollback.
+const screenLinesShown = 60;
+
+interface ConductorToolDependencies {
+  registry: SessionRegistry;
+  launcher: SessionLauncher;
+  projects: ProjectCatalog;
+  sessionActions: SessionActions;
+  decisions: DecisionActions;
+  executor: ActionExecutor;
+}
+
+export function createConductorTools(dependencies: ConductorToolDependencies): McpSdkServerConfigWithInstance {
+  const { registry, launcher, projects, sessionActions, decisions, executor } = dependencies;
+  const decidedBy = { decidedBy: "the assistant, on the developer's words" };
+
+  const withSession = async (name: string, act: (session: SessionView) => Promise<string>) => {
+    const session = registry.get(name);
+    return reply(session ? await act(session) : `There is no session called ${name}. Sessions: ${registry.list().map((known) => known.name).join(", ") || "none"}.`);
+  };
+  const ownSessionOnly = (session: SessionView, act: () => Promise<string>) =>
+    session.origin === "external" ? Promise.resolve(`${session.name} runs in the developer's own terminal. Callsign cannot type into it or close it; tell the developer to do it there.`) : act();
+
+  return createSdkMcpServer({
+    name: "callsign",
+    version: "1.0.0",
+    tools: [
+      tool("read_session", "Read one session in full: its state, last task, whole last message, what it waits on, and the end of its terminal screen.", { name: z.string() }, ({ name }) =>
+        withSession(name, async (session) => {
+          sessionActions.markSeen(name);
+          const screen = session.origin === "external" ? "" : await launcher.readScreen(name).catch(() => "");
+          const lastLines = screen.split("\n").filter((line) => line.trim()).slice(-screenLinesShown).join("\n");
+          return [
+            `State: ${session.state}. Project folder: ${session.projectPath}.`,
+            session.lastPrompt ? `Last task: <session_text>${session.lastPrompt}</session_text>` : "",
+            session.lastMessage ? `Last message: <session_text>${session.lastMessage}</session_text>` : "",
+            session.pending ? `Waiting on: <session_text>${JSON.stringify(session.pending.kind === "permission" ? { permission: session.pending.summary, risk: session.pending.risk } : { questions: session.pending.questions })}</session_text>` : "",
+            lastLines ? `Screen:\n<session_text>${lastLines}</session_text>` : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+        }),
+      ),
+      tool("send_to_session", "Give a session its next prompt, as if the developer typed it.", { name: z.string(), text: z.string() }, ({ name, text }) =>
+        withSession(name, (session) => ownSessionOnly(session, async () => (await sessionActions.deliver(name, text)).text)),
+      ),
+      tool(
+        "answer_question",
+        "Answer the multiple-choice question a session is showing. Give one answer per question, using an option label when the developer chose one.",
+        { name: z.string(), answers: z.array(z.object({ question: z.string(), answer: z.string() })) },
+        ({ name, answers }) =>
+          withSession(name, async (session) => {
+            if (session.pending?.kind !== "question") return `${name} is not showing a question.`;
+            return (await decisions.answer(name, session.pending.requestId, Object.fromEntries(answers.map((entry) => [entry.question, entry.answer])), decidedBy)).text;
+          }),
+      ),
+      tool("approve", "Approve what a session is asking permission for. Only when the developer said so.", { name: z.string() }, ({ name }) =>
+        withSession(name, async (session) => {
+          if (session.pending?.kind !== "permission") return `${name} is not waiting on a permission.`;
+          return executor.approveForAssistant(name, session.pending.requestId);
+        }),
+      ),
+      tool("deny", "Deny what a session is asking permission for, with the developer's reason if they gave one.", { name: z.string(), reason: z.string().optional() }, ({ name, reason }) =>
+        withSession(name, async (session) => {
+          if (session.pending?.kind !== "permission") return `${name} is not waiting on a permission.`;
+          return (await decisions.deny(name, session.pending.requestId, reason, decidedBy)).text;
+        }),
+      ),
+      tool("start_session", "Start a new Claude Code session in a project, with its first task if there is one.", { project: z.string(), task: z.string().optional() }, async ({ project, task }) =>
+        reply((await sessionActions.perform(task ? { type: "spawn", project, task } : { type: "spawn", project }, (sessionName) => executor.setFocus(sessionName))).text),
+      ),
+      tool("close_session", "Close a session. Ask the developer first when it is working or has uncommitted changes.", { name: z.string(), confirmed: z.boolean().optional() }, ({ name, confirmed }) =>
+        withSession(name, (session) =>
+          ownSessionOnly(session, async () => {
+            if (!confirmed) {
+              if (session.state === "working") return `${name} is still working. Ask the developer, then call again with confirmed.`;
+              if (await sessionActions.hasUncommittedChanges(name)) return `${name} has uncommitted changes. Ask the developer, then call again with confirmed.`;
+            }
+            return (await sessionActions.close(name)).text;
+          }),
+        ),
+      ),
+      tool("bring_back_session", "Bring back a recently closed session.", { name: z.string() }, async ({ name }) =>
+        reply((await sessionActions.perform({ type: "resume", session: name }, (sessionName) => executor.setFocus(sessionName))).text),
+      ),
+      tool("interrupt_session", "Stop what a session is doing right now, like pressing Escape.", { name: z.string() }, ({ name }) =>
+        withSession(name, (session) => ownSessionOnly(session, async () => (await sessionActions.perform({ type: "interrupt", session: name }, () => undefined)).text)),
+      ),
+      tool("trust_folder", "Trust the folder a new session is asking about. Only when the developer said so.", { name: z.string() }, ({ name }) =>
+        withSession(name, async () => (await sessionActions.perform({ type: "trust", session: name }, () => undefined)).text),
+      ),
+      tool("show_session", "Bring a session onto the developer's screen.", { name: z.string() }, ({ name }) =>
+        withSession(name, async () => {
+          executor.setFocus(name);
+          return `${name} is on screen.`;
+        }),
+      ),
+      tool("list_projects", "List the projects a session can be started in, with their folders.", {}, async () =>
+        reply((await projects.list()).map((project) => `${project.name}: ${project.path}`).join("\n") || "No projects found."),
+      ),
+    ],
+  });
+}
+
+function reply(text: string) {
+  return { content: [{ type: "text" as const, text }] };
+}

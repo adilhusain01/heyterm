@@ -64,7 +64,11 @@ function permissionHeadline(sessionName: string, pending: PendingPermission): st
 const editingTools = ["Edit", "Write", "MultiEdit", "NotebookEdit"];
 
 function permissionSpoken(sessionName: string, pending: PendingPermission): string {
-  if (pending.risk === "high") return `${sessionName} wants to run a command that ${pending.riskReasons[0] ?? "is risky"}. Say confirm or no.`;
+  if (pending.risk === "high") {
+    const reason = pending.riskReasons[0] ?? "is risky";
+    if (pending.toolName === "Bash") return `${sessionName} wants to run a command that ${reason}. Say confirm or no.`;
+    return `${sessionName} wants permission for something that ${reason}. Say confirm or no.`;
+  }
   if (pending.toolName === "Bash") return `${sessionName} wants to run a command. Say approve or deny.`;
   if (editingTools.includes(pending.toolName)) return `${sessionName} wants to edit a file. Say approve or deny.`;
   return `${sessionName} wants to use a tool. Say approve or deny.`;

@@ -5,11 +5,13 @@ import { Toaster, toast } from "sonner";
 import { CallsignProvider } from "./app-context.tsx";
 import { CatchUpPanel } from "./components/CatchUpPanel.tsx";
 import { CommandBar } from "./components/CommandBar.tsx";
+import { ConversationPanel } from "./components/ConversationPanel.tsx";
 import { SessionRail } from "./components/SessionRail.tsx";
 import { SetupPanel } from "./components/SetupPanel.tsx";
 import { TerminalGrid } from "./components/TerminalGrid.tsx";
 import { TopBar } from "./components/TopBar.tsx";
 import { WelcomeState } from "./components/WelcomeState.tsx";
+import { isPlayground } from "./playground/is-playground.ts";
 import { useCallsignStore } from "./state/callsign-store.ts";
 import type { CallsignConnection } from "./transport/connection.ts";
 import { VoiceChoice } from "./voice/voice-choice.ts";
@@ -44,6 +46,7 @@ export function App({ connection, announcer }: { connection: CallsignConnection;
             <CatchUpPanel />
             {hasSnapshot && sessionCount === 0 ? <WelcomeState onOpenSetup={() => setSetupOpen(true)} /> : <TerminalGrid />}
           </main>
+          {!isPlayground && <ConversationPanel />}
         </div>
         <CommandBar />
       </div>
@@ -67,6 +70,7 @@ function useServerMessages(connection: CallsignConnection, announcer: Announcer)
           notifyWhenHidden(arrived);
           updateTitle(message.sessions.filter((session) => ["needs_permission", "asked", "needs_trust", "failed"].includes(session.state)).length);
         }
+        if (message.type === "say") announcer.sayWhenQuiet(message.text);
         if (message.type === "feedback") {
           announcer.noteFeedback(message.feedback);
           const show = message.feedback.tone === "error" ? toast.error : message.feedback.tone === "warning" ? toast.warning : message.feedback.tone === "success" ? toast.success : toast;

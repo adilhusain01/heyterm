@@ -2,6 +2,7 @@
 
 import type { WebSocket } from "ws";
 import type { ActionExecutor } from "../actions/action-executor.ts";
+import type { Assistant } from "../conductor/assistant.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
 import type { SetupService } from "../setup/setup-service.ts";
@@ -21,7 +22,10 @@ export class EventHub {
     private readonly projects: ProjectCatalog,
     private readonly setup: SetupService,
     private readonly macVoice: MacVoice,
+    private readonly assistant: Assistant,
   ) {
+    assistant.on("conversation", (entries) => this.broadcast({ type: "conversation", entries }));
+    assistant.on("say", (text) => this.broadcast({ type: "say", text }));
     registry.on("changed", () => this.scheduleSnapshot());
     executor.on("changed", () => this.scheduleSnapshot());
     executor.on("feedback", (feedback) => this.broadcast({ type: "feedback", feedback }));
@@ -33,6 +37,7 @@ export class EventHub {
   connect(socket: WebSocket): void {
     this.sockets.add(socket);
     socket.send(JSON.stringify(this.snapshot()));
+    socket.send(JSON.stringify({ type: "conversation", entries: this.assistant.conversation() } satisfies ServerMessage));
     void this.sendSetup();
     socket.on("message", (raw) => void this.receive(raw.toString()));
     socket.on("close", () => this.sockets.delete(socket));

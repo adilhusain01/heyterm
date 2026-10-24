@@ -1,11 +1,13 @@
 // What Callsign is waiting on above the command bar: a send about to go, a "which one?", a "say confirm",
-// or the router thinking. Otherwise the last thing it heard.
+// or the assistant thinking. Otherwise the last thing it heard.
 
 import { useCallsign } from "../app-context.tsx";
+import { useCallsignStore } from "../state/callsign-store.ts";
 import type { ControlState } from "../../shared/protocol.ts";
 
 export function PendingStrip({ control }: { control: ControlState }) {
   const { perform } = useCallsign();
+  const latestReply = useCallsignStore((state) => state.conversation.findLast((entry) => entry.kind === "assistant")?.text);
 
   if (control.preview) {
     const remaining = Math.max(0, control.preview.deadline - Date.now());
@@ -53,13 +55,18 @@ export function PendingStrip({ control }: { control: ControlState }) {
     return (
       <div className="flex items-center gap-2 px-1 text-[12px] text-ink-muted">
         <span className="spin size-3 rounded-full border border-ink-faint border-t-ink" />
-        Working out where "{control.lastHeard}" goes
+        Thinking
       </div>
     );
   }
 
-  if (control.lastHeard) return <p className="truncate px-1 text-[12px] text-ink-faint">Heard: {control.lastHeard}</p>;
-  return null;
+  // Below the width where the conversation column shows, its latest reply sits here instead.
+  return (
+    <>
+      {latestReply && <p className="truncate px-1 text-[12px] text-ink-muted lg:hidden">{latestReply}</p>}
+      {control.lastHeard && <p className={`truncate px-1 text-[12px] text-ink-faint ${latestReply ? "hidden lg:block" : ""}`}>Heard: {control.lastHeard}</p>}
+    </>
+  );
 }
 
 function StripButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {

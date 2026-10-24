@@ -172,6 +172,18 @@ describe("talking to a session", () => {
   });
 });
 
+describe("with the assistant in the middle", () => {
+  const routerBesideAssistant = new FastPathRouter({ sendUnaddressedWordsToFocusedSession: false });
+
+  it("leaves words that name no session to the assistant instead of typing them into the focused session", () => {
+    expect(routerBesideAssistant.route("now add a dark mode", makeContext({ focusedSession: "peeker" }))).toBeUndefined();
+  });
+
+  it("still sends words that name a session straight to it", () => {
+    expect(routerBesideAssistant.route("peeker, run the tests", makeContext({ focusedSession: "peeker" }))).toMatchObject({ type: "send", session: "peeker", text: "run the tests" });
+  });
+});
+
 describe("session commands", () => {
   it("focuses a session", () => {
     expect(router.route("go to synced", makeContext())).toEqual({ type: "focus", session: "synqed" });

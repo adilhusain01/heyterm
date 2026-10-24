@@ -36,7 +36,7 @@ export function routerUserMessage(utterance: string, context: RoutingContext, re
   ].join("\n\n");
 }
 
-function describeSession(session: SessionView): string {
+export function describeSession(session: SessionView): string {
   const parts = [`- ${session.name} (project ${session.projectName}, ${session.state})`];
   if (session.lastPrompt) parts.push(`last prompt: <session_text>${clip(session.lastPrompt)}</session_text>`);
   if (session.pending?.kind === "permission") parts.push(`waiting on permission: <session_text>${clip(session.pending.summary)}</session_text>`);

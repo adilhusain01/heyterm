@@ -6,7 +6,9 @@ import { PendingControls } from "./pending-controls.ts";
 import { SessionActions } from "./session-actions.ts";
 import { AttentionQueue } from "../../shared/attention.ts";
 import { acceptsText, type FastPathRouter } from "../router/fast-path-router.ts";
-import type { ModelRouter } from "../router/model-router.ts";
+import { ConductorRouting } from "../conductor/conductor-rules.ts";
+import type { Assistant } from "../conductor/assistant.ts";
+import type { Situation } from "../conductor/conductor-prompt.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
 import type { SessionDigest } from "../../shared/catch-up.ts";
@@ -26,12 +28,12 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
   private routing = false;
   private lastHeard: string | undefined;
   private readonly controls = new PendingControls(() => this.emit("changed"));
+  private assistant: Assistant | undefined;
 
   constructor(
     private readonly registry: SessionRegistry,
     private readonly projects: ProjectCatalog,
     private readonly fastPath: FastPathRouter,
-    private readonly modelRouter: ModelRouter,
     private readonly decisions: DecisionActions,
     private readonly sessionActions: SessionActions,
   ) {
@@ -50,21 +52,38 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
     this.emit("changed");
   }
 
+  // The assistant is made after the executor, because its tools act through the executor.
+  attachAssistant(assistant: Assistant): void {
+    this.assistant = assistant;
+    assistant.on("thinking", (thinking) => this.setRouting(thinking));
+  }
+
+  async situation(): Promise<Situation> {
+    return {
+      sessions: this.registry.list(),
+      focusedSession: this.focusedSession,
+      projectNames: (await this.projects.list()).map((project) => project.name),
+      recentlyClosedNames: this.registry.recentlyClosedSessions().map((session) => session.name),
+    };
+  }
+
+  currentMode(): AnnouncementMode {
+    return this.mode;
+  }
+
   async handleUtterance(text: string, source: InputSource, focusOverride?: string): Promise<void> {
     const utterance = text.trim();
     if (!utterance) return;
     this.lastHeard = utterance;
+    this.emit("changed");
     const context = await this.routingContext(focusOverride);
-    let action = this.fastPath.route(utterance, context);
-    if (!action) {
-      this.setRouting(true);
-      try {
-        const closedNames = this.registry.recentlyClosedSessions().map((session) => session.name);
-        action = await this.modelRouter.route(utterance, context, closedNames);
-      } finally {
-        this.setRouting(false);
-      }
+    const action = this.fastPath.route(utterance, context);
+    // Anything that is not a plain decision or a session named outright goes to the assistant.
+    if (!action || !ConductorRouting.handledInstantly(action, { confirmationWaiting: this.controls.view().confirmation !== undefined })) {
+      if (this.assistant) return this.assistant.hear(utterance);
+      return this.tell({ text: "I did not catch what to do.", tone: "warning", speak: true });
     }
+    this.assistant?.recordInstant(utterance);
     // A new command sends a waiting preview first, unless the command is about the preview.
     if (this.controls.preview && action.type !== "cancel" && action.type !== "send_now") await this.sendPreviewNow();
     await this.perform(action, source === "voice" ? utterance : "keyboard", utterance);
@@ -124,6 +143,30 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
   private async sendPreviewNow(): Promise<void> {
     const preview = this.controls.takePreview();
     if (preview) this.tell(await this.sessionActions.deliver(preview.session, preview.text));
+  }
+
+  // The assistant's approve: a high-risk request still waits for the developer's own "confirm".
+  async approveForAssistant(sessionName: string, requestId: string): Promise<string> {
+    const pending = this.registry.get(sessionName)?.pending;
+    if (pending?.kind === "permission" && pending.risk === "high") {
+      this.controls.awaitConfirmation(`run ${pending.summary} for ${sessionName}`, () => this.approve(sessionName, requestId, true, "confirm (asked by the assistant)"));
+      return `That needs the developer to say confirm, because the command ${pending.riskReasons[0] ?? "is risky"}. Tell them to say confirm.`;
+    }
+    return (await this.decisions.approve(sessionName, requestId, { decidedBy: "the assistant, on the developer's words" })).text;
+  }
+
+  // Holds one of the assistant's own risky commands until the developer says confirm, or a minute passes.
+  waitForSpokenConfirm(description: string, waitMilliseconds = 60_000): Promise<boolean> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.controls.dropConfirmation();
+        resolve(false);
+      }, waitMilliseconds);
+      this.controls.awaitConfirmation(description, async () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+    });
   }
 
   private async approve(sessionName: string, requestId: string, confirmed: boolean, decidedBy: string): Promise<void> {

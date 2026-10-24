@@ -76,10 +76,10 @@ function SetupSections({ setup }: { setup: SetupStatus }) {
       <VoiceSection />
       <ProjectFoldersSection setup={setup} />
       <ExistingSessionsSection connected={setup.existingSessionsConnected} />
-      <Section title="Understanding what you say">
+      <Section title="The assistant">
         <p className="text-[13px] leading-relaxed text-ink-muted">
-          Common commands are understood on this computer at once. Anything else goes to <span className="font-mono text-ink">{setup.routerModel}</span>{" "}
-          {setup.routerSource === "api" ? "through your Anthropic API key." : "through your own Claude Code login, so there is no key to set up."}
+          Approvals, answers and commands that name a session happen on this computer at once. Everything else goes to the assistant, <span className="font-mono text-ink">{setup.routerModel}</span>,{" "}
+          {setup.routerSource === "api" ? "through your Anthropic API key." : "through your own Claude Code login, so there is no key to set up."} It can run commands on this Mac; anything risky waits for you to say confirm.
         </p>
       </Section>
     </>

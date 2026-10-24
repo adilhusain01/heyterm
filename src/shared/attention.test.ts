@@ -110,6 +110,11 @@ describe("spoken lines", () => {
     expect(spokenFor(makeSession("bookboy", { state: "needs_permission", pending: risky }))).toBe("bookboy wants to run a command that force pushes. Say confirm or no.");
   });
 
+  it("does not call a high-risk file edit a command", () => {
+    const edit: PendingRequest = { ...permission, toolName: "Write", summary: "edit /tmp/x", risk: "high", riskReasons: ["edits a file outside the project"] };
+    expect(spokenFor(makeSession("demo", { state: "needs_permission", pending: edit }))).toBe("demo wants permission for something that edits a file outside the project. Say confirm or no.");
+  });
+
   it("says a file edit is a file edit", () => {
     const edit: PendingRequest = { ...permission, toolName: "Edit", summary: "edit src/app.ts" };
     expect(spokenFor(makeSession("bookboy", { state: "needs_permission", pending: edit }))).toBe("bookboy wants to edit a file. Say approve or deny.");

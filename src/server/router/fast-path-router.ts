@@ -23,7 +23,14 @@ const sessionCommands: SessionCommand[] = [
 const spawnPattern = /^(?:start|open|spin up|create|launch|begin)(?: a| an)?(?: new)?(?: (?:session|agent|claude|terminal))? (?:in|on|for|at) /;
 const taskJoinWords = new Set(["and", "to", "then", "so"]);
 
+export interface FastPathOptions {
+  // Without the assistant, words that name no session go to the focused one. With it, they go to the assistant.
+  sendUnaddressedWordsToFocusedSession: boolean;
+}
+
 export class FastPathRouter {
+  constructor(private readonly options: FastPathOptions = { sendUnaddressedWordsToFocusedSession: true }) {}
+
   route(utterance: string, context: RoutingContext): RouterAction | undefined {
     const phrase = normalizedPhrase(utterance);
     if (!phrase) return undefined;
@@ -36,7 +43,7 @@ export class FastPathRouter {
       this.routeTell(utterance, spans, sessionMatcher) ??
       new HeadAnswerRouter().route(utterance, phrase, context, sessionMatcher) ??
       this.routeAddressed(utterance, spans, sessionMatcher) ??
-      this.routeToFocusedSession(utterance, phrase, context, sessionMatcher)
+      (this.options.sendUnaddressedWordsToFocusedSession ? this.routeToFocusedSession(utterance, phrase, context, sessionMatcher) : undefined)
     );
   }
 

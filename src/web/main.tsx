@@ -9,6 +9,7 @@ import { Announcer } from "./voice/announcer.ts";
 
 const connection = isPlayground ? new SimulatedConnection() : new SocketConnection();
 const announcer = new Announcer();
+announcer.speaksArrivalsItself = isPlayground;
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -1,0 +1,163 @@
+// The assistant between the user and their sessions: one long-lived Claude conversation on the
+// user's own Claude Code login, fed what the user says and what happens in the sessions.
+
+import { query, type HookCallback, type McpSdkServerConfigWithInstance, type Query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import { execFileSync } from "node:child_process";
+import { EventEmitter } from "node:events";
+import { conductorSystemPrompt } from "./conductor-prompt.ts";
+import type { ConversationEntryKind } from "../../shared/protocol.ts";
+
+// A turn that takes longer than this is stopped, so one stuck command never blocks the assistant.
+const turnTimeoutMilliseconds = 180_000;
+
+interface ConductorOptions {
+  model: string;
+  workingDirectory: string;
+  tools: McpSdkServerConfigWithInstance;
+  beforeCommand: HookCallback;
+}
+
+interface QueuedTurn {
+  text: string;
+  resolve: (reply: string) => void;
+  reject: (error: Error) => void;
+}
+
+interface ConductorEvents {
+  activity: [ConversationEntryKind, string];
+  busy: [boolean];
+}
+
+export class Conductor extends EventEmitter<ConductorEvents> {
+  private readonly turns: QueuedTurn[] = [];
+  private currentTurn: QueuedTurn | undefined;
+  private session: Query | undefined;
+  private sendToSession: ((message: SDKUserMessage) => void) | undefined;
+  private turnTimer: NodeJS.Timeout | undefined;
+
+  constructor(private readonly options: ConductorOptions) {
+    super();
+  }
+
+  // Resolves with the assistant's reply to this turn. Turns run one at a time, in order.
+  ask(text: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.turns.push({ text, resolve, reject });
+      this.startNextTurn();
+    });
+  }
+
+  private startNextTurn(): void {
+    if (this.currentTurn || this.turns.length === 0) return;
+    const turn = this.turns.shift()!;
+    this.currentTurn = turn;
+    this.emit("busy", true);
+    this.turnTimer = setTimeout(() => {
+      // Closed rather than interrupted, so a late reply to this turn can never answer the next one.
+      this.session?.close();
+      this.session = undefined;
+      this.finishTurn(undefined, new Error("The assistant took too long and was stopped."));
+    }, turnTimeoutMilliseconds);
+    this.ensureSession();
+    this.sendToSession!({ type: "user", message: { role: "user", content: turn.text }, parent_tool_use_id: null, origin: { kind: "human" } } as SDKUserMessage);
+  }
+
+  private finishTurn(reply: string | undefined, error?: Error): void {
+    const turn = this.currentTurn;
+    if (!turn) return;
+    clearTimeout(this.turnTimer);
+    this.currentTurn = undefined;
+    if (error) turn.reject(error);
+    else turn.resolve(reply ?? "");
+    this.emit("busy", this.turns.length > 0);
+    this.startNextTurn();
+  }
+
+  private ensureSession(): void {
+    if (this.session) return;
+    const waiting: SDKUserMessage[] = [];
+    let wake: (() => void) | undefined;
+    this.sendToSession = (message) => {
+      waiting.push(message);
+      wake?.();
+    };
+    async function* input(): AsyncGenerator<SDKUserMessage> {
+      while (true) {
+        while (waiting.length > 0) yield waiting.shift()!;
+        await new Promise<void>((resolve) => (wake = resolve));
+      }
+    }
+    this.session = query({
+      prompt: input(),
+      options: {
+        model: this.options.model,
+        effort: "low",
+        systemPrompt: conductorSystemPrompt,
+        cwd: this.options.workingDirectory,
+        pathToClaudeCodeExecutable: claudeExecutablePath(),
+        // The user's own settings, hooks and CLAUDE.md belong to their coding sessions, not to Callsign.
+        settingSources: [],
+        persistSession: false,
+        tools: ["Bash", "Read", "Glob", "Grep", "WebSearch", "WebFetch"],
+        mcpServers: { callsign: this.options.tools },
+        hooks: { PreToolUse: [{ matcher: "Bash", hooks: [this.options.beforeCommand], timeout: 120 }] },
+        canUseTool: async (_toolName, input) => ({ behavior: "allow", updatedInput: input }),
+        // CALLSIGN_ROUTER keeps the user's connected-session hooks from treating this as a session of theirs.
+        env: { ...withoutClaudeCodeVariables(process.env), CALLSIGN_ROUTER: "1" },
+      },
+    });
+    void this.readSession(this.session);
+  }
+
+  private async readSession(session: Query): Promise<void> {
+    try {
+      for await (const message of session) {
+        // A session closed after a timeout may still deliver; it must not touch the next turn.
+        if (this.session !== session) return;
+        if (message.type === "assistant") {
+          for (const block of message.message.content) {
+            if (block.type === "tool_use") this.emit("activity", "tool", describeToolUse(block.name, block.input));
+          }
+        }
+        if (message.type === "result") {
+          if (message.subtype === "success") this.finishTurn(message.result);
+          else this.finishTurn(undefined, new Error("The assistant could not finish that."));
+        }
+      }
+    } catch {
+      // Reported below as the turn that could not finish.
+    } finally {
+      // The process ended. A turn still waiting fails, and the next turn starts a fresh conversation.
+      if (this.session === session) {
+        this.session = undefined;
+        this.finishTurn(undefined, new Error("The assistant stopped unexpectedly."));
+      }
+    }
+  }
+}
+
+function describeToolUse(toolName: string, input: unknown): string {
+  const fields = (input ?? {}) as Record<string, unknown>;
+  const shortName = toolName.replace(/^mcp__callsign__/, "");
+  if (toolName === "Bash") return `run ${String(fields.command ?? "")}`;
+  if (toolName === "Read") return `read ${String(fields.file_path ?? "")}`;
+  const firstValue = Object.values(fields).find((value) => typeof value === "string") as string | undefined;
+  return firstValue ? `${shortName.replaceAll("_", " ")}: ${firstValue}` : shortName.replaceAll("_", " ");
+}
+
+function claudeExecutablePath(): string | undefined {
+  try {
+    return execFileSync("which", ["claude"], { encoding: "utf8" }).trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function withoutClaudeCodeVariables(environment: NodeJS.ProcessEnv): Record<string, string> {
+  const kept: Record<string, string> = {};
+  for (const [key, value] of Object.entries(environment)) {
+    if (value === undefined || key === "CALLSIGN_SESSION" || key === "CLAUDECODE" || key.startsWith("CLAUDE_CODE_")) continue;
+    kept[key] = value;
+  }
+  return kept;
+}

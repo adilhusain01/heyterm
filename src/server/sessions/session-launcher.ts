@@ -66,6 +66,10 @@ export class SessionLauncher {
     this.registry.remove(name);
   }
 
+  readScreen(name: string): Promise<string> {
+    return this.tmux.captureScreen(name);
+  }
+
   async interrupt(name: string): Promise<void> {
     await this.tmux.pressKeys(name, ["Escape"]);
   }

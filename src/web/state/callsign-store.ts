@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { HandsOffTally, type ActionSource } from "./hands-off-tally.ts";
 import type { SessionDigest } from "../../shared/catch-up.ts";
-import type { ClosedSessionView, ControlState, ServerMessage, SetupStatus } from "../../shared/protocol.ts";
+import type { ClosedSessionView, ControlState, ConversationEntry, ServerMessage, SetupStatus } from "../../shared/protocol.ts";
 import type { SessionView } from "../../shared/types.ts";
 import type { ConnectionStatus } from "../transport/connection.ts";
 import { VoiceChoice, type Voice } from "../voice/voice-choice.ts";
@@ -22,6 +22,7 @@ interface CallsignState {
   typingSession: string | undefined;
   catchUp: SessionDigest[] | undefined;
   setup: SetupStatus | undefined;
+  conversation: ConversationEntry[];
   handsOff: HandsOffTally;
   // The voice the user picked in Setup; undefined means the default for this computer.
   voicePreference: Voice | undefined;
@@ -46,6 +47,7 @@ export const useCallsignStore = create<CallsignState>((set) => ({
   typingSession: undefined,
   catchUp: undefined,
   setup: undefined,
+  conversation: [],
   handsOff: HandsOffTally.loadToday(),
   voicePreference: VoiceChoice.savedPreference(),
 
@@ -64,6 +66,7 @@ export const useCallsignStore = create<CallsignState>((set) => ({
     if (message.type === "focus") set({ focusedSession: message.session });
     if (message.type === "catch_up") set({ catchUp: message.digests });
     if (message.type === "setup") set({ setup: message.setup });
+    if (message.type === "conversation") set({ conversation: message.entries });
   },
   setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
   setTypingSession: (typingSession) => set({ typingSession }),
