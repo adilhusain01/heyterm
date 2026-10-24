@@ -80,7 +80,9 @@ export type ServerMessage =
   | { type: "setup"; setup: SetupStatus }
   | { type: "conversation"; entries: ConversationEntry[] }
   // A line the assistant says out loud.
-  | { type: "say"; text: string };
+  | { type: "say"; text: string }
+  // The Mac finished saying a line this page asked for.
+  | { type: "speech_done"; id: number };
 
 export type InputSource = "voice" | "keyboard";
 
@@ -91,5 +93,5 @@ export type ClientMessage =
   | { type: "setup_refresh" }
   | { type: "set_project_roots"; roots: string[] }
   | { type: "connect_existing_sessions"; connected: boolean }
-  | { type: "speak"; text: string }
+  | { type: "speak"; text: string; id: number }
   | { type: "stop_speaking" };

@@ -40,7 +40,7 @@ All live in `src/web/styles.css` under `@theme`, and every component takes its v
 ## Layout
 
 - Top bar: the name, then today's numbers in trays, then the sound mode and Setup as keys.
-- Left rail: the one thing that needs you most as a sheet with an edge in its state colour, then every session as a row with its state mark, then new session and recently closed.
+- Left rail: the one thing that needs you most as a plain sheet led by its state glyph (no coloured stripes or tinted warnings), then every session as a row with its state mark, then new session and recently closed.
 - Centre: the terminals.
 - Right: the conversation with the assistant, its orb and status line at the top.
 - Bottom: the bar you talk into, with the orb at its left showing whether it hears you.

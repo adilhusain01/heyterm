@@ -5,6 +5,7 @@ import { query, type HookCallback, type McpSdkServerConfigWithInstance, type Que
 import { execFileSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { conductorSystemPrompt } from "./conductor-prompt.ts";
+import { TurnQueue, type TurnPriority } from "./turn-queue.ts";
 import type { ConversationEntryKind } from "../../shared/protocol.ts";
 
 // A turn that takes longer than this is stopped, so one stuck command never blocks the assistant.
@@ -29,7 +30,7 @@ interface ConductorEvents {
 }
 
 export class Conductor extends EventEmitter<ConductorEvents> {
-  private readonly turns: QueuedTurn[] = [];
+  private readonly turns = new TurnQueue<QueuedTurn>();
   private currentTurn: QueuedTurn | undefined;
   private session: Query | undefined;
   private sendToSession: ((message: SDKUserMessage) => void) | undefined;
@@ -40,16 +41,17 @@ export class Conductor extends EventEmitter<ConductorEvents> {
   }
 
   // Resolves with the assistant's reply to this turn. Turns run one at a time, in order.
-  ask(text: string): Promise<string> {
+  ask(text: string, priority: TurnPriority): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.turns.push({ text, resolve, reject });
+      this.turns.add({ text, resolve, reject }, priority);
       this.startNextTurn();
     });
   }
 
   private startNextTurn(): void {
-    if (this.currentTurn || this.turns.length === 0) return;
-    const turn = this.turns.shift()!;
+    if (this.currentTurn) return;
+    const turn = this.turns.next();
+    if (!turn) return;
     this.currentTurn = turn;
     this.emit("busy", true);
     this.turnTimer = setTimeout(() => {
@@ -69,7 +71,7 @@ export class Conductor extends EventEmitter<ConductorEvents> {
     this.currentTurn = undefined;
     if (error) turn.reject(error);
     else turn.resolve(reply ?? "");
-    this.emit("busy", this.turns.length > 0);
+    this.emit("busy", this.turns.size > 0);
     this.startNextTurn();
   }
 

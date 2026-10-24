@@ -3,7 +3,7 @@
 
 import { EventEmitter } from "node:events";
 import { ConductorTurnText, type Situation } from "./conductor-prompt.ts";
-import { SpokenReply } from "./conductor-rules.ts";
+import { NarrationRules, SpokenReply } from "./conductor-rules.ts";
 import { AnnouncementText, AttentionQueue } from "../../shared/attention.ts";
 import { AttentionArrivals } from "../../shared/attention-arrivals.ts";
 import type { Conductor } from "./conductor.ts";
@@ -29,6 +29,8 @@ export class Assistant extends EventEmitter<AssistantEvents> {
   private readonly arrivals = new AttentionArrivals();
   private waitingArrivals: AttentionItem[] = [];
   private groupTimer: NodeJS.Timeout | undefined;
+  // One announcement at a time; what arrives meanwhile is told together after it.
+  private narrating = false;
 
   constructor(
     private readonly conductor: Conductor,
@@ -62,7 +64,7 @@ export class Assistant extends EventEmitter<AssistantEvents> {
   async hear(utterance: string): Promise<void> {
     this.record("user", utterance);
     try {
-      const reply = await this.conductor.ask(ConductorTurnText.forUtterance(utterance, await this.situation()));
+      const reply = await this.conductor.ask(ConductorTurnText.forUtterance(utterance, await this.situation()), "user");
       this.tell(reply, { speak: true });
     } catch (error) {
       this.fail(error);
@@ -74,11 +76,26 @@ export class Assistant extends EventEmitter<AssistantEvents> {
     const arrived = this.arrivals.note(AttentionQueue.build(sessions));
     if (arrived.length === 0) return;
     this.waitingArrivals.push(...arrived);
+    this.scheduleNarration();
+  }
+
+  private scheduleNarration(): void {
+    if (this.narrating) return;
     clearTimeout(this.groupTimer);
     this.groupTimer = setTimeout(() => void this.narrateWaitingArrivals(), groupingMilliseconds);
   }
 
   private async narrateWaitingArrivals(): Promise<void> {
+    this.narrating = true;
+    try {
+      await this.narrate();
+    } finally {
+      this.narrating = false;
+      if (this.waitingArrivals.length > 0) this.scheduleNarration();
+    }
+  }
+
+  private async narrate(): Promise<void> {
     const items = this.waitingArrivals;
     this.waitingArrivals = [];
     for (const item of items) this.record("event", item.headline);
@@ -88,15 +105,21 @@ export class Assistant extends EventEmitter<AssistantEvents> {
 
     let saidPlainLine = false;
     const fallback = setTimeout(() => {
-      saidPlainLine = true;
-      const plain = AnnouncementText.forItems(told, mode);
-      if (plain) this.emit("say", plain);
+      void this.situation().then((situation) => {
+        const stillWaiting = NarrationRules.stillWaiting(told, AttentionQueue.build(situation.sessions));
+        if (stillWaiting.length === 0) return;
+        saidPlainLine = true;
+        const plain = AnnouncementText.forItems(stillWaiting, this.announcementMode());
+        if (plain) this.emit("say", plain);
+      });
     }, narrationPatienceMilliseconds);
     try {
-      const reply = await this.conductor.ask(ConductorTurnText.forEvent(told, await this.situation()));
+      const reply = await this.conductor.ask(ConductorTurnText.forEvent(told, await this.situation()), "event");
       clearTimeout(fallback);
-      // A late reply is still shown, but the plain line was already said.
-      this.tell(reply, { speak: !saidPlainLine });
+      // A late reply is still shown, but not said: the plain line was, or the user already dealt with it.
+      const stillWaiting = NarrationRules.stillWaiting(told, AttentionQueue.build((await this.situation()).sessions));
+      const worthSaying = stillWaiting.length > 0 || told.every((item) => item.kind === "finished" || item.kind === "failed");
+      this.tell(reply, { speak: !saidPlainLine && worthSaying });
     } catch (error) {
       clearTimeout(fallback);
       if (!saidPlainLine) {

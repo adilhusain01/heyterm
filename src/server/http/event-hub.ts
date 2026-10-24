@@ -39,11 +39,11 @@ export class EventHub {
     socket.send(JSON.stringify(this.snapshot()));
     socket.send(JSON.stringify({ type: "conversation", entries: this.assistant.conversation() } satisfies ServerMessage));
     void this.sendSetup();
-    socket.on("message", (raw) => void this.receive(raw.toString()));
+    socket.on("message", (raw) => void this.receive(raw.toString(), socket));
     socket.on("close", () => this.sockets.delete(socket));
   }
 
-  private async receive(text: string): Promise<void> {
+  private async receive(text: string, socket: WebSocket): Promise<void> {
     let message: ClientMessage;
     try {
       message = JSON.parse(text) as ClientMessage;
@@ -57,7 +57,12 @@ export class EventHub {
       if (message.type === "setup_refresh") await this.sendSetup();
       if (message.type === "set_project_roots") await this.changeProjectRoots(message.roots);
       if (message.type === "connect_existing_sessions") await this.connectExistingSessions(message.connected === true);
-      if (message.type === "speak") this.macVoice.speak(String(message.text));
+      if (message.type === "speak") {
+        const id = Number(message.id);
+        this.macVoice.speak(String(message.text), () => {
+          if (socket.readyState === socket.OPEN) socket.send(JSON.stringify({ type: "speech_done", id } satisfies ServerMessage));
+        });
+      }
       if (message.type === "stop_speaking") this.macVoice.stop();
     } catch (error) {
       // A failed command is told to the user; it must never take the server down.

@@ -75,6 +75,7 @@ function useServerMessages(connection: CallsignConnection, announcer: Announcer)
           updateTitle(message.sessions.filter((session) => ["needs_permission", "asked", "needs_trust", "failed"].includes(session.state)).length);
         }
         if (message.type === "say") announcer.sayWhenQuiet(message.text);
+        if (message.type === "speech_done") announcer.noteMacLineDone(message.id);
         if (message.type === "feedback") {
           announcer.noteFeedback(message.feedback);
           const show = message.feedback.tone === "error" ? toast.error : message.feedback.tone === "warning" ? toast.warning : message.feedback.tone === "success" ? toast.success : toast;
@@ -92,7 +93,7 @@ function useChosenVoice(connection: CallsignConnection, announcer: Announcer) {
   useEffect(() => {
     const voice = VoiceChoice.effective({ preference, macVoiceAvailable });
     const macSpeaker = {
-      speak: (text: string) => connection.send({ type: "speak", text }),
+      speak: (text: string, id: number) => connection.send({ type: "speak", text, id }),
       stop: () => connection.send({ type: "stop_speaking" }),
     };
     announcer.useVoice(voice, voice === "mac" ? macSpeaker : undefined);

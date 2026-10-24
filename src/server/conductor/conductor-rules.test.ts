@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConductorRouting, SpokenReply, ConductorSafety } from "./conductor-rules.ts";
+import { ConductorRouting, ConductorSafety, NarrationRules, SpokenReply } from "./conductor-rules.ts";
 
 describe("ConductorRouting.handledInstantly", () => {
   it("answers decisions and controls at once, since a yes should never wait on a model", () => {
@@ -41,6 +41,25 @@ describe("SpokenReply.from", () => {
   it("drops markdown marks and code from what is spoken", () => {
     expect(SpokenReply.from("Run **`pnpm test`** in _portfolio_ now.").spoken).toBe("Run pnpm test in portfolio now.");
     expect(SpokenReply.from("Here it is:\n```\nls -la\n```\nThat is all.").spoken).toBe("Here it is: That is all.");
+  });
+});
+
+describe("SpokenReply.from, for long replies", () => {
+  it("says only the first two sentences of a long reply and points to the screen", () => {
+    const long = "Portfolio fixed the header. The tests pass now. " + "It also renamed a lot of files and cleaned up imports in many places across the project. ".repeat(4);
+    expect(SpokenReply.from(long).spoken).toBe("Portfolio fixed the header. The tests pass now. The rest is on screen.");
+  });
+});
+
+describe("NarrationRules.stillWaiting", () => {
+  const item = (sessionName: string, since: number) => ({ sessionName, kind: "permission" as const, since, headline: "", spoken: "" });
+
+  it("keeps what still needs the user", () => {
+    expect(NarrationRules.stillWaiting([item("a", 1), item("b", 2)], [item("b", 2)])).toEqual([item("b", 2)]);
+  });
+
+  it("drops a request the user already answered, so it is not announced late", () => {
+    expect(NarrationRules.stillWaiting([item("a", 1)], [])).toEqual([]);
   });
 });
 

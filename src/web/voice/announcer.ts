@@ -1,48 +1,79 @@
-// Says what needs you, at a moment you can hear it: never over your own dictation, and several
-// arrivals close together become one sentence.
+// Says what needs you, at a moment you can hear it: one line after another, never over your own
+// dictation, through the Mac's voice or the browser's.
 
 import { AnnouncementText, AttentionQueue } from "../../shared/attention.ts";
 import { Earcons } from "./earcons.ts";
+import { SpeechQueue, type SpeechPlayer } from "./speech-queue.ts";
 import type { Voice } from "./voice-choice.ts";
 import type { Feedback } from "../../shared/protocol.ts";
 import type { AnnouncementMode, AttentionItem, SessionView } from "../../shared/types.ts";
 
-// Arrivals within this window are spoken together.
+// Arrivals within this window are spoken together (only where the page narrates itself).
 const groupingMilliseconds = 1_200;
 // Nothing is spoken until the command bar has been quiet this long.
 const quietAfterInputMilliseconds = 1_500;
-// A rough speaking rate, to know whether the Mac may still be talking when the user starts dictating.
-const macSpeechMillisecondsPerCharacter = 75;
+const tickMilliseconds = 150;
 
-// Speaks through the server with the Mac's own voice.
+// Speaks through the server with the Mac's own voice; the server says when each line is done.
 export interface MacSpeaker {
-  speak(text: string): void;
+  speak(text: string, id: number): void;
   stop(): void;
 }
 
 export class Announcer {
   readonly earcons = new Earcons();
-  mode: AnnouncementMode = "speak";
+  private modeValue: AnnouncementMode = "speak";
   private knownItemKeys: Set<string> | undefined;
   private waitingItems: AttentionItem[] = [];
   private groupTimer: number | undefined;
-  private lastInputAt = 0;
-  private waitingLines: string[] = [];
   // Without a server that narrates (the playground), the page puts arrivals into words itself.
   speaksArrivalsItself = false;
   private voice: Voice = "browser";
   private macSpeaker: MacSpeaker | undefined;
-  private macSpeechEndsAt = 0;
-  private macSpeechTimer: number | undefined;
+  private nextMacLineId = 1;
+  private readonly macLinesWaiting = new Map<number, () => void>();
+  private readonly queue: SpeechQueue;
   // Tells the page when Callsign starts and stops talking, for the assistant orb.
   onSpeakingChange: (speaking: boolean) => void = () => undefined;
 
+  constructor() {
+    const player: SpeechPlayer = {
+      play: (text, done) => (this.voice === "mac" && this.macSpeaker ? this.playOnMac(text, done) : playInBrowser(text, done)),
+      stop: () => {
+        window.speechSynthesis?.cancel();
+        this.macSpeaker?.stop();
+        this.macLinesWaiting.clear();
+      },
+    };
+    this.queue = new SpeechQueue(player, { quietAfterInputMilliseconds });
+    this.queue.onSpeakingChange = (speaking) => this.onSpeakingChange(speaking);
+    window.setInterval(() => this.queue.tick(Date.now()), tickMilliseconds);
+  }
+
+  get mode(): AnnouncementMode {
+    return this.modeValue;
+  }
+
+  set mode(mode: AnnouncementMode) {
+    if (mode === "mute" && this.modeValue !== "mute") this.queue.clear();
+    this.modeValue = mode;
+  }
+
   useVoice(voice: Voice, macSpeaker: MacSpeaker | undefined): void {
+    if (voice !== this.voice) this.queue.clear();
     this.voice = voice;
     this.macSpeaker = macSpeaker;
   }
 
-  // Compares the new queue with the last one and announces what is new.
+  // The server finished saying one of this page's lines.
+  noteMacLineDone(id: number): void {
+    const done = this.macLinesWaiting.get(id);
+    this.macLinesWaiting.delete(id);
+    done?.();
+  }
+
+  // Compares the new queue with the last one, plays a sound for what is new, and says it when the
+  // page narrates by itself.
   noteSessions(sessions: SessionView[]): AttentionItem[] {
     const queue = AttentionQueue.build(sessions);
     const keys = new Set(queue.map(itemKey));
@@ -51,92 +82,66 @@ export class Announcer {
     // The first snapshot after loading is what was already there, not news.
     if (!previous) return [];
     const arrived = queue.filter((item) => !previous.has(itemKey(item)));
-    if (arrived.length > 0) this.queueAnnouncement(arrived);
+    if (arrived.length > 0) this.noteArrivals(arrived);
     return arrived;
   }
 
-  // A line from the assistant; said once the user has stopped dictating.
+  // A line from the assistant; said in turn, once the user has stopped dictating.
   sayWhenQuiet(text: string): void {
-    if (this.mode === "mute") return;
-    this.waitingLines.push(text);
-    window.clearTimeout(this.groupTimer);
-    this.groupTimer = window.setTimeout(() => this.speakWaitingItems(), 0);
+    if (this.modeValue === "mute") return;
+    this.queue.enqueue(text, Date.now());
   }
 
   noteFeedback(feedback: Feedback): void {
     if (feedback.tone === "error") this.earcons.play("error");
     else if (feedback.tone === "success") this.earcons.play("sent");
-    if (feedback.speak) this.speakNow(feedback.text);
+    if (feedback.speak) this.sayWhenQuiet(feedback.text);
   }
 
   // Called on every change in the command bar: the user may be dictating right now.
   noteInputActivity(): void {
-    this.lastInputAt = Date.now();
-    this.stopSpeaking();
+    this.queue.noteInput(Date.now());
   }
 
-  // Says a line at once, cutting off anything still being said. Used by the voice test too.
+  // The voice test: whatever was waiting is dropped so the test is heard at once.
   speakNow(text: string): void {
-    if (this.mode === "mute") return;
-    this.stopSpeaking();
-    this.speak(text);
+    this.queue.clear();
+    this.queue.enqueue(text, Date.now());
   }
 
   unlock(): void {
     this.earcons.unlock();
   }
 
-  private queueAnnouncement(items: AttentionItem[]): void {
+  private noteArrivals(items: AttentionItem[]): void {
     for (const item of items) this.earcons.play(item.kind);
+    if (!this.speaksArrivalsItself) return;
     this.waitingItems.push(...items);
     window.clearTimeout(this.groupTimer);
-    this.groupTimer = window.setTimeout(() => this.speakWaitingItems(), groupingMilliseconds);
+    this.groupTimer = window.setTimeout(() => {
+      const text = AnnouncementText.forItems(this.waitingItems, this.modeValue);
+      this.waitingItems = [];
+      if (text) this.sayWhenQuiet(text);
+    }, groupingMilliseconds);
   }
 
-  private speakWaitingItems(): void {
-    const sinceInput = Date.now() - this.lastInputAt;
-    if (sinceInput < quietAfterInputMilliseconds) {
-      this.groupTimer = window.setTimeout(() => this.speakWaitingItems(), quietAfterInputMilliseconds - sinceInput);
-      return;
-    }
-    const arrivals = this.speaksArrivalsItself ? AnnouncementText.forItems(this.waitingItems, this.mode) : undefined;
-    const text = [arrivals, ...this.waitingLines].filter(Boolean).join(" ");
-    this.waitingItems = [];
-    this.waitingLines = [];
-    if (text) this.speak(text);
+  private playOnMac(text: string, done: () => void): void {
+    const id = this.nextMacLineId++;
+    this.macLinesWaiting.set(id, done);
+    this.macSpeaker!.speak(text, id);
   }
+}
 
-  private stopSpeaking(): void {
-    window.speechSynthesis?.cancel();
-    if (this.macSpeaker && Date.now() < this.macSpeechEndsAt) {
-      this.macSpeaker.stop();
-      this.macSpeechEndsAt = 0;
-      window.clearTimeout(this.macSpeechTimer);
-      this.onSpeakingChange(false);
-    }
-  }
-
-  private speak(text: string): void {
-    if (this.voice === "mac" && this.macSpeaker) {
-      this.macSpeaker.speak(text);
-      const speechMilliseconds = text.length * macSpeechMillisecondsPerCharacter + 1_000;
-      this.macSpeechEndsAt = Date.now() + speechMilliseconds;
-      this.onSpeakingChange(true);
-      window.clearTimeout(this.macSpeechTimer);
-      this.macSpeechTimer = window.setTimeout(() => this.onSpeakingChange(false), speechMilliseconds);
-      return;
-    }
-    const synthesis = window.speechSynthesis;
-    if (!synthesis) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.08;
-    const voice = preferredVoice(synthesis.getVoices());
-    if (voice) utterance.voice = voice;
-    utterance.onstart = () => this.onSpeakingChange(true);
-    utterance.onend = () => this.onSpeakingChange(false);
-    utterance.onerror = () => this.onSpeakingChange(false);
-    synthesis.speak(utterance);
-  }
+function playInBrowser(text: string, done: () => void): void {
+  const synthesis = window.speechSynthesis;
+  if (!synthesis) return done();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.08;
+  const voice = preferredVoice(synthesis.getVoices());
+  if (voice) utterance.voice = voice;
+  utterance.onend = () => done();
+  utterance.onerror = () => done();
+  synthesis.speak(utterance);
 }
 
 function itemKey(item: AttentionItem): string {

@@ -9,19 +9,10 @@ import { StateMark } from "../ui/StateMark.tsx";
 import { messageVoiceHint, shortDuration } from "./session-display.ts";
 import type { AttentionItem, PendingPermission, PendingQuestion, SessionView } from "../../shared/types.ts";
 
-// A sheet with an edge in the state's colour: the one place colour leads on this card.
-const kindEdge: Record<AttentionItem["kind"], string> = {
-  permission: "border-l-permission",
-  question: "border-l-question",
-  trust: "border-l-trust",
-  failed: "border-l-failed",
-  finished: "border-l-finished",
-};
-
 export function AttentionCard({ item, session, moreWaiting }: { item: AttentionItem; session: SessionView; moreWaiting: number }) {
   const now = useServerNow();
   return (
-    <section key={`${item.sessionName}-${item.kind}-${item.since}`} className={`enter-rise rounded-outer border border-l-2 border-line bg-raised p-1 ${kindEdge[item.kind]}`} aria-live="polite">
+    <section key={`${item.sessionName}-${item.kind}-${item.since}`} className="enter-rise rounded-outer border border-line bg-raised p-1" aria-live="polite">
       <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 text-meta text-ink-muted">
         <StateMark state={session.state} />
         <span className="font-mono text-ink">{item.sessionName}</span>
@@ -48,7 +39,7 @@ function PermissionBody({ sessionName, pending }: { sessionName: string; pending
     <div className="flex flex-col gap-2 px-3 pb-2.5">
       <p className="text-body text-ink">{pending.toolName === "Bash" ? "Wants to run a command" : `Wants to ${pending.summary.startsWith("edit ") ? "edit a file" : "use a tool"}`}</p>
       <FoldedText text={pending.summary} />
-      {isHighRisk && <p className="text-meta text-permission">This {pending.riskReasons.join(" and ")}.</p>}
+      {isHighRisk && <p className="text-meta text-ink-muted">Needs your confirm: it {pending.riskReasons.join(" and ")}.</p>}
       <Hint>{isHighRisk ? 'Say "confirm", or "no" and why' : 'Say "approve", or "no" and why'}</Hint>
       <div className="flex gap-1">
         <Key tone="primary" className="flex-1" onClick={() => perform({ type: "approve", session: sessionName, requestId: pending.requestId, confirmed: true })}>
