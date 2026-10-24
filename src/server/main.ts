@@ -25,6 +25,7 @@ import { SessionRegistry } from "./sessions/session-registry.ts";
 import { StateStore } from "./sessions/state-store.ts";
 import { TrustDialogWatcher } from "./sessions/trust-dialog-watcher.ts";
 import { SetupService } from "./setup/setup-service.ts";
+import { InputLog } from "./setup/input-log.ts";
 import { UserConfig } from "./setup/user-config.ts";
 import { TerminalHost } from "./terminals/terminal-host.ts";
 import { MacVoice } from "./voice/mac-voice.ts";
@@ -78,6 +79,7 @@ export async function startCallsign(): Promise<RunningCallsign> {
 
   const setup = new SetupService(projects, userConfig, connector, config.routerModel);
   const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant);
+  hub.inputLog = new InputLog(config.dataDirectory);
   const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin);
   const server = new CallsignHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host));
   await server.listen();

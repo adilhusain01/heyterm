@@ -7,6 +7,7 @@ import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
 import type { SetupService } from "../setup/setup-service.ts";
 import type { MacVoice } from "../voice/mac-voice.ts";
+import type { InputLog } from "../setup/input-log.ts";
 import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
 
 const snapshotThrottleMilliseconds = 50;
@@ -16,6 +17,7 @@ export class EventHub {
   // How many Callsign pages are open, so closing the last one can close Callsign.
   onPageCountChange: (count: number) => void = () => undefined;
   onQuitRequest: () => void = () => undefined;
+  inputLog: InputLog | undefined;
   private snapshotTimer: NodeJS.Timeout | undefined;
   private projectNames: string[] = [];
 
@@ -65,6 +67,7 @@ export class EventHub {
       if (message.type === "set_project_roots") await this.changeProjectRoots(message.roots);
       if (message.type === "connect_existing_sessions") await this.connectExistingSessions(message.connected === true);
       if (message.type === "quit") return this.onQuitRequest();
+      if (message.type === "input_diagnostics" && Array.isArray(message.records)) this.inputLog?.record(message.records);
       if (message.type === "set_keep_running") {
         await this.setup.setKeepRunningWithoutPage(message.keepRunning === true);
         await this.sendSetup();

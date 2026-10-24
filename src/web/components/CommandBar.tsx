@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useCallsign } from "../app-context.tsx";
 import { DictationDetector } from "../dictation-detector.ts";
+import { watchInput } from "../input-diagnostics.ts";
 import { ListeningState, type Listening } from "../listening-state.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { useOrbState } from "../state/use-orb-state.ts";
@@ -12,7 +13,7 @@ import { Kbd } from "../ui/Hint.tsx";
 import { PendingStrip } from "./PendingStrip.tsx";
 
 export function CommandBar() {
-  const { sendUtterance, perform, announcer } = useCallsign();
+  const { sendUtterance, perform, announcer, connection } = useCallsign();
   const typingSession = useCallsignStore((state) => state.typingSession);
   const setTypingSession = useCallsignStore((state) => state.setTypingSession);
   const control = useCallsignStore((state) => state.control);
@@ -39,6 +40,7 @@ export function CommandBar() {
 
   useKeepFocus(inputRef, typingSession === undefined);
   const listening = useListening(inputRef);
+  useEffect(() => watchInput(() => inputRef.current, (records) => connection.send({ type: "input_diagnostics", records: records as unknown as Array<Record<string, unknown>> })), [connection]);
   const orbState = useOrbState();
   const setBarState = useCallsignStore((state) => state.setBarState);
   useEffect(() => setBarState({ listening }), [listening, setBarState]);

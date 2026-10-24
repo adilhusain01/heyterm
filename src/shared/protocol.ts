@@ -103,6 +103,8 @@ export type ClientMessage =
   | { type: "set_project_roots"; roots: string[] }
   | { type: "connect_existing_sessions"; connected: boolean }
   | { type: "set_keep_running"; keepRunning: boolean }
+  // How text reached the page (kinds and lengths, never words), for when dictation seems lost.
+  | { type: "input_diagnostics"; records: Array<Record<string, unknown>> }
   // Stop Callsign and every session in it.
   | { type: "quit" }
   | { type: "speak"; text: string; id: number }

@@ -1,6 +1,6 @@
 // The left column: what needs you first, then every session, then the way to start or bring one back.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AttentionQueue } from "../../shared/attention.ts";
 import { useCallsign } from "../app-context.tsx";
 import { useCallsignStore } from "../state/callsign-store.ts";
@@ -10,7 +10,7 @@ import { PlusIcon } from "./icons.tsx";
 import { StateMark } from "../ui/StateMark.tsx";
 import { Tray } from "../ui/Surfaces.tsx";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
-import type { SessionView } from "../../shared/types.ts";
+import type { AgentKind, SessionView } from "../../shared/types.ts";
 
 export function SessionRail() {
   const sessions = useCallsignStore((state) => state.sessions);
@@ -52,6 +52,7 @@ function SessionRow({ session }: { session: SessionView }) {
       <span className="flex items-center gap-2.5">
         <StateMark state={session.state} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
+        {session.agent !== "claude" && <span className="shrink-0 rounded-mark border border-line px-1 text-[12px] text-ink-faint">{session.agent}</span>}
         <span className={`ml-auto shrink-0 text-[12.5px] ${display.textClass}`}>
           {display.label}
           {isWaitingOnUser(session.state) && <span className="ml-1.5 font-mono text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
@@ -65,8 +66,12 @@ function SessionRow({ session }: { session: SessionView }) {
 function NewSessionPicker() {
   const { perform } = useCallsign();
   const projects = useCallsignStore((state) => state.projects);
+  // Selected whole and filtered here: a selector returning a new array each time re-renders forever.
+  const agents = useCallsignStore((state) => state.setup?.agents);
+  const installedAgents = useMemo(() => (agents ?? []).filter((agent) => agent.version), [agents]);
   const [isOpen, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
+  const [agent, setAgent] = useState<AgentKind>("claude");
   const shown = projects.filter((project) => project.includes(filter.toLowerCase())).slice(0, 12);
   return (
     <div className="flex flex-col gap-1">
@@ -76,6 +81,22 @@ function NewSessionPicker() {
       </button>
       {isOpen && (
         <Tray className="enter-rise flex flex-col gap-1 p-1">
+          {installedAgents.length > 1 && (
+            <div role="radiogroup" aria-label="Agent" className="flex gap-1">
+              {installedAgents.map((installed) => (
+                <button
+                  key={installed.kind}
+                  type="button"
+                  role="radio"
+                  aria-checked={agent === installed.kind}
+                  onClick={() => setAgent(installed.kind)}
+                  className={`h-7 flex-1 cursor-pointer rounded-[4px] text-[12.5px] transition-colors duration-150 ${agent === installed.kind ? "bg-key text-ink shadow-key" : "text-ink-muted hover:bg-raised hover:text-ink"}`}
+                >
+                  {installed.label}
+                </button>
+              ))}
+            </div>
+          )}
           <input
             autoFocus
             value={filter}
@@ -88,7 +109,7 @@ function NewSessionPicker() {
               key={project}
               type="button"
               onClick={() => {
-                perform({ type: "spawn", project });
+                perform({ type: "spawn", project, ...(agent === "claude" ? {} : { agent }) });
                 setOpen(false);
               }}
               className="cursor-pointer rounded-[4px] px-2.5 py-1.5 text-left font-mono text-meta text-ink hover:bg-raised"

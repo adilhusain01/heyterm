@@ -89,7 +89,9 @@ export class SessionLauncher {
     const keys = ScreenReader.trustDialogKeys(await this.host.captureScreen(name));
     if (!keys) return false;
     this.host.pressKeys(name, keys);
-    this.registry.update(name, (session) => ({ ...session, state: "starting", stateSince: Date.now() }));
+    // After a folder, the agent starts and reports in. After Codex's hook review it is already up, and
+    // its start event ran before the hooks were trusted, so it is ready now.
+    this.registry.update(name, (session) => ({ ...session, state: session.trustSubject === "hooks" ? "idle" : "starting", stateSince: Date.now(), trustSubject: undefined }));
     return true;
   }
 

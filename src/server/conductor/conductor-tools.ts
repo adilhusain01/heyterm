@@ -81,9 +81,14 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
       ),
       tool(
         "start_session",
-        "Start a new Claude Code session in a folder, with its first task if there is one. The folder is a project name from list_projects or any folder path on this Mac, such as ~/Documents/Projects.",
-        { project: z.string().describe("A project name, or a folder path"), task: z.string().optional() }, async ({ project, task }) =>
-        reply((await sessionActions.perform(task ? { type: "spawn", project, task } : { type: "spawn", project }, (sessionName) => executor.setFocus(sessionName))).text),
+        "Start a new coding agent session in a folder, with its first task if there is one. The folder is a project name from list_projects or any folder path on this Mac, such as ~/Documents/Projects. The agent is Claude Code unless the developer asks for Codex or Gemini.",
+        {
+          project: z.string().describe("A project name, or a folder path"),
+          task: z.string().optional(),
+          agent: z.enum(["claude", "codex", "gemini"]).optional(),
+        },
+        async ({ project, task, agent }) =>
+          reply((await sessionActions.perform({ type: "spawn", project, ...(task ? { task } : {}), ...(agent ? { agent } : {}) }, (sessionName) => executor.setFocus(sessionName))).text),
       ),
       tool("close_session", "Close a session. Ask the developer first when it is working or has uncommitted changes.", { name: z.string(), confirmed: z.boolean().optional() }, ({ name, confirmed }) =>
         withSession(name, (session) =>
