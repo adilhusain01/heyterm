@@ -66,7 +66,8 @@ export class PermissionRisk {
     const riskReasons: string[] = [];
     if (isOutsideProject) riskReasons.push("edits a file outside the project");
     if (secretFileNames.test(filePath)) riskReasons.push("edits a file that holds secrets");
-    const shownPath = isOutsideProject ? filePath : relativePath;
+    // Shown with forward slashes on every system, the way people say paths.
+    const shownPath = isOutsideProject ? filePath : relativePath.split(path.sep).join("/");
     return { risk: riskReasons.length > 0 ? "high" : "low", riskReasons, summary: `edit ${shownPath}` };
   }
 

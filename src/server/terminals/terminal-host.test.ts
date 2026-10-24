@@ -26,7 +26,7 @@ describe("TerminalHost on every system", () => {
     const { file, args } = LaunchCommand.forPlatform("node", ["-e", "console.log('hello from ' + process.platform); setTimeout(() => {}, 3000)"]);
     host.createSession({ name: "anywhere", workingDirectory: process.cwd(), program: file, args, environment: {} });
     await waitFor(async () => (await host.captureScreen("anywhere")).includes(`hello from ${process.platform}`), 15_000);
-  });
+  }, 20_000);
 });
 
 afterEach(() => {

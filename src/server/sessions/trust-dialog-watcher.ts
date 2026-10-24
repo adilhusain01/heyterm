@@ -35,7 +35,7 @@ export class TrustDialogWatcher {
         if (session.state !== "starting") continue;
         const screen = await this.screens.captureScreen(session.name);
         if (ScreenReader.trustDialogKeys(screen)) {
-          this.registry.update(session.name, (current) => SessionLifecycle.applyTrustDialog(current, Date.now()));
+          this.registry.update(session.name, (current) => SessionLifecycle.applyTrustDialog(current, Date.now(), ScreenReader.trustSubject(screen)));
         }
       }
     } finally {

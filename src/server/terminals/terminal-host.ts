@@ -25,7 +25,7 @@ export interface NewTerminalSession {
   name: string;
   workingDirectory: string;
   program: string;
-  args: string[];
+  args: string[] | string;
   environment: Record<string, string>;
 }
 

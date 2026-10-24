@@ -3,13 +3,15 @@
 
 export interface Launch {
   file: string;
-  args: string[];
+  // On Windows a single command line: node-pty would otherwise quote each part again and break cmd's own quoting.
+  args: string[] | string;
 }
 
 export class LaunchCommand {
   static forPlatform(program: string, args: string[], platform: NodeJS.Platform = process.platform): Launch {
     if (platform === "win32") {
-      return { file: "cmd.exe", args: ["/d", "/s", "/c", [program, ...args].map(windowsQuote).join(" ")] };
+      // With /s, cmd drops the outer pair of quotes and runs what is inside as written.
+      return { file: "cmd.exe", args: `/d /s /c "${[program, ...args].map(windowsQuote).join(" ")}"` };
     }
     // exec replaces the shell, so the program gets the terminal's signals directly.
     return { file: "/bin/sh", args: ["-c", `exec ${[program, ...args].map(posixQuote).join(" ")}`] };

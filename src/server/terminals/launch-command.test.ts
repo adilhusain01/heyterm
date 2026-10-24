@@ -9,10 +9,10 @@ describe("LaunchCommand.forPlatform", () => {
     });
   });
 
-  it("runs through cmd on Windows, so claude.cmd and codex.cmd are found, with double quotes", () => {
+  it("runs through cmd on Windows as one ready command line, so claude.cmd and codex.cmd are found", () => {
     expect(LaunchCommand.forPlatform("claude", ["--settings", 'C:\\Users\\a b\\s.json'], "win32")).toEqual({
       file: "cmd.exe",
-      args: ["/d", "/s", "/c", '"claude" "--settings" "C:\\Users\\a b\\s.json"'],
+      args: '/d /s /c ""claude" "--settings" "C:\\Users\\a b\\s.json""',
     });
   });
 

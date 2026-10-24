@@ -46,8 +46,8 @@ export class SessionLifecycle {
     }
   }
 
-  static applyTrustDialog(session: SessionView, now: number): SessionView {
-    return SessionLifecycle.moveTo(session, "needs_trust", now);
+  static applyTrustDialog(session: SessionView, now: number, trustSubject: "folder" | "hooks" = "folder"): SessionView {
+    return SessionLifecycle.moveTo({ ...session, trustSubject }, "needs_trust", now);
   }
 
   static markSeen(session: SessionView, now: number): SessionView {
@@ -115,7 +115,7 @@ function describeToolUse(toolName: string, toolInput: Record<string, unknown>, p
   if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(toolName)) {
     const filePath = stringField(toolInput, "file_path") || stringField(toolInput, "notebook_path");
     const relativePath = path.relative(projectPath, filePath);
-    return { kind: "file", text: relativePath.startsWith("..") ? filePath : relativePath };
+    return { kind: "file", text: relativePath.startsWith("..") ? filePath : relativePath.split(path.sep).join("/") };
   }
   if (toolName === "AskUserQuestion") return undefined;
   return { kind: "tool", text: toolName };

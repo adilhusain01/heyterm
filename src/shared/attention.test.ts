@@ -128,6 +128,10 @@ describe("spoken lines", () => {
     expect(spokenFor(makeSession("peeker", { state: "done", stateSince: 100, lastSeenAt: 0, lastMessage: "Fixed the phone menu. Also ran the tests." }))).toBe("peeker is done.");
   });
 
+  it("says when it is the agent's hooks, not a folder, that need trusting", () => {
+    expect(spokenFor(makeSession("demo", { state: "needs_trust", trustSubject: "hooks" }))).toBe("demo asks you to trust Callsign's hooks. Say trust it.");
+  });
+
   it("asks for the trust and names a failure", () => {
     expect(spokenFor(makeSession("ultron", { state: "needs_trust" }))).toBe("ultron needs you to trust its folder. Say trust it.");
     expect(spokenFor(makeSession("ultron", { state: "failed" }))).toBe("ultron stopped on an error.");

@@ -42,6 +42,9 @@ function attentionItemFor(session: SessionView): AttentionItem | undefined {
       const headline = `${session.name} asks: ${lastQuestionSentence(session.lastMessage ?? "")}`;
       return { ...base, kind: "question", headline, spoken: endSentence(headline) };
     case "needs_trust":
+      if (session.trustSubject === "hooks") {
+        return { ...base, kind: "trust", headline: `${session.name} asks you to trust Callsign's hooks`, spoken: `${session.name} asks you to trust Callsign's hooks. Say trust it.` };
+      }
       return { ...base, kind: "trust", headline: `${session.name} needs you to trust its folder`, spoken: `${session.name} needs you to trust its folder. Say trust it.` };
     case "failed":
       return { ...base, kind: "failed", headline: `${session.name} stopped on an error`, spoken: `${session.name} stopped on an error.` };
