@@ -1,7 +1,6 @@
 // Small decisions around the assistant: what it is asked at all, what of its reply is said out
 // loud, and which of its own commands wait for a spoken "confirm".
 
-import { PermissionRisk } from "../safety/permission-risk.ts";
 import type { AttentionItem, RouterAction } from "../../shared/types.ts";
 
 // Longer than this out loud, and only the first two sentences are said.
@@ -51,11 +50,6 @@ export class ConductorSafety {
     return /privatekeys/i.test(JSON.stringify(input ?? {}));
   }
 
-  static commandDecision(command: string): { needsConfirm: false } | { needsConfirm: true; reason: string } {
-    const assessment = PermissionRisk.assess({ toolName: "Bash", toolInput: { command }, projectPath: "" });
-    if (assessment.risk !== "high") return { needsConfirm: false };
-    return { needsConfirm: true, reason: assessment.riskReasons[0] ?? "is risky" };
-  }
 }
 
 function speakable(text: string): string {

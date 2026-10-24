@@ -17,6 +17,8 @@ interface ConductorOptions {
   workingDirectory: string;
   tools: McpSdkServerConfigWithInstance;
   beforeTool: HookCallback;
+  // Asks the developer, when Claude Code's permission mode would; resolves to their answer.
+  askDeveloper: (toolName: string, toolInput: Record<string, unknown>) => Promise<boolean>;
 }
 
 interface QueuedTurn {
@@ -114,7 +116,12 @@ export class Conductor extends EventEmitter<ConductorEvents> {
         tools: { type: "preset", preset: "claude_code" },
         mcpServers: { callsign: this.options.tools },
         hooks: { PreToolUse: [{ hooks: [this.options.beforeTool], timeout: 120 }] },
-        canUseTool: async (_toolName, input) => ({ behavior: "allow", updatedInput: input }),
+        // The assistant asks the developer in words, not with an on-screen question.
+        disallowedTools: ["AskUserQuestion"],
+        canUseTool: async (toolName, input) =>
+          (await this.options.askDeveloper(toolName, input))
+            ? { behavior: "allow", updatedInput: input }
+            : { behavior: "deny", message: "The developer said no, or did not answer. Do not try another way; tell them it was not done." },
         // CALLSIGN_ROUTER keeps the user's connected-session hooks from treating this as a session of theirs.
         env: { ...withoutInheritedMarkers(process.env), CALLSIGN_ROUTER: "1" },
       },

@@ -47,7 +47,7 @@ function InstallSteps() {
       <Section title="This is the playground">
         <p className="text-meta leading-relaxed text-ink-muted">
           The three agents here are simulated, so you can try Callsign without installing anything. Speak with Wispr Flow (hold Fn) or type into the bar at the bottom. Try "catch me
-          up", "approve", "after", "confirm", or "api, run the tests".
+          up", "approve", "after", or "api, run the tests".
         </p>
       </Section>
       <Section title="Run it on your own sessions">
@@ -79,7 +79,7 @@ function SetupSections({ setup }: { setup: SetupStatus }) {
       <Section title="The assistant">
         <p className="text-meta leading-relaxed text-ink-muted">
           Approvals, answers and commands that name a session happen on this computer at once. Everything else goes to the assistant, <span className="font-mono text-ink">{setup.routerModel}</span>,{" "}
-          {setup.routerSource === "api" ? "through your Anthropic API key." : "through your own Claude Code login, so there is no key to set up."} It can run commands on this Mac; anything risky waits for you to say confirm.
+          {setup.routerSource === "api" ? "through your Anthropic API key." : "through your own Claude Code login, so there is no key to set up."} It does what your Claude Code permission mode allows, and asks you out loud whenever Claude Code would ask.
         </p>
       </Section>
     </>

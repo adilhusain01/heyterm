@@ -133,12 +133,6 @@ export class PlaygroundWorld {
   private approve(sessionName: string, requestId: string, confirmed: boolean): void {
     const pending = this.sessions.get(sessionName)?.pending;
     if (pending?.kind !== "permission" || pending.requestId !== requestId) return;
-    if (pending.risk === "high" && !confirmed) {
-      this.confirmation = () => this.approve(sessionName, requestId, true);
-      this.control = { ...this.control, confirmation: `run ${pending.summary} for ${sessionName}` };
-      this.snapshot();
-      return this.tell({ text: `That command ${pending.riskReasons[0]}. Say confirm to run it.`, tone: "warning", speak: true });
-    }
     this.confirmation = undefined;
     this.control = { ...this.control, confirmation: undefined };
     this.terminals.write(sessionName, `\r\n  \x1b[2mRan\x1b[0m ${pending.summary}\r\n`);

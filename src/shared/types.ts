@@ -150,4 +150,6 @@ export interface RoutingContext {
   hasPendingPreview: boolean;
   pendingClarifyOptions?: string[];
   recentlyClosedNames?: string[];
+  // A yes or no is awaited: the assistant asked to do something, or a busy session is being closed.
+  hasPendingConfirmation?: boolean;
 }

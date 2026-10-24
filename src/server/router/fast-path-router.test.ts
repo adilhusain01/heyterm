@@ -172,6 +172,18 @@ describe("talking to a session", () => {
   });
 });
 
+describe("while Callsign or the assistant waits for a yes", () => {
+  const waiting = () => makeContext({ hasPendingConfirmation: true });
+
+  it("takes yes, approve, go ahead and confirm as the yes", () => {
+    for (const phrase of ["Yes.", "approve", "go ahead", "Confirm.", "do it"]) expect(router.route(phrase, waiting())).toEqual({ type: "confirm" });
+  });
+
+  it("takes no, deny and cancel as the no", () => {
+    for (const phrase of ["No.", "deny", "cancel", "don't"]) expect(router.route(phrase, waiting())).toEqual({ type: "cancel" });
+  });
+});
+
 describe("other agents and closed sessions", () => {
   it("starts a Codex or Gemini session when the user names the agent", () => {
     expect(router.route("start a codex session in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio", agent: "codex" });

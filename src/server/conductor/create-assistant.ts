@@ -4,6 +4,7 @@
 import { Assistant } from "./assistant.ts";
 import { Conductor } from "./conductor.ts";
 import { ConductorSafety } from "./conductor-rules.ts";
+import { PermissionRisk } from "../safety/permission-risk.ts";
 import { createConductorTools } from "./conductor-tools.ts";
 import type { HookCallback } from "@anthropic-ai/claude-agent-sdk";
 import type { ActionExecutor } from "../actions/action-executor.ts";
@@ -30,26 +31,22 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
   const { executor, audit } = dependencies;
   let assistant: Assistant | undefined;
 
+  // The one rule Callsign adds: nothing touches a PrivateKeys folder (the developer's own standing rule).
   const beforeTool: HookCallback = async (input) => {
     if (input.hook_event_name !== "PreToolUse") return {};
-    const toolInput = (input.tool_input ?? {}) as Record<string, unknown>;
-    if (ConductorSafety.touchesPrivateKeys(input.tool_name, toolInput)) {
-      return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "The PrivateKeys folder is off limits. Do not try another way." } };
-    }
-    if (input.tool_name !== "Bash") return {};
-    const command = String(toolInput.command ?? "");
-    const decision = ConductorSafety.commandDecision(command);
-    if (!decision.needsConfirm) return {};
-    assistant?.sayNow(`I want to run a command that ${decision.reason}. Say confirm to let me, or cancel.`);
-    const confirmed = await executor.waitForSpokenConfirm(`let the assistant run ${command}`);
-    await audit.record({ session: "assistant", decision: confirmed ? "approved" : "denied", subject: command, decidedBy: confirmed ? "spoken confirm" : "no confirm within a minute" });
-    return {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: confirmed ? "allow" : "deny",
-        permissionDecisionReason: confirmed ? "The developer said confirm." : "The developer did not confirm this command. Do not run it another way.",
-      },
-    };
+    if (!ConductorSafety.touchesPrivateKeys(input.tool_name, (input.tool_input ?? {}) as Record<string, unknown>)) return {};
+    return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "The PrivateKeys folder is off limits. Do not try another way." } };
+  };
+
+  // Called only when Claude Code's own permission mode would ask the developer; then they are asked
+  // out loud. Whatever Claude Code allows by itself runs without a word from Callsign.
+  const askDeveloper = async (toolName: string, toolInput: Record<string, unknown>): Promise<boolean> => {
+    const summary = PermissionRisk.assess({ toolName, toolInput, projectPath: dependencies.workingDirectory });
+    const risk = summary.risk === "high" ? ` It ${summary.riskReasons[0]}.` : "";
+    assistant?.sayNow(`I need your OK to ${toolName === "Bash" ? "run a command" : `use ${toolName}`}.${risk} Say approve or deny.`);
+    const approved = await executor.waitForSpokenApproval(`let the assistant ${toolName === "Bash" ? `run ${summary.summary}` : summary.summary}`);
+    await audit.record({ session: "assistant", decision: approved ? "approved" : "denied", subject: summary.summary, decidedBy: approved ? "spoken approval" : "no or no answer" });
+    return approved;
   };
 
   const conductor = new Conductor({
@@ -57,6 +54,7 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
     workingDirectory: dependencies.workingDirectory,
     tools: createConductorTools(dependencies),
     beforeTool,
+    askDeveloper,
   });
   assistant = new Assistant(conductor, () => executor.situation(), () => executor.currentMode());
   return assistant;

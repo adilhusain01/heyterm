@@ -50,6 +50,11 @@ export class FastPathRouter {
   }
 
   private routeControlPhrase(phrase: string, context: RoutingContext): RouterAction | undefined {
+    // Something waits for a yes (the assistant asking, or closing a busy session): answer it at once.
+    if (context.hasPendingConfirmation) {
+      if (SpokenPhrases.yes.test(phrase) || SpokenPhrases.confirm.test(phrase)) return { type: "confirm" };
+      if (SpokenPhrases.no.test(phrase) || SpokenPhrases.cancelPreview.test(phrase)) return { type: "cancel" };
+    }
     if (context.hasPendingPreview) {
       if (SpokenPhrases.cancelPreview.test(phrase)) return { type: "cancel" };
       if (SpokenPhrases.sendNow.test(phrase)) return { type: "send_now" };

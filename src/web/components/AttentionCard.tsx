@@ -39,11 +39,11 @@ function PermissionBody({ sessionName, pending }: { sessionName: string; pending
     <div className="flex flex-col gap-2 px-3 pb-2.5">
       <p className="text-body text-ink">{pending.toolName === "Bash" ? "Wants to run a command" : `Wants to ${pending.summary.startsWith("edit ") ? "edit a file" : "use a tool"}`}</p>
       <FoldedText text={pending.summary} />
-      {isHighRisk && <p className="text-meta text-ink-muted">Needs your confirm: it {pending.riskReasons.join(" and ")}.</p>}
-      <Hint>{isHighRisk ? 'Say "confirm", or "no" and why' : 'Say "approve", or "no" and why'}</Hint>
+      {isHighRisk && <p className="text-meta text-ink-muted">It {pending.riskReasons.join(" and ")}.</p>}
+      <Hint>Say "approve", or "no" and why</Hint>
       <div className="flex gap-1">
         <Key tone="primary" className="flex-1" onClick={() => perform({ type: "approve", session: sessionName, requestId: pending.requestId, confirmed: true })}>
-          {isHighRisk ? "Confirm" : "Approve"}
+          Approve
         </Key>
         <Key className="flex-1" onClick={() => perform({ type: "deny", session: sessionName, requestId: pending.requestId })}>
           Deny

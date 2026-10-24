@@ -63,16 +63,6 @@ describe("NarrationRules.stillWaiting", () => {
   });
 });
 
-describe("ConductorSafety.commandDecision", () => {
-  it("runs ordinary commands without asking", () => {
-    expect(ConductorSafety.commandDecision("git status && ls")).toEqual({ needsConfirm: false });
-  });
-
-  it("holds a high-risk command until the user says confirm, with the reason to say", () => {
-    expect(ConductorSafety.commandDecision("git push origin main")).toEqual({ needsConfirm: true, reason: "pushes to a remote" });
-  });
-});
-
 describe("ConductorSafety.touchesPrivateKeys", () => {
   it("refuses any tool aimed at the PrivateKeys folder", () => {
     expect(ConductorSafety.touchesPrivateKeys("Read", { file_path: "/Users/me/PrivateKeys/wallet.txt" })).toBe(true);

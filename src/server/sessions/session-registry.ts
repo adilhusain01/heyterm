@@ -5,7 +5,6 @@ import { EventEmitter } from "node:events";
 import path from "node:path";
 import { ExternalSessionNaming } from "./external-session-naming.ts";
 import { SessionLifecycle } from "./session-lifecycle.ts";
-import { HighRiskGuard } from "../safety/high-risk-guard.ts";
 import type { StateStore } from "./state-store.ts";
 import type { HeldHookRequests } from "../hooks/held-hook-requests.ts";
 import type { HookEvent, HookEventName, SessionView } from "../../shared/types.ts";
@@ -86,7 +85,6 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
       this.heldRequests.letGoAllFor(event.sessionName, after.pending?.requestId);
     }
     if (event.name === "UserPromptSubmit") this.resolvePromptWaiters(event.sessionName);
-    if (event.name === "PreToolUse") return HighRiskGuard.preToolUseAnswer(toolCall(event.payload, before.projectPath));
     return requestId ? this.heldRequests.hold(requestId, event.sessionName) : "";
   }
 
@@ -181,14 +179,6 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   }
 }
 
-function toolCall(payload: Record<string, unknown>, projectPath: string) {
-  const toolInput = payload.tool_input;
-  return {
-    toolName: typeof payload.tool_name === "string" ? payload.tool_name : "",
-    toolInput: toolInput && typeof toolInput === "object" ? (toolInput as Record<string, unknown>) : {},
-    projectPath,
-  };
-}
 
 function localDayKey(time: number): string {
   return new Date(time).toDateString();

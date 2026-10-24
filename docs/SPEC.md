@@ -8,20 +8,20 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 
 ## Words used here
 
-- **Session**: one agent (Claude Code first) running in its own tmux session on the `callsign` tmux socket, in one project folder, under a short name (its callsign).
+- **Session**: one agent (Claude Code, Codex or Gemini CLI) running in a pseudo-terminal Callsign owns, in one folder, under a short name (its callsign).
 - **Utterance**: one piece of text that lands in the command bar, from Wispr or typed.
 - **Attention item**: something a session needs from you: a permission, a question, a trust dialog, a failure, a finished turn.
 
 ## Sessions
 
-- Sessions run in tmux, so they outlive Callsign. On start Callsign reads `~/.callsign/state.json` and the tmux socket and picks up every session still alive.
+- Sessions live as long as Callsign: stopping it (stop command, Ctrl+C, Quit, closing the last page after 15 seconds) ends them all and saves them under Recently closed, and Bring back resumes the agent's conversation by its session id. On start, everything saved in `~/.callsign/state.json` is offered under Recently closed.
 - Claude Code sessions start with `claude --settings ~/.callsign/hooks/claude-settings.json -n <name>` and `CALLSIGN_SESSION=<name>` in the environment. The hooks post every event to Callsign with that name, so events never need guessing.
 - A session's state comes from hooks, never from scraping the screen: `UserPromptSubmit` and `PreToolUse` mean working; `PermissionRequest` means it needs a decision (and the hook holds the request open until you give one); `Stop` means its turn ended; `StopFailure` means it failed; `SessionEnd` means it stopped.
 - A turn that ends in a question is "asked", one that does not is "done". Callsign reads the last message to tell them apart.
 - The one thing hooks do not report is the folder trust dialog on a new folder. Callsign reads the screen for that one case, and for sessions that have not reported anything yet.
-- Text is sent with `tmux send-keys -l`, then a carriage return. Delivery counts only when `UserPromptSubmit` arrives within 2.5 seconds; otherwise Callsign presses return again once and then says the send failed. (Found in the probe of 24 October 2026: a return sent right after start was swallowed.)
+- Text is pasted as a bracketed paste (control characters dropped, so text can never press keys), then a carriage return. Delivery counts only when `UserPromptSubmit` arrives within 2.5 seconds; otherwise Callsign presses return again once and then says the send failed. (Found in the probe of 24 October 2026: a return sent right after start was swallowed.)
 - If you answer a question or permission by hand in the terminal, the pending hook is resolved as answered elsewhere when the tool's `PostToolUse`, the next prompt or the end of the turn arrives.
-- Closing a session that is working, or has uncommitted changes, needs "confirm". Closing keeps the transcript, so "bring back peeker" resumes it with `claude --resume`.
+- Closing a session that is working, or has uncommitted changes, asks first; "yes" or "confirm" closes it. Closing keeps the transcript, so "bring back peeker" resumes it.
 - Callsign never deletes a folder or a worktree.
 
 ## Voice
@@ -32,7 +32,7 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 - Session names are matched by spelling and by sound ("synced" finds Synqed, "book boy" finds BookBoy, "peaker" finds Peeker).
 - With no name, an answer goes to the session at the top of the attention queue when it asked something; any other words go to the assistant, which decides where they belong.
 - Every send shows a preview ("to bookboy: go with Neon") with a 1.5 second countdown. "cancel", "no", "wait" or Escape stops it; "send" sends at once. Answers to a question that was just read out go without a countdown.
-- The assistant is one long-lived Claude conversation (Opus 5.5 at low effort, Agent SDK, the user's own Claude login or the API when `ANTHROPIC_API_KEY` is set). Each turn carries the current situation: every session, its state and its last words. What sessions said is wrapped as data, never instructions. Its tools read a session's screen and last message, send it work, answer, approve, deny, start (in any folder), close, bring back, interrupt and show sessions; on top of those it has everything Claude Code has, with the user's own MCP servers, skills, CLAUDE.md and permission rules. Nothing it runs may touch a PrivateKeys folder (a PreToolUse hook denies it). It can approve, never confirm: a high-risk request still needs the user's own "confirm". Its own high-risk commands are held by a PreToolUse hook until the user says confirm, or denied after a minute.
+- The assistant is one long-lived Claude conversation (Opus 5.5 at low effort, Agent SDK, the user's own Claude login or the API when `ANTHROPIC_API_KEY` is set). Each turn carries the current situation: every session, its state and its last words. What sessions said is wrapped as data, never instructions. Its tools read a session's screen and last message, send it work, answer, approve, deny, start (in any folder), close, bring back, interrupt and show sessions; on top of those it has everything Claude Code has, with the user's own MCP servers, skills, CLAUDE.md and permission rules. Nothing it runs may touch a PrivateKeys folder (a PreToolUse hook denies it). It runs whatever the user's Claude Code permission mode allows. When that mode would ask the user, the assistant asks out loud and waits for "approve", "yes" or "confirm" (or "no"); two minutes without an answer is a no.
 - When something newly needs the user, the assistant is told and says what the session wants and the exact reply, in a sentence or two, without reading commands, paths or code aloud. If it has not answered in 9 seconds, a plain line is said instead.
 - Replies are spoken up to a line of `---`; anything after it is shown only. The conversation column shows what the user said, the replies, the assistant's steps and what happened in the sessions.
 
@@ -46,7 +46,7 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 ## Answers and approvals
 
 - A multiple-choice question from Claude (`AskUserQuestion`) is answered from the hook with the option you named ("the second one", "Neon"), so no arrow keys are pressed.
-- A permission is read back with the exact command. Low risk: "approve" or "yes" runs it. High risk (deleting, force pushing, publishing, deploying, database drops, `sudo`, piping a download into a shell) needs "confirm"; "yes" is refused with a reason.
+- A permission is announced in plain words with its risk named (deleting, force pushing, publishing, deploying, database drops, `sudo`, piping a download into a shell), never the command read out. "approve", "yes" or "confirm" approves it, high risk or not: the agent asked, and Callsign adds no gate of its own.
 - A denial carries your words to Claude as the reason ("no, use pnpm") so it can change course.
 - Every decision, by voice or click, is written to `~/.callsign/audit.jsonl` with the time, session, command and the words that decided it.
 
@@ -67,11 +67,11 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 - The server listens on 127.0.0.1 only and refuses requests whose `Host` is not local or whose `Origin` names a non-local page.
 - Hook posts carry a token from `~/.callsign/token` (mode 600), so a web page cannot forge an approval.
 - A hook that cannot reach Callsign prints nothing, and Claude falls back to its own prompt.
-- High-risk tool calls always come to the user, even in auto mode (the default permission mode on Pro, Max and Team since 14 August 2026, which ran `git push --force` without asking in the test of 24 October 2026). Callsign's `PreToolUse` hook answers `ask` for a high-risk call; Claude Code then raises a permission request, which Callsign holds until "confirm". Checked with Claude Code 2.1.310 on 24 October 2026.
+- Callsign adds no permission gate of its own (Adil's decision, 25 October 2026): what an agent's own permission mode allows, it runs; what the agent asks about comes to the user by voice. The one exception is the user's standing rule that nothing touches a PrivateKeys folder, which the assistant's hook enforces.
 
 ## What Claude Code itself offers, and why Callsign does not use it (checked 24 October 2026, v2.1.310)
 
-- **Cross-session messaging** (`SendMessage`, the inbox socket in `CLAUDE_CODE_MESSAGING_SOCKET`): a message arrives marked as coming from another session, can never approve anything, and can be held or refused by the receiving session. Callsign carries the user's own words, so it types them as a real prompt through tmux instead.
+- **Cross-session messaging** (`SendMessage`, the inbox socket in `CLAUDE_CODE_MESSAGING_SOCKET`): a message arrives marked as coming from another session, can never approve anything, and can be held or refused by the receiving session. Callsign carries the user's own words, so it types them as a real prompt into the session's terminal instead.
 - **Agent view** (`claude agents`): lists states and sends notifications, for Claude only and by keyboard; replying from the peek panel cannot answer a permission prompt.
 - **Built-in voice dictation** (`/voice`, hold Space): dictates into the one session or agent view row that has focus. It does not pick the session from what you say, speak back, approve by voice, or tell you which session needs you.
 - **Channels** (research preview): push events into a session from an MCP server and can relay permission prompts. Callsign's hooks do the same today without the preview flags.
@@ -79,7 +79,7 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 
 ## Install
 
-- `callsign` starts the server and opens the browser; `callsign doctor` checks Node 20+, tmux and Claude Code and prints the fix for anything missing. The terminal bridge uses `@lydell/node-pty`, which ships prebuilt for macOS, Linux and Windows, so installing runs no build scripts.
+- `callsign` starts the server and opens the browser (or opens the one already running); `callsign stop` stops it; `callsign uninstall` stops it, removes its hooks from the user's Claude settings and moves `~/.callsign` to the Trash; `callsign doctor` checks Node 20+ and which agents are installed. Terminals use `@lydell/node-pty`, which ships prebuilt for macOS, Linux and Windows, so installing runs no build scripts. CI runs the tests and an install, start, stop and uninstall smoke check on all three.
 - The server is bundled to `dist/server/cli.js` and the UI to `dist/web`.
 
 ## Out of scope for the first version

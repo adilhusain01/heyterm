@@ -16,6 +16,8 @@ interface PendingClarify extends ClarifyView {
 interface PendingConfirmation {
   description: string;
   run: () => Promise<void>;
+  // Told when the answer is no, or the request is dropped or replaced.
+  onCancel?: () => void;
   expiresAt: number;
 }
 
@@ -58,8 +60,9 @@ export class PendingControls {
     return clarify;
   }
 
-  awaitConfirmation(description: string, run: () => Promise<void>): void {
-    this.confirmation = { description, run, expiresAt: Date.now() + confirmationMilliseconds };
+  awaitConfirmation(description: string, run: () => Promise<void>, onCancel?: () => void): void {
+    this.confirmation?.onCancel?.();
+    this.confirmation = { description, run, onCancel, expiresAt: Date.now() + confirmationMilliseconds };
     this.onChange();
   }
 
@@ -73,14 +76,18 @@ export class PendingControls {
   // The thing waiting for "confirm" was done another way, such as a confirm said straight to the permission.
   dropConfirmation(): void {
     if (!this.confirmation) return;
+    const dropped = this.confirmation;
     this.confirmation = undefined;
+    dropped.onCancel?.();
     this.onChange();
   }
 
   clearAll(): void {
     this.clearPreview();
     this.clarify = undefined;
+    const dropped = this.confirmation;
     this.confirmation = undefined;
+    dropped?.onCancel?.();
     this.onChange();
   }
 

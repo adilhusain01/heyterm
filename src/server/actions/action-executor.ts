@@ -145,38 +145,35 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
     if (preview) this.tell(await this.sessionActions.deliver(preview.session, preview.text));
   }
 
-  // The assistant's approve: a high-risk request still waits for the developer's own "confirm".
+  // The assistant approves on the developer's words; the agent asked, so its answer stands.
   async approveForAssistant(sessionName: string, requestId: string): Promise<string> {
-    const pending = this.registry.get(sessionName)?.pending;
-    if (pending?.kind === "permission" && pending.risk === "high") {
-      this.controls.awaitConfirmation(`run ${pending.summary} for ${sessionName}`, () => this.approve(sessionName, requestId, true, "confirm (asked by the assistant)"));
-      return `That needs the developer to say confirm, because the command ${pending.riskReasons[0] ?? "is risky"}. Tell them to say confirm.`;
-    }
     return (await this.decisions.approve(sessionName, requestId, { decidedBy: "the assistant, on the developer's words" })).text;
   }
 
-  // Holds one of the assistant's own risky commands until the developer says confirm, or a minute passes.
-  waitForSpokenConfirm(description: string, waitMilliseconds = 60_000): Promise<boolean> {
+  // Waits for the developer's yes or no to something the assistant asked, as Claude Code itself would
+  // have asked them. No answer in two minutes counts as no.
+  waitForSpokenApproval(description: string, waitMilliseconds = 120_000): Promise<boolean> {
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
         this.controls.dropConfirmation();
         resolve(false);
       }, waitMilliseconds);
-      this.controls.awaitConfirmation(description, async () => {
-        clearTimeout(timer);
-        resolve(true);
-      });
+      this.controls.awaitConfirmation(
+        description,
+        async () => {
+          clearTimeout(timer);
+          resolve(true);
+        },
+        () => {
+          clearTimeout(timer);
+          resolve(false);
+        },
+      );
     });
   }
 
   private async approve(sessionName: string, requestId: string, confirmed: boolean, decidedBy: string): Promise<void> {
-    const pending = this.registry.get(sessionName)?.pending;
-    if (pending?.kind === "permission" && pending.risk === "high" && !confirmed) {
-      const reason = pending.riskReasons[0] ?? "is risky";
-      this.controls.awaitConfirmation(`run ${pending.summary} for ${sessionName}`, () => this.approve(sessionName, requestId, true, `confirm (${decidedBy})`));
-      return this.tell({ text: `That command ${reason}. Say confirm to run it.`, tone: "warning", speak: true });
-    }
-    this.controls.dropConfirmation();
+    // The agent asked, so the developer's yes is enough: Callsign adds no gate of its own.
     this.tell(await this.decisions.approve(sessionName, requestId, { decidedBy }));
   }
 
@@ -227,6 +224,7 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
       hasPendingPreview: this.controls.preview !== undefined,
       pendingClarifyOptions: this.controls.clarify?.options,
       recentlyClosedNames: this.registry.recentlyClosedSessions().map((session) => session.name),
+      hasPendingConfirmation: this.controls.view().confirmation !== undefined,
     };
   }
 

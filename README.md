@@ -17,24 +17,22 @@ python3 scripts/measure-waits.py
 | "start a session in portfolio and fix the phone menu" | starts Claude Code in that project and gives it the task |
 | "peeker, run the tests again" / "tell bookboy to use Neon" | sends your words to that session, after a 1.5 second preview you can cancel |
 | "approve" / "no, use pnpm instead" | answers the permission at the top of the queue; a "no" passes your reason to Claude |
-| "confirm" | approves a risky command (deleting, force pushing, deploying, publishing) |
 | "Neon" / "the second one" | answers a multiple-choice question, with no arrow keys |
 | "catch me up" / "what's synqed doing?" | says what changed since you last looked |
 | "trust it" | trusts a new folder for the session asking |
 | "go to whisker" / "stop synqed" / "close peeker" / "bring back peeker" | focus, interrupt, close and resume |
 | "be quiet" / "mute" / "talk to me" | announcements for questions and permissions only, sounds only, or everything |
 
-Those happen at once on your computer. Everything else goes to the assistant in the middle: Claude (Opus 5.5 at low effort) on the Agent SDK, through your own Claude Code login, so there is no API key to set up. Ask it anything ("what is everyone doing?", "what changed in callsign today?", "start a session in portfolio and fix the header") and it answers out loud, reads sessions, sends them work and runs commands on your Mac. A risky command it wants to run waits for you to say "confirm". When a session needs you, the assistant tells you what it wants and what to say, in plain words, without reading the command out.
+Those happen at once on your computer. Everything else goes to the assistant in the middle: Claude (Opus 5.5 at low effort) on the Agent SDK, through your own Claude Code login, so there is no API key to set up. Ask it anything ("what is everyone doing?", "what changed in callsign today?", "start a session in portfolio and fix the header") and it answers out loud, reads sessions, sends them work and runs commands on your Mac. It does whatever your Claude Code permission mode allows, and asks you out loud whenever Claude Code would ask. When a session needs you, the assistant tells you what it wants and what to say, in plain words, without reading the command out.
 
 Callsign speaks with your Mac's own voice (whatever is set in System Settings, Accessibility, Spoken Content; Siri voices work there), or the browser's voice if you pick it in Setup.
 
 ## Getting started
 
-You need macOS or Linux, Node.js 20 or newer, [tmux](https://github.com/tmux/tmux), and [Claude Code](https://code.claude.com) signed in once.
+You need Node.js 20 or newer on macOS, Linux or Windows, and at least one coding agent signed in once: [Claude Code](https://code.claude.com), [Codex](https://github.com/openai/codex) (`npm install -g @openai/codex`) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`npm install -g @google/gemini-cli`). The assistant in the middle runs on Claude Code.
 
 ```bash
-brew install tmux          # or: sudo apt install tmux
-npx callsign-cli doctor    # checks everything Callsign needs
+npx callsign-cli doctor    # checks Node and which agents are installed
 npx callsign-cli           # starts Callsign and opens it in your browser
 ```
 
@@ -49,25 +47,36 @@ node bin/callsign.js
 Then:
 
 1. Click anywhere on the page once, so the browser lets Callsign speak.
-2. Open Setup and check your project folders. Callsign looks in `~/Documents/Projects`, `~/Projects`, `~/code`, `~/dev`, `~/src` and `~/Developer` by default.
-3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name.
+2. Open Setup and check your project folders. Callsign looks in `~/Documents/Projects`, `~/Projects`, `~/code`, `~/dev`, `~/src` and `~/Developer` by default, and the assistant can start a session in any folder you name.
+3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…" or "open gemini in…" for the other agents.
 4. Use headphones, so Callsign's spoken alerts never end up in your own dictation.
 
-To see the Claude sessions you start in your own terminals as well, open Setup and click **Connect my sessions**. Callsign adds its hooks to `~/.claude/settings.json` (after saving a backup in `~/.callsign/backups`), and **Disconnect** takes them out again. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.
+To see the Claude sessions you start in your own terminals as well, open Setup and turn on **Show my own sessions**. While Callsign runs, its hooks sit in `~/.claude/settings.json` (backed up first in `~/.callsign/backups`); they come out when Callsign stops. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.
+
+## Starting, stopping and removing it
+
+| | |
+| --- | --- |
+| `callsign` | starts it and opens the page, or opens the one already running |
+| `callsign stop`, Ctrl+C, Quit in Setup, or closing the last Callsign page | stops it and every session in it; they wait under Recently closed, and Bring back resumes the conversation |
+| `callsign uninstall` | stops it, takes its hooks out of your Claude settings and moves `~/.callsign` to the Trash; then `npm uninstall -g callsign-cli` removes the command |
+
+Closing the page stops Callsign after 15 seconds, so a reload never does. Setup has **Keep running without the page** if you want it to stay up.
 
 ## How it works
 
-- **Sessions run in tmux** on Callsign's own socket, so they keep running if Callsign stops, and you can open any of them in your own terminal with `tmux -L callsign attach -t <name>`.
-- **Claude Code hooks report every state**, so nothing is guessed from the screen. A permission or a multiple-choice question is held open until you answer by voice; answering in the terminal by hand still works, and wins.
-- **Risky commands always come to you**, even in auto mode: Callsign's `PreToolUse` hook makes Claude ask before deleting, force pushing, deploying or publishing, and only "confirm" approves them.
-- **Text is sent as a real prompt**, pasted into the session and confirmed by its `UserPromptSubmit` hook.
-- **Announcements wait for you.** Nothing is spoken while text is arriving in the command bar, and events that arrive together are read as one sentence.
+- **Sessions run in Callsign's own terminals** (pseudo-terminals it owns, the same on macOS, Linux and Windows), with a copy of each screen so the assistant can read it and a page opened later sees it.
+- **Agent hooks report every state**, so nothing is guessed from the screen. Claude Code gets them through a settings file for its session; Codex through config overrides for that run (Codex asks once to trust them; say "trust it"). Your own `~/.codex` and Claude settings are not changed.
+- **A permission or a multiple-choice question is held open until you answer by voice**; answering in the terminal by hand still works, and wins.
+- **No extra gates**: Callsign adds no permission layer of its own. What an agent's permission mode allows, it runs; when the agent asks, you hear what it wants and its risk, and "approve" answers.
+- **Text is sent as a real prompt**, pasted into the session and confirmed by its prompt hook.
+- **Announcements wait for you.** Nothing is spoken while text is arriving in the command bar, lines are said one after another, and what you say goes ahead of news waiting for the assistant.
 
 ## Privacy and safety
 
-- The server listens on `127.0.0.1` only. It refuses requests from other sites and checks a private token on every hook, so a web page cannot approve anything for you.
+- The server listens on `127.0.0.1` only. It refuses requests from other sites, and every hook and every page connection needs a private token from `~/.callsign/token` (readable by you alone), so neither a web page nor another user on the same computer can type into your terminals.
 - Every decision, by voice or click, goes into `~/.callsign/audit.jsonl` with the time, the session, the command and the words that decided it.
-- Callsign never deletes a folder or a worktree. Closing a session that is working or has uncommitted changes needs "confirm".
+- Callsign never deletes a folder or a worktree. Closing a session that is working or has uncommitted changes asks first.
 
 ## Settings
 
@@ -76,7 +85,7 @@ All optional; see `.env.example`.
 | Variable | What it changes |
 | --- | --- |
 | `CALLSIGN_PORT` | the port (default 4747) |
-| `CALLSIGN_PROJECT_ROOTS` | project folders, separated by `:` (Setup saves the same thing) |
+| `CALLSIGN_PROJECT_ROOTS` | project folders, separated by `:` (`;` on Windows); Setup saves the same thing |
 | `CALLSIGN_ROUTER_MODEL` | the assistant's model (default `claude-opus-5-5`) |
 | `ANTHROPIC_API_KEY` | run the assistant on the Claude API instead of your Claude Code login |
 
@@ -85,14 +94,14 @@ All optional; see `.env.example`.
 ```bash
 npm install
 npm run dev        # server with reload on :4747, UI with reload on :5173
-npm test           # 110 tests
+npm test           # the unit tests; CI also runs them on macOS, Linux and Windows
 npm run typecheck
 npm run build      # dist/web and dist/server/cli.js
 npm run build:playground   # dist/playground: the same UI on three simulated agents, a static site anyone can open
 ```
 
-`docs/SPEC.md` is the behaviour Callsign promises, and the tests are written from it. Pure decisions (routing, risk, session states, the attention queue) live in their own files with tests beside them.
+`docs/SPEC.md` is the behaviour Callsign promises, and the tests are written from it. `scripts/smoke.mjs` checks an installed package end to end (start, the token wall, stop, uninstall). Pure decisions (routing, risk, session states, the attention queue) live in their own files with tests beside them.
 
 Built for [No Hands: The Wispr Challenge](https://www.wemakedevs.org/wispr) by WeMakeDevs and Wispr Flow.
 
-The behaviour is specified in `docs/SPEC.md` and the look in `docs/DESIGN.md`.
+The look is specified in `docs/DESIGN.md`.
