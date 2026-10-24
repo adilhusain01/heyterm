@@ -1,6 +1,7 @@
 // The git repositories under the project folders, so "start a session in portfolio" finds the right one.
 
 import { readdir, stat } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 export interface ProjectEntry {
@@ -32,8 +33,14 @@ export class ProjectCatalog {
     return this.projects;
   }
 
-  async find(name: string): Promise<ProjectEntry | undefined> {
-    return (await this.list()).find((project) => project.name === name);
+  // A listed project by name, or any existing folder by its path ("~/Documents/Projects").
+  async find(nameOrPath: string): Promise<ProjectEntry | undefined> {
+    const listed = (await this.list()).find((project) => project.name === nameOrPath);
+    if (listed) return listed;
+    if (!looksLikePath(nameOrPath)) return undefined;
+    const folder = path.resolve(nameOrPath.replace(/^~(?=$|[\\/])/, os.homedir()));
+    const isFolder = await stat(folder).then((info) => info.isDirectory(), () => false);
+    return isFolder ? { name: path.basename(folder).toLowerCase() || "root", path: folder } : undefined;
   }
 
   async refresh(): Promise<void> {
@@ -42,6 +49,10 @@ export class ProjectCatalog {
     this.projects = withUniqueNames(found);
     this.refreshedAt = Date.now();
   }
+}
+
+function looksLikePath(text: string): boolean {
+  return text.startsWith("~") || path.isAbsolute(text) || text.includes("/") || text.includes("\\");
 }
 
 async function collectRepositories(folder: string, level: number, found: ProjectEntry[]): Promise<void> {
