@@ -1,0 +1,67 @@
+// Everything the UI shows, kept in step with the server's snapshots.
+
+import { create } from "zustand";
+import { HandsOffTally, type ActionSource } from "./hands-off-tally.ts";
+import type { SessionDigest } from "../../shared/catch-up.ts";
+import type { ClosedSessionView, ControlState, ServerMessage, SetupStatus } from "../../shared/protocol.ts";
+import type { SessionView } from "../../shared/types.ts";
+import type { ConnectionStatus } from "../transport/connection.ts";
+
+interface CallsignState {
+  connectionStatus: ConnectionStatus;
+  hasSnapshot: boolean;
+  sessions: SessionView[];
+  recentlyClosed: ClosedSessionView[];
+  projects: string[];
+  control: ControlState;
+  // Server time minus this browser's time, so wait timers match the server's clock.
+  serverClockOffset: number;
+  focusedSession: string | undefined;
+  // The terminal pane the user is typing into by hand, if any. The command bar steps back while one is.
+  typingSession: string | undefined;
+  catchUp: SessionDigest[] | undefined;
+  setup: SetupStatus | undefined;
+  handsOff: HandsOffTally;
+
+  applyServerMessage: (message: ServerMessage) => void;
+  setConnectionStatus: (status: ConnectionStatus) => void;
+  setTypingSession: (sessionName: string | undefined) => void;
+  closeCatchUp: () => void;
+  recordAction: (source: ActionSource) => void;
+}
+
+export const useCallsignStore = create<CallsignState>((set) => ({
+  connectionStatus: "connecting",
+  hasSnapshot: false,
+  sessions: [],
+  recentlyClosed: [],
+  projects: [],
+  control: { mode: "speak", routing: false },
+  serverClockOffset: 0,
+  focusedSession: undefined,
+  typingSession: undefined,
+  catchUp: undefined,
+  setup: undefined,
+  handsOff: HandsOffTally.loadToday(),
+
+  applyServerMessage: (message) => {
+    if (message.type === "snapshot") {
+      set({
+        hasSnapshot: true,
+        sessions: message.sessions,
+        recentlyClosed: message.recentlyClosed,
+        projects: message.projects,
+        control: message.control,
+        focusedSession: message.control.focusedSession,
+        serverClockOffset: message.serverTime - Date.now(),
+      });
+    }
+    if (message.type === "focus") set({ focusedSession: message.session });
+    if (message.type === "catch_up") set({ catchUp: message.digests });
+    if (message.type === "setup") set({ setup: message.setup });
+  },
+  setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
+  setTypingSession: (typingSession) => set({ typingSession }),
+  closeCatchUp: () => set({ catchUp: undefined }),
+  recordAction: (source) => set((state) => ({ handsOff: state.handsOff.withAction(source) })),
+}));

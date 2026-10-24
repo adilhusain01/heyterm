@@ -1,0 +1,88 @@
+// What the Setup screen reads and changes: installed tools, project folders, and whether the user's
+// own Claude sessions are connected.
+
+import { execFile } from "node:child_process";
+import { stat } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
+import type { ExistingSessionConnector } from "../hooks/existing-session-connector.ts";
+import type { ProjectCatalog } from "../projects/project-catalog.ts";
+import type { UserConfig } from "./user-config.ts";
+import type { SetupStatus } from "../../shared/protocol.ts";
+
+const execFileAsync = promisify(execFile);
+
+// Every hook Callsign relies on was checked against this release on 24 October 2026.
+export const testedClaudeVersion = "2.1.310";
+
+export class SetupService {
+  constructor(
+    private readonly projects: ProjectCatalog,
+    private readonly userConfig: UserConfig,
+    private readonly connector: ExistingSessionConnector,
+    private readonly routerModel: string,
+  ) {}
+
+  async status(): Promise<SetupStatus> {
+    const [tmuxVersion, claudeVersion, projectList, existingSessionsConnected] = await Promise.all([
+      commandVersion("tmux", ["-V"], /tmux\s+(\S+)/),
+      commandVersion("claude", ["--version"], /(\d+\.\d+\.\d+)/),
+      this.projects.list(),
+      this.connector.isConnected(),
+    ]);
+    return {
+      tmuxVersion,
+      claudeVersion,
+      testedClaudeVersion,
+      claudeVersionIsTested: claudeVersion !== undefined && compareVersions(claudeVersion, testedClaudeVersion) >= 0,
+      nodeVersion: process.versions.node,
+      projectRoots: this.projects.projectRoots,
+      projectCount: projectList.length,
+      existingSessionsConnected,
+      routerSource: process.env.ANTHROPIC_API_KEY ? "api" : "claude-code",
+      routerModel: this.routerModel,
+    };
+  }
+
+  // Keeps only folders that exist; "~" means the home folder.
+  async setProjectRoots(roots: string[]): Promise<string[]> {
+    const expanded = roots.map((root) => root.trim()).filter(Boolean).map(expandHome);
+    const existing: string[] = [];
+    for (const root of expanded) if (await isFolder(root)) existing.push(root);
+    await this.userConfig.update({ projectRoots: existing });
+    await this.projects.setRoots(existing);
+    return expanded.filter((root) => !existing.includes(root));
+  }
+
+  async setExistingSessionsConnected(connected: boolean): Promise<void> {
+    if (connected) await this.connector.connect();
+    else await this.connector.disconnect();
+  }
+}
+
+async function commandVersion(command: string, args: string[], pattern: RegExp): Promise<string | undefined> {
+  const output = await execFileAsync(command, args, { timeout: 5_000 }).then(
+    ({ stdout }) => stdout,
+    () => "",
+  );
+  return pattern.exec(output)?.[1];
+}
+
+export function compareVersions(left: string, right: string): number {
+  const leftParts = left.split(".").map(Number);
+  const rightParts = right.split(".").map(Number);
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const difference = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
+}
+
+function expandHome(folder: string): string {
+  return folder === "~" || folder.startsWith("~/") ? path.join(os.homedir(), folder.slice(1)) : path.resolve(folder);
+}
+
+async function isFolder(folder: string): Promise<boolean> {
+  return stat(folder).then((info) => info.isDirectory(), () => false);
+}

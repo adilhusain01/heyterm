@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/* One set of tokens. Panels sit in (no shadow); only pressable things cast one. */
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+
+  --color-canvas: #0a0c0f;
+  --color-panel: #111419;
+  --color-raised: #181c22;
+  --color-line: #232931;
+  --color-line-strong: #333b46;
+  --color-ink: #e8ebef;
+  --color-ink-muted: #9099a6;
+  --color-ink-faint: #5d6672;
+
+  --color-working: #6ea8fe;
+  --color-permission: #f3b440;
+  --color-question: #b39cff;
+  --color-trust: #f3b440;
+  --color-failed: #f2706b;
+  --color-finished: #5bd18b;
+  --color-idle: #5d6672;
+
+  --radius-outer: 10px;
+  --radius-inner: 6px;
+  --radius-mark: 2px;
+
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --shadow-press: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 1px 2px rgb(0 0 0 / 0.5);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Things that enter once, such as a new attention card, rise a few pixels into place. */
+.enter-rise {
+  transition:
+    opacity 180ms var(--ease-out-strong),
+    transform 180ms var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.press {
+  transition: transform 120ms var(--ease-out-strong);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* The send preview's countdown, driven by a CSS variable for its length. */
+@keyframes countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.countdown-bar {
+  transform-origin: left;
+  animation: countdown var(--countdown-duration, 1500ms) linear forwards;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: spin 700ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter-rise {
+    transition: opacity 120ms ease;
+    @starting-style {
+      opacity: 0;
+      transform: none;
+    }
+  }
+  .press:active {
+    transform: none;
+  }
+  .spin {
+    animation-duration: 2s;
+  }
+}
+
+.xterm {
+  height: 100%;
+  padding: 6px 0 0 8px;
+}
+.xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}

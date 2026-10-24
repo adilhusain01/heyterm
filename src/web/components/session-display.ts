@@ -1,0 +1,40 @@
+// How each session state looks and reads, from one table so every view agrees.
+
+import type { SessionState } from "../../shared/types.ts";
+
+interface StateDisplay {
+  label: string;
+  // A Tailwind text color from the theme tokens.
+  textClass: string;
+  markClass: string;
+  ringClass: string;
+  needsYou: boolean;
+}
+
+export const stateDisplay: Record<SessionState, StateDisplay> = {
+  starting: { label: "Starting", textClass: "text-ink-faint", markClass: "bg-idle", ringClass: "", needsYou: false },
+  idle: { label: "Idle", textClass: "text-ink-faint", markClass: "bg-idle", ringClass: "", needsYou: false },
+  working: { label: "Working", textClass: "text-working", markClass: "bg-working", ringClass: "", needsYou: false },
+  needs_permission: { label: "Needs a permission", textClass: "text-permission", markClass: "bg-permission", ringClass: "ring-1 ring-permission/70", needsYou: true },
+  asked: { label: "Asked you", textClass: "text-question", markClass: "bg-question", ringClass: "ring-1 ring-question/70", needsYou: true },
+  needs_trust: { label: "Needs trust", textClass: "text-trust", markClass: "bg-trust", ringClass: "ring-1 ring-trust/70", needsYou: true },
+  done: { label: "Done", textClass: "text-finished", markClass: "bg-finished", ringClass: "", needsYou: false },
+  failed: { label: "Failed", textClass: "text-failed", markClass: "bg-failed", ringClass: "ring-1 ring-failed/60", needsYou: true },
+  stopped: { label: "Stopped", textClass: "text-ink-faint", markClass: "bg-idle", ringClass: "", needsYou: false },
+};
+
+const waitingStates: SessionState[] = ["needs_permission", "asked", "needs_trust", "done", "failed"];
+
+export function isWaitingOnUser(state: SessionState): boolean {
+  return waitingStates.includes(state);
+}
+
+// "45s", "4m", "1h 12m"
+export function shortDuration(milliseconds: number): string {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
