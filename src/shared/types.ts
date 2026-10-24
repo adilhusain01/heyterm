@@ -77,6 +77,8 @@ export interface SessionView {
   // A dialog Callsign was holding when it restarted: it is on screen in the terminal, and typed text would land in it.
   blockedByTerminalDialog?: boolean;
   claudeSessionId?: string;
+  // Where Claude saves this session's conversation; the file exists only once a message was sent.
+  transcriptPath?: string;
   // Activity since the session was last looked at, newest last.
   activitySinceSeen: ActivityEntry[];
   // Time this session spent waiting on the user today, in milliseconds.

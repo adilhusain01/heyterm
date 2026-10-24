@@ -43,6 +43,8 @@ export async function startCallsign(): Promise<void> {
   const launcher = new SessionLauncher(tmux, registry, hooks.settingsPath);
   await launcher.reconcileWithTmux();
   new TrustDialogWatcher(tmux, registry).start();
+  // Sessions whose Claude quit by itself move to "Recently closed", where they can be brought back.
+  setInterval(() => void launcher.sweepEndedSessions().catch(() => undefined), 3_000).unref();
 
   const projects = new ProjectCatalog(config.projectRoots);
   const audit = new AuditLog(config.dataDirectory);

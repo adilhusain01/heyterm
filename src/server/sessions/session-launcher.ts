@@ -1,8 +1,10 @@
 // Starts, resumes, closes and types into agent sessions running in tmux.
 
 import { execFile } from "node:child_process";
+import { access } from "node:fs/promises";
 import { promisify } from "node:util";
 import { ScreenReader } from "./screen-reader.ts";
+import { SessionResume } from "./session-resume.ts";
 import type { SessionRegistry } from "./session-registry.ts";
 import type { TmuxServer } from "../tmux/tmux-server.ts";
 import type { SessionState, SessionView } from "../../shared/types.ts";
@@ -48,7 +50,8 @@ export class SessionLauncher {
     const now = Date.now();
     const session: SessionView = { ...closed, state: "starting", stateSince: now, lastSeenAt: now, pending: undefined, activitySinceSeen: [] };
     this.registry.add(session);
-    const resumeArgument = closed.claudeSessionId ? `--resume ${closed.claudeSessionId}` : "--continue";
+    const transcriptExists = closed.transcriptPath ? await fileExists(closed.transcriptPath) : undefined;
+    const resumeArgument = SessionResume.claudeArguments(closed, { transcriptExists });
     await this.tmux.createSession({
       name: session.name,
       workingDirectory: session.projectPath,
@@ -104,6 +107,16 @@ export class SessionLauncher {
   }
 
   // After a restart: keep saved sessions whose tmux session still runs, close the rest.
+  // A Claude that quit by itself (/exit, a crash, a failed start) leaves its session under
+  // "Recently closed", where it can be brought back, instead of a dead terminal.
+  async sweepEndedSessions(): Promise<void> {
+    const running = new Set((await this.tmux.listSessions()).map((session) => session.name));
+    const now = Date.now();
+    for (const session of this.registry.list()) {
+      if (SessionResume.endedOnItsOwn(session, { terminalRunning: running.has(session.name), now })) this.registry.remove(session.name);
+    }
+  }
+
   async reconcileWithTmux(): Promise<void> {
     const running = new Set((await this.tmux.listSessions()).map((session) => session.name));
     for (const session of this.registry.list()) {
@@ -155,6 +168,15 @@ export class SessionLauncher {
       const candidate = `${base}-${suffix}`;
       if (!this.registry.get(candidate)) return candidate;
     }
+  }
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
   }
 }
 

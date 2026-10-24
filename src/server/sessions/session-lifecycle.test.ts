@@ -29,6 +29,11 @@ describe("SessionLifecycle", () => {
     expect(session.claudeSessionId).toBe("abc");
   });
 
+  it("remembers where Claude saves the conversation, so bring back knows whether there is one", () => {
+    const session = SessionLifecycle.apply(makeSession(), makeEvent("SessionStart", { session_id: "abc", transcript_path: "/t/abc.jsonl", source: "startup" }));
+    expect(session.transcriptPath).toBe("/t/abc.jsonl");
+  });
+
   it("is working once a prompt is submitted, and records the prompt", () => {
     const session = SessionLifecycle.apply(makeSession({ state: "idle" }), makeEvent("UserPromptSubmit", { prompt: "fix the menu" }));
     expect(session.state).toBe("working");
