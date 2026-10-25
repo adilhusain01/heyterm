@@ -29,15 +29,17 @@ python3 scripts/measure-waits.py
 | "what did api change?" | names the files api changed in its last task, with line counts |
 | "be quiet" / "mute" / "talk to me" | announcements for questions and permissions only, sounds only, or everything |
 
-Those happen at once on your computer. Everything else goes to the assistant in the middle: Claude (Opus 5.5 at low effort) on the Agent SDK, through your own Claude Code login, so there is no API key to set up. Ask it anything ("what is everyone doing?", "what changed in heyterm today?", "start a session in portfolio and fix the header") and it answers out loud, reads sessions, sends them work and runs commands on your Mac. It does whatever your Claude Code permission mode allows, and asks you out loud whenever Claude Code would ask. When a session needs you, the assistant tells you what it wants and what to say, in plain words, without reading the command out.
+Those happen at once on your computer. Everything else goes to the assistant in the middle: Claude (Opus 5.5 at low effort) on the Agent SDK, through your own Claude Code login, so there is no API key to set up. Ask it anything ("what is everyone doing?", "what changed in heyterm today?", "start a session in portfolio and fix the header", "what time is it in Germany?") and it answers out loud, reads sessions, sends them work, and does anything Claude Code can on your Mac: runs commands, installs tools, writes files, searches the web and looks at your screen when you ask. Coding in a project still goes to that project's session, so you can follow it. It does whatever your Claude Code permission mode allows, asks you out loud whenever Claude Code would ask, and remembers your conversation across restarts. When a session needs you, the assistant tells you what it wants and what to say, in plain words, without reading the command out.
 
 HeyTerm speaks with your Mac's own voice (whatever is set in System Settings, Accessibility, Spoken Content; Siri voices work there), or the browser's voice if you pick it in Setup.
 
 ## What you see
 
-- **Sessions on the left**, each with its own face and its state, waits counted while it needs you. The sidebar folds to a rail of faces that are named when you hover.
+- **Sessions on the left**, each with its own face and its state, waits counted while it needs you. Hover a row for its agent, folder, branch, times and session id; rename any session from its row, and take closed ones off the list. The sidebar folds to a rail of faces that are named when you hover.
 - **Terminals in the middle**, in a grid or one at a time.
 - **The conversation on the right.** When a session needs you, its request arrives as a message there, with buttons and the words to say. Answer by voice or click; your answer shows up as your own message under it. Fold the column away and the most urgent request sits in one slim row above the bar you talk into.
+- **What each task changed.** A finished session says how many files it changed; "what did api change?" names them. A session that goes quiet for five minutes (or runs one command for ten) is named too.
+- **Any text can be copied.** Select it and press Cmd+C (Ctrl+C on Windows and Linux), in a terminal too.
 - **Gruvbox, light or dark.** HeyTerm starts in Gruvbox Material light; Setup, Appearance switches to dark or follows your system. Terminals stay dark in both, because coding agents colour their text for a dark terminal.
 
 ## Getting started
@@ -84,6 +86,9 @@ Closing the page stops HeyTerm after 15 seconds, so a reload never does. Setup h
 - **Sessions run in HeyTerm's own terminals** (pseudo-terminals it owns, the same on macOS, Linux and Windows), with a copy of each screen so the assistant can read it and a page opened later sees it.
 - **Agent hooks report every state**, so nothing is guessed from the screen. Claude Code gets them through a settings file for its session; Codex through config overrides for that run (Codex asks once to trust them; say "trust it"). Your own `~/.codex` and Claude settings are not changed.
 - **Grok Build and Cursor read hooks only from global files**, so while HeyTerm runs it writes `~/.grok/hooks/heyterm.json` and adds its entries to `~/.cursor/hooks.json` (backed up first), and takes them out again when it stops or is uninstalled. They only report what happens; nothing in them can approve or block a tool, so each agent's own permission rules stay in charge, and sessions HeyTerm did not start are ignored. Grok's permission card shows as waiting in its terminal: say "go to" the session and answer there.
+- **A second session in a folder another one uses gets its own git worktree**, on a branch named `heyterm/<session>`, from the last commit, in `~/.heyterm/worktrees`, so two agents never edit the same files. Its work stays on that branch for you to merge. Outside git the folder is shared, and HeyTerm says so.
+- **Claude Code's own session records** (`~/.claude/sessions`) tell HeyTerm what no hook does: a turn you stopped with Esc, and a terminal that was closed.
+- **What a task changed** comes from the session's own edit hooks and from git, compared when the task starts and when it ends, so edits made through shell commands count.
 - **A permission or a multiple-choice question is held open until you answer by voice**; answering in the terminal by hand still works, and wins.
 - **No extra gates**: HeyTerm adds no permission layer of its own. What an agent's permission mode allows, it runs; when the agent asks, you hear what it wants and its risk, and "approve" answers.
 - **Text is sent as a real prompt**, pasted into the session and confirmed by its prompt hook.
@@ -93,7 +98,8 @@ Closing the page stops HeyTerm after 15 seconds, so a reload never does. Setup h
 
 - The server listens on `127.0.0.1` only. It refuses requests from other sites, and every hook and every page connection needs a private token from `~/.heyterm/token` (readable by you alone), so neither a web page nor another user on the same computer can type into your terminals.
 - Every decision, by voice or click, goes into `~/.heyterm/audit.jsonl` with the time, the session, the command and the words that decided it.
-- HeyTerm never deletes a folder or a worktree. Closing a session that is working or has uncommitted changes asks first.
+- HeyTerm never deletes your folders. A worktree it made goes only when you take its closed session off the list and it holds no uncommitted changes and no commits of its own. Closing a session that is working or has uncommitted changes asks first.
+- The assistant's conversation stays on your computer: its id and the last 80 lines in `~/.heyterm/assistant.json`, the conversation itself where Claude Code keeps conversations.
 
 ## Settings
 
