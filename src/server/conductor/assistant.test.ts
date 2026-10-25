@@ -8,8 +8,7 @@ function session(name: string, overrides: Partial<SessionView>): SessionView {
   return { name, projectPath: `/p/${name}`, projectName: name, agent: "claude", state: "working", stateSince: 100, createdAt: 0, lastSeenAt: 0, activitySinceSeen: [], waitedMillisecondsToday: 0, ...overrides };
 }
 
-function makeAssistant(sessions: SessionView[]): Assistant {
-  const conductor = Object.assign(new EventEmitter(), { ask: vi.fn(async () => "Noted."), close: vi.fn() }) as unknown as Conductor;
+function makeAssistant(sessions: SessionView[], conductor = Object.assign(new EventEmitter(), { ask: vi.fn(async () => "Noted."), close: vi.fn() }) as unknown as Conductor): Assistant {
   return new Assistant(conductor, async () => ({ sessions, projectNames: [], recentlyClosedNames: [] }), () => "speak");
 }
 
@@ -41,5 +40,21 @@ describe("Assistant.recordReply", () => {
     const assistant = makeAssistant([]);
     assistant.recordReply("Trust ultron");
     expect(assistant.conversation()).toEqual([expect.objectContaining({ kind: "user", text: "Trust ultron" })]);
+  });
+});
+
+describe("Assistant, a command's output", () => {
+  // Adil, 25 October 2026: every command the assistant runs should open to show its full output.
+  it("attaches each tool's result to its own line, and marks one that failed", () => {
+    const conductor = Object.assign(new EventEmitter(), { ask: vi.fn(async () => "Noted."), close: vi.fn() }) as unknown as Conductor;
+    const assistant = makeAssistant([], conductor);
+    conductor.emit("activity", "tool", 'run TZ=Europe/Berlin date "+%-I:%M %p"', "tool-1");
+    conductor.emit("activity", "tool", "run false", "tool-2");
+    conductor.emit("toolResult", "tool-1", "1:45 PM", false);
+    conductor.emit("toolResult", "tool-2", "Exit code 1", true);
+    expect(assistant.conversation()).toEqual([
+      expect.objectContaining({ kind: "tool", text: 'run TZ=Europe/Berlin date "+%-I:%M %p"', output: { text: "1:45 PM", failed: false } }),
+      expect.objectContaining({ kind: "tool", text: "run false", output: { text: "Exit code 1", failed: true } }),
+    ]);
   });
 });

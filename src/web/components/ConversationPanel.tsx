@@ -154,6 +154,32 @@ function bringIntoView(scroller: HTMLElement, element: HTMLElement): void {
   else if (box.top < scrollerBox.top) scroller.scrollTop -= scrollerBox.top - box.top + margin;
 }
 
+// A command or tool the assistant used. The line opens to show it in full with its output, and
+// closes again; no animation, since it is opened often. The output can be selected and copied.
+function ToolLine({ entry }: { entry: ConversationEntry }) {
+  const [isOpen, setOpen] = useState(false);
+  const output = entry.output;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setOpen(!isOpen)}
+        className="-mx-1.5 flex cursor-pointer items-baseline gap-2 rounded-small px-1.5 py-0.5 text-left font-mono text-small text-ink-faint transition-colors duration-150 hover:bg-raised hover:text-ink-muted"
+      >
+        <span aria-hidden className={`inline-block shrink-0 ${isOpen ? "rotate-90" : ""}`}>›</span>
+        <span className={isOpen ? "break-all text-ink" : "truncate"}>{entry.text}</span>
+        {output?.failed && <span className="ml-auto shrink-0 font-sans text-failed">Failed</span>}
+      </button>
+      {isOpen && (
+        <pre className={`max-h-72 overflow-auto rounded-inner border bg-tray px-2.5 py-2 font-mono text-small break-words whitespace-pre-wrap text-ink shadow-tray ${output?.failed ? "border-failed/50" : "border-line"}`}>
+          {output ? output.text || "No output." : "Running…"}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 function LiveRequest({ item, sessions }: { item: AttentionItem; sessions: SessionView[] }) {
   const session = sessions.find((candidate) => candidate.name === item.sessionName);
   // The key lets the column bring a request into view once, when it first appears.
@@ -181,12 +207,7 @@ function EntryRow({ entry, sessions }: { entry: ConversationEntry; sessions: Ses
     case "assistant":
       return <Markdown text={entry.text} className="text-body text-ink" />;
     case "tool":
-      return (
-        <p className="flex items-baseline gap-2 font-mono text-small text-ink-faint" title={entry.text}>
-          <span aria-hidden>›</span>
-          <span className="truncate">{entry.text}</span>
-        </p>
-      );
+      return <ToolLine entry={entry} />;
     case "event":
       return (
         <p className="flex items-baseline gap-2 text-meta text-ink-muted" title={entry.text}>

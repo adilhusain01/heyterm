@@ -1,6 +1,7 @@
 // The assistant between the user and their sessions: one long-lived Claude conversation on the
 // user's own Claude Code login, fed what the user says and what happens in the sessions.
 
+import { ToolOutput } from "./tool-output.ts";
 import { query, type HookCallback, type McpSdkServerConfigWithInstance, type Query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { execFileSync } from "node:child_process";
 import { EventEmitter } from "node:events";
@@ -30,7 +31,9 @@ interface QueuedTurn {
 }
 
 interface ConductorEvents {
-  activity: [ConversationEntryKind, string];
+  activity: [ConversationEntryKind, string, string?];
+  // A tool's result, by the id of the tool use it answers.
+  toolResult: [string, string, boolean];
   busy: [boolean];
 }
 
@@ -150,7 +153,13 @@ export class Conductor extends EventEmitter<ConductorEvents> {
         if (this.session !== session) return;
         if (message.type === "assistant") {
           for (const block of message.message.content) {
-            if (block.type === "tool_use") this.emit("activity", "tool", describeToolUse(block.name, block.input));
+            if (block.type === "tool_use") this.emit("activity", "tool", describeToolUse(block.name, block.input), block.id);
+          }
+        }
+        // Tool results come back to the model as a user message, one block per tool use.
+        if (message.type === "user" && Array.isArray(message.message.content)) {
+          for (const block of message.message.content) {
+            if (typeof block === "object" && block.type === "tool_result") this.emit("toolResult", block.tool_use_id, ToolOutput.fromToolResult(block.content), block.is_error === true);
           }
         }
         if (message.type === "result") {

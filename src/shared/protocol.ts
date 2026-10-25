@@ -88,6 +88,9 @@ export interface ConversationEntry {
   kind: ConversationEntryKind;
   text: string;
   request?: ConversationRequest;
+  // For a tool line: the id that ties it to its result, and the result once it arrives.
+  toolUseId?: string;
+  output?: { text: string; failed: boolean };
 }
 
 export type ServerMessage =

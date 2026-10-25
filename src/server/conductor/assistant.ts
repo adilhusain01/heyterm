@@ -1,6 +1,7 @@
 // The assistant as the rest of HeyTerm sees it: it hears what the user said, tells the user what
 // happened in the sessions, and keeps the conversation the UI shows.
 
+import { ToolOutput } from "./tool-output.ts";
 import { EventEmitter } from "node:events";
 import { ConductorTurnText, type Situation } from "./conductor-prompt.ts";
 import { NarrationRules, SpokenReply } from "./conductor-rules.ts";
@@ -39,7 +40,8 @@ export class Assistant extends EventEmitter<AssistantEvents> {
     private readonly announcementMode: () => AnnouncementMode,
   ) {
     super();
-    conductor.on("activity", (kind, text) => this.record(kind, text));
+    conductor.on("activity", (kind, text, toolUseId) => this.record(kind, text, undefined, toolUseId));
+    conductor.on("toolResult", (toolUseId, output, failed) => this.attachOutput(toolUseId, output, failed));
     conductor.on("busy", (busy) => this.emit("thinking", busy));
   }
 
@@ -163,8 +165,15 @@ export class Assistant extends EventEmitter<AssistantEvents> {
     this.nextEntryId = Math.max(0, ...this.entries.map((entry) => entry.id)) + 1;
   }
 
-  private record(kind: ConversationEntryKind, text: string, request?: ConversationRequest): void {
-    const entry: ConversationEntry = request ? { id: this.nextEntryId++, at: Date.now(), kind, text, request } : { id: this.nextEntryId++, at: Date.now(), kind, text };
+  // A tool's result, onto the line that named it, so the line can open to show it.
+  private attachOutput(toolUseId: string, output: string, failed: boolean): void {
+    if (!this.entries.some((entry) => entry.toolUseId === toolUseId)) return;
+    this.entries = this.entries.map((entry) => (entry.toolUseId === toolUseId ? { ...entry, output: { text: ToolOutput.capped(output), failed } } : entry));
+    this.emit("conversation", this.entries);
+  }
+
+  private record(kind: ConversationEntryKind, text: string, request?: ConversationRequest, toolUseId?: string): void {
+    const entry: ConversationEntry = { id: this.nextEntryId++, at: Date.now(), kind, text, ...(request ? { request } : {}), ...(toolUseId ? { toolUseId } : {}) };
     this.entries = [...this.entries, entry].slice(-keptEntries);
     this.emit("conversation", this.entries);
   }
