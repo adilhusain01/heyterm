@@ -12,9 +12,9 @@ export class ListeningState {
     return "not_listening";
   }
 
-  // A paste with no field under the cursor is dictation that missed the bar.
+  // A paste into the bar, or with no field under the cursor, is dictation: the bar inserts it itself.
   static pasteBelongsToBar(focusedElement: FocusedElement): boolean {
-    return focusedElement === "nothing";
+    return focusedElement === "bar" || focusedElement === "nothing";
   }
 
   static focusedElement(active: Element | null, bar: HTMLInputElement | null): FocusedElement {

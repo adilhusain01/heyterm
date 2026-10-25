@@ -26,8 +26,11 @@ describe("ListeningState.pasteBelongsToBar", () => {
     expect(ListeningState.pasteBelongsToBar("nothing")).toBe(true);
   });
 
-  it("leaves a paste alone in the bar, a terminal or another field", () => {
-    expect(ListeningState.pasteBelongsToBar("bar")).toBe(false);
+  it("takes a paste into the bar itself, because a browser extension can cancel the normal insert (seen in the input log of 25 October 2026)", () => {
+    expect(ListeningState.pasteBelongsToBar("bar")).toBe(true);
+  });
+
+  it("leaves a paste alone in a terminal or another field", () => {
     expect(ListeningState.pasteBelongsToBar("terminal")).toBe(false);
     expect(ListeningState.pasteBelongsToBar("other_field")).toBe(false);
   });

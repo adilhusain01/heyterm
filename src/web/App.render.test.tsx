@@ -64,6 +64,18 @@ describe("the whole page", () => {
     expect(text).toContain("Portfolio wants to force push.");
     expect(text).toContain("ultron");
     expect(errors.map((error) => String((error as unknown[])[0]).slice(0, 160))).toEqual([]);
+
+    // Dictation arrives as a paste; something else on the page (an extension) tries to cancel it.
+    document.addEventListener("paste", (event) => event.preventDefault(), { capture: false });
+    const bar = container.querySelector<HTMLInputElement>('input[aria-label="Talk to Callsign"]')!;
+    bar.focus();
+    const paste = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, "clipboardData", { value: { getData: (type: string) => (type === "text/plain" ? "start a session in portfolio" : "") } });
+    await act(async () => {
+      bar.dispatchEvent(paste);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(bar.value).toBe("start a session in portfolio");
     consoleError.mockRestore();
   });
 });

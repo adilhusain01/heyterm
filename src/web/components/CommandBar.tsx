@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useCallsign } from "../app-context.tsx";
 import { DictationDetector } from "../dictation-detector.ts";
 import { watchInput } from "../input-diagnostics.ts";
+import { PasteInsertion } from "../paste-insertion.ts";
 import { ListeningState, type Listening } from "../listening-state.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { useOrbState } from "../state/use-orb-state.ts";
@@ -46,21 +47,29 @@ export function CommandBar() {
   useEffect(() => setBarState({ listening }), [listening, setBarState]);
   useEffect(() => setBarState({ barHasText: text.trim().length > 0 }), [text, setBarState]);
 
-  // Dictation pasted while nothing had the cursor goes into the bar instead of disappearing.
+  // Dictation arrives as a paste. The bar inserts it itself, at the cursor, so nothing else in the
+  // browser can cancel it, and a paste with no field focused lands here too.
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
-      if (!ListeningState.pasteBelongsToBar(ListeningState.focusedElement(document.activeElement, inputRef.current))) return;
+      const bar = inputRef.current;
+      const focused = ListeningState.focusedElement(document.activeElement, bar);
+      if (!bar || !ListeningState.pasteBelongsToBar(focused)) return;
       const pasted = event.clipboardData?.getData("text/plain") ?? "";
       if (!pasted.trim()) return;
       event.preventDefault();
-      const next = textRef.current ? `${textRef.current} ${pasted}` : pasted;
-      detector.current.recordChange(textRef.current, next, Date.now());
+      event.stopImmediatePropagation();
+      const current = textRef.current;
+      const selection = focused === "bar" ? { start: bar.selectionStart ?? current.length, end: bar.selectionEnd ?? current.length } : { start: current.length, end: current.length };
+      const { text: next, caret } = PasteInsertion.apply(current, selection, pasted);
+      detector.current.recordChange(current, next, Date.now());
       announcer.noteInputActivity();
       setText(next);
-      inputRef.current?.focus();
+      bar.focus();
+      requestAnimationFrame(() => bar.setSelectionRange(caret, caret));
     };
-    document.addEventListener("paste", onPaste);
-    return () => document.removeEventListener("paste", onPaste);
+    // Capture, so this runs before any other paste handler on the page.
+    document.addEventListener("paste", onPaste, true);
+    return () => document.removeEventListener("paste", onPaste, true);
   }, [announcer]);
 
   return (
