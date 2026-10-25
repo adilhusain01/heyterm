@@ -31,6 +31,13 @@ Those happen at once on your computer. Everything else goes to the assistant in 
 
 HeyTerm speaks with your Mac's own voice (whatever is set in System Settings, Accessibility, Spoken Content; Siri voices work there), or the browser's voice if you pick it in Setup.
 
+## What you see
+
+- **Sessions on the left**, each with its own face and its state, waits counted while it needs you. The sidebar folds to a rail of faces that are named when you hover.
+- **Terminals in the middle**, in a grid or one at a time.
+- **The conversation on the right.** When a session needs you, its request arrives as a message there, with buttons and the words to say. Answer by voice or click; your answer shows up as your own message under it. Fold the column away and the most urgent request sits in one slim row above the bar you talk into.
+- **Gruvbox, light or dark.** HeyTerm starts in Gruvbox Material light; Setup, Appearance switches to dark or follows your system. Terminals stay dark in both, because coding agents colour their text for a dark terminal.
+
 ## Getting started
 
 You need Node.js 20 or newer on macOS, Linux or Windows, and at least one coding agent signed in once: [Claude Code](https://code.claude.com), [Codex](https://github.com/openai/codex) (`npm install -g @openai/codex`) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`npm install -g @google/gemini-cli`). The assistant in the middle runs on Claude Code.
@@ -55,7 +62,7 @@ Then:
 3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…" or "open gemini in…" for the other agents.
 4. Use headphones, so HeyTerm's spoken alerts never end up in your own dictation.
 
-To see the Claude sessions you start in your own terminals as well, open Setup and turn on **Show my own sessions**. While HeyTerm runs, its hooks sit in `~/.claude/settings.json` (backed up first in `~/.heyterm/backups`); they come out when HeyTerm stops. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.
+To see the Claude sessions you start in your own terminals as well, open Setup and press **Show them** under Your own Claude sessions. While HeyTerm runs, its hooks sit in `~/.claude/settings.json` (backed up first in `~/.heyterm/backups`); they come out when HeyTerm stops. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.
 
 ## Starting, stopping and removing it
 

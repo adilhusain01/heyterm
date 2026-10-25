@@ -49,11 +49,13 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 - A permission is announced in plain words with its risk named (deleting, force pushing, publishing, deploying, database drops, `sudo`, piping a download into a shell), never the command read out. "approve", "yes" or "confirm" approves it, high risk or not: the agent asked, and HeyTerm adds no gate of its own.
 - A denial carries your words to Claude as the reason ("no, use pnpm") so it can change course.
 - Every decision, by voice or click, is written to `~/.heyterm/audit.jsonl` with the time, session, command and the words that decided it.
+- A request that waits on a decision (permission, question, trust, failure) goes into the conversation the moment it arrives, as a message that can be answered there. It stays answerable while the session still waits on that same request (same session, kind and start time) and settles once it does not. A request older than the 80 kept lines is still shown at the end.
+- An answer shows in the conversation as the user's own message: the words when spoken, and when clicked, the words that would have been said ("Approve web", "Trust ultron", "api: Postgres"). Finished work is news, told as an event line, never as a request.
 
 ## Attention
 
 - Queue order: permission, question, trust dialog, failure, finished. Within one kind, the one waiting longest first.
-- Each item shows how long it has waited. The top bar shows how long agents waited on you today.
+- Each item shows how long it has waited. The sidebar's footer shows how long agents waited on you today.
 - Announcements: a short sound per kind and one spoken line ("bookboy asks: Neon or Supabase?"). Nothing is spoken while text is arriving in the command bar or within 1.5 seconds of it. Items that arrive within 3 seconds of each other are spoken as one ("two sessions need you").
 - Quiet mode speaks only permissions and questions. Muted speaks nothing; the sounds stay.
 - When the window is hidden, a system notification goes out instead, and the tab title carries the count.
@@ -76,6 +78,11 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 - **Built-in voice dictation** (`/voice`, hold Space): dictates into the one session or agent view row that has focus. It does not pick the session from what you say, speak back, approve by voice, or tell you which session needs you.
 - **Channels** (research preview): push events into a session from an MCP server and can relay permission prompts. HeyTerm's hooks do the same today without the preview flags.
 - **`dialogExpiry`** applies only to dialogs forwarded to Remote Control or an SDK host, so it does not cut short a permission that HeyTerm holds in a terminal session.
+
+## Look
+
+- Gruvbox Material in light (the default) and dark, chosen in Setup under Appearance (Light, Dark or System). The choice is applied before the page draws, so it never flashes the other theme. Terminals use Gruvbox Material dark in both.
+- The page is checked on every load, so an updated HeyTerm shows at once; built assets carry a content hash and are kept.
 
 ## Install
 
