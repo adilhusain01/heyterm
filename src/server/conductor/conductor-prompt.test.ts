@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConductorTurnText } from "./conductor-prompt.ts";
+import { ConductorTurnText, conductorSystemPrompt } from "./conductor-prompt.ts";
 import type { SessionView } from "../../shared/types.ts";
 
 const session: SessionView = {
@@ -48,5 +48,11 @@ describe("ConductorTurnText", () => {
     const text = ConductorTurnText.forEvent([{ sessionName: "hello", kind: "finished", since: 0, headline: 'hello finished: I added "bye" to notes.txt.', spoken: "hello is done." }], { sessions: [helloSession], projectNames: [], recentlyClosedNames: [] });
     expect(text).toContain('I also created todo.md with the line "ship it".');
     expect(text).toContain("Files it changed in this task: notes.txt, todo.md");
+  });
+
+  // Adil, 25 October 2026: "it should be able to do all" that Claude can already do.
+  it("tells the assistant it can do anything Claude Code can on this Mac, not only look things up", () => {
+    for (const ability of ["install", "WebSearch", "screencapture", "write", "MCP", "session_changes", "rename_session"]) expect(conductorSystemPrompt).toContain(ability);
+    expect(conductorSystemPrompt).not.toContain("for quick look-ups");
   });
 });

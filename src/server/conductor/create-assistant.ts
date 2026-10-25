@@ -2,6 +2,7 @@
 // own risky commands for a spoken "confirm".
 
 import { Assistant } from "./assistant.ts";
+import type { AssistantMemory } from "./assistant-memory.ts";
 import { Conductor } from "./conductor.ts";
 import { ConductorSafety } from "./conductor-rules.ts";
 import { PermissionRisk } from "../safety/permission-risk.ts";
@@ -18,6 +19,8 @@ import type { SessionRegistry } from "../sessions/session-registry.ts";
 interface AssistantDependencies {
   model: string;
   workingDirectory: string;
+  // Remembers the conversation across restarts; without it each start begins fresh.
+  memory?: AssistantMemory;
   registry: SessionRegistry;
   launcher: SessionLauncher;
   projects: ProjectCatalog;
@@ -55,8 +58,18 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
     tools: createConductorTools(dependencies),
     beforeTool,
     askDeveloper,
+    ...(dependencies.memory ? { memory: dependencies.memory } : {}),
   });
   assistant = new Assistant(conductor, () => executor.situation(), () => executor.currentMode());
+  const memory = dependencies.memory;
+  if (memory) {
+    assistant.restoreEntries(memory.entries());
+    let saveTimer: NodeJS.Timeout | undefined;
+    assistant.on("conversation", (entries) => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => memory.rememberEntries(entries), 500);
+    });
+  }
   return assistant;
 }
 

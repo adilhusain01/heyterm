@@ -19,6 +19,8 @@ interface ConductorOptions {
   beforeTool: HookCallback;
   // Asks the developer, when Claude Code's permission mode would; resolves to their answer.
   askDeveloper: (toolName: string, toolInput: Record<string, unknown>) => Promise<boolean>;
+  // Where the conversation's id is kept, so it resumes after a timeout, a crash or a restart.
+  memory?: { sessionId(): string | undefined; rememberSession(sessionId: string): void; forgetSession(): void };
 }
 
 interface QueuedTurn {
@@ -112,7 +114,9 @@ export class Conductor extends EventEmitter<ConductorEvents> {
         pathToClaudeCodeExecutable: claudeExecutablePath(),
         // The user's own setup: their MCP servers, skills, CLAUDE.md and permission rules.
         settingSources: ["user"],
-        persistSession: false,
+        // Saved like any Claude Code conversation, so it can be resumed by id.
+        persistSession: true,
+        ...(this.options.memory?.sessionId() ? { resume: this.options.memory.sessionId() } : {}),
         tools: { type: "preset", preset: "claude_code" },
         mcpServers: { heyterm: this.options.tools },
         // The mode the developer's own Claude Code sessions run in (their plan's default), so the
@@ -135,8 +139,13 @@ export class Conductor extends EventEmitter<ConductorEvents> {
   }
 
   private async readSession(session: Query): Promise<void> {
+    let started = false;
     try {
       for await (const message of session) {
+        if (message.type === "system" && message.subtype === "init") {
+          started = true;
+          this.options.memory?.rememberSession(message.session_id);
+        }
         // A session closed after a timeout may still deliver; it must not touch the next turn.
         if (this.session !== session) return;
         if (message.type === "assistant") {
@@ -152,6 +161,8 @@ export class Conductor extends EventEmitter<ConductorEvents> {
     } catch {
       // Reported below as the turn that could not finish.
     } finally {
+      // A conversation that never started could not be resumed; the next one starts fresh.
+      if (!started) this.options.memory?.forgetSession();
       // The process ended. A turn still waiting fails, and the next turn starts a fresh conversation.
       if (this.session === session) {
         this.session = undefined;

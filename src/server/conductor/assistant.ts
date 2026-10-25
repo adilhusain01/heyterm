@@ -157,6 +157,12 @@ export class Assistant extends EventEmitter<AssistantEvents> {
     if (this.announcementMode() !== "mute") this.emit("say", "Something went wrong on my side. It's on screen.");
   }
 
+  // Lines kept from before a restart; new ones number on from them.
+  restoreEntries(entries: ConversationEntry[]): void {
+    this.entries = entries.slice(-keptEntries);
+    this.nextEntryId = Math.max(0, ...this.entries.map((entry) => entry.id)) + 1;
+  }
+
   private record(kind: ConversationEntryKind, text: string, request?: ConversationRequest): void {
     const entry: ConversationEntry = request ? { id: this.nextEntryId++, at: Date.now(), kind, text, request } : { id: this.nextEntryId++, at: Date.now(), kind, text };
     this.entries = [...this.entries, entry].slice(-keptEntries);

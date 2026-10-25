@@ -10,6 +10,7 @@ import { ActionExecutor } from "./actions/action-executor.ts";
 import { DecisionActions } from "./actions/decision-actions.ts";
 import { SessionActions } from "./actions/session-actions.ts";
 import { createAssistant } from "./conductor/create-assistant.ts";
+import { AssistantMemory } from "./conductor/assistant-memory.ts";
 import { loadConfig } from "./config.ts";
 import { PageBuild } from "../shared/page-build.ts";
 import { ExistingSessionConnector } from "./hooks/existing-session-connector.ts";
@@ -88,7 +89,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   const decisions = new DecisionActions(registry, heldRequests, audit);
   const sessionActions = new SessionActions(registry, launcher, projects, audit);
   const executor = new ActionExecutor(registry, projects, new FastPathRouter({ sendUnaddressedWordsToFocusedSession: false }), decisions, sessionActions);
-  const assistant = createAssistant({ model: config.routerModel, workingDirectory: os.homedir(), registry, launcher, projects, sessionActions, decisions, executor, audit });
+  const assistant = createAssistant({ model: config.routerModel, workingDirectory: os.homedir(), memory: new AssistantMemory(config.dataDirectory), registry, launcher, projects, sessionActions, decisions, executor, audit });
   executor.attachAssistant(assistant);
   executor.on("feedback", (feedback) => assistant.recordOutcome(feedback.text));
   registry.on("changed", () => assistant.noteSessions(registry.list()));
