@@ -7,7 +7,8 @@ export type Listening = "listening" | "window_in_background" | "typing_in_termin
 export class ListeningState {
   static of({ windowHasFocus, focusedElement }: { windowHasFocus: boolean; focusedElement: FocusedElement }): Listening {
     if (!windowHasFocus) return "window_in_background";
-    if (focusedElement === "bar") return "listening";
+    // With no field focused, dictation arrives as a paste on the page and the bar takes it.
+    if (focusedElement === "bar" || focusedElement === "nothing") return "listening";
     if (focusedElement === "terminal") return "typing_in_terminal";
     return "not_listening";
   }

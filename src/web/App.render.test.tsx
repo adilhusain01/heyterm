@@ -76,6 +76,21 @@ describe("the whole page", () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
     expect(bar.value).toBe("start a session in portfolio");
+
+    // Seen on 26 October 2026: selecting text in the conversation took focus off the bar and a
+    // "Not listening" strip rose above it. Adil wants no such strip, whatever has focus.
+    const reply = [...container.querySelectorAll("p, div, span")].find((element) => element.textContent === "Portfolio wants to force push.")!;
+    await act(async () => {
+      bar.blur();
+      const range = document.createRange();
+      range.selectNodeContents(reply);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(container.textContent).not.toContain("Click here, then speak");
+    expect(container.textContent).not.toContain("another app is in front");
     consoleError.mockRestore();
   });
 });

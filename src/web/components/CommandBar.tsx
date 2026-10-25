@@ -86,13 +86,6 @@ export function CommandBar() {
           <DecisionDock />
         </div>
         <PendingStrip control={control} />
-        {/* Typing in a terminal shows on that pane's header ("Typing here"), not as a strip here;
-            clicking the bar, or dictating into it, talks to HeyTerm again. */}
-        {!typingSession && listening !== "listening" && listening !== "typing_in_terminal" && (
-          <button type="button" onClick={() => inputRef.current?.focus()} className="enter-rise cursor-pointer rounded-inner border border-permission/40 bg-permission/10 px-3 py-1.5 text-left text-meta text-permission">
-            {notListeningText[listening]}
-          </button>
-        )}
         <label
           className={`flex h-13 items-center gap-3 rounded-outer border bg-tray pr-2 pl-3.5 shadow-tray transition-colors duration-200 ${orbState === "deaf" ? "border-line" : "border-line-strong focus-within:border-ink/40"}`}
         >
@@ -143,11 +136,6 @@ export function CommandBar() {
     </footer>
   );
 }
-
-const notListeningText: Record<Exclude<Listening, "listening" | "typing_in_terminal">, string> = {
-  window_in_background: "Not listening: another app is in front, so dictation goes there. Bring this window forward to talk.",
-  not_listening: "Not listening. Click here, then speak.",
-};
 
 // Follows whether dictation would land in the bar: the window must be in front and the bar must have the cursor.
 function useListening(inputRef: React.RefObject<HTMLInputElement | null>): Listening {

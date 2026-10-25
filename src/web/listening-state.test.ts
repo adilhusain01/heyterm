@@ -15,8 +15,14 @@ describe("ListeningState.of", () => {
     expect(ListeningState.of({ windowHasFocus: true, focusedElement: "terminal" })).toBe("typing_in_terminal");
   });
 
-  it("is not listening when nothing or another field has the cursor", () => {
-    expect(ListeningState.of({ windowHasFocus: true, focusedElement: "nothing" })).toBe("not_listening");
+  // Dictation pasted with no field focused goes into the bar (pasteBelongsToBar), so selecting text
+  // in the conversation, which leaves no field focused, does not stop HeyTerm listening. Until
+  // 26 October 2026 this said "not listening", and selecting text showed it.
+  it("listens when no field has the cursor, since dictation pasted then goes to the bar", () => {
+    expect(ListeningState.of({ windowHasFocus: true, focusedElement: "nothing" })).toBe("listening");
+  });
+
+  it("is not listening when another field has the cursor", () => {
     expect(ListeningState.of({ windowHasFocus: true, focusedElement: "other_field" })).toBe("not_listening");
   });
 });
