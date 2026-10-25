@@ -4,16 +4,13 @@
 import { useServerNow } from "../state/use-server-now.ts";
 import { Markdown } from "../ui/Markdown.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
-import { RequestCard } from "./AttentionCard.tsx";
 import { SessionIdentity } from "./session-identity.ts";
-import { useSessionRequest } from "./DecisionDock.tsx";
 import { PaneButton } from "./TerminalPane.tsx";
 import { ExpandIcon, ShrinkIcon } from "../ui/icons.tsx";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
 import type { SessionView } from "../../shared/types.ts";
 
 export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: { session: SessionView; isExpanded: boolean; onToggleExpanded?: () => void }) {
-  const request = useSessionRequest(session.name);
   const now = useServerNow();
   const display = stateDisplay[session.state];
   return (
@@ -30,7 +27,6 @@ export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: {
           </PaneButton>
         )}
       </header>
-      {request && <RequestCard item={request.item} session={request.session} variant="banner" />}
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
         <p className="truncate font-mono text-small text-ink-faint">{session.projectPath}</p>
         {SessionIdentity.promptPreview(session.lastPrompt ?? "") && <p className="line-clamp-3 text-meta text-ink-muted">Last task: {SessionIdentity.promptPreview(session.lastPrompt ?? "")}</p>}

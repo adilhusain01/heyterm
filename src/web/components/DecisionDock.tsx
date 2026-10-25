@@ -2,7 +2,6 @@
 // talk into: the most urgent request, and the others as faces to switch to.
 
 import { useMemo, useState } from "react";
-import { AttentionQueue } from "../../shared/attention.ts";
 import { RequestThread } from "../../shared/request-thread.ts";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { RailLabel } from "../ui/RailLabel.tsx";
@@ -40,14 +39,4 @@ export function DecisionDock() {
       )}
     </div>
   );
-}
-
-// The request a session is waiting on, if it needs a decision, for the banner on its own pane.
-export function useSessionRequest(sessionName: string) {
-  const session = useHeyTermStore((state) => state.sessions.find((candidate) => candidate.name === sessionName));
-  return useMemo(() => {
-    if (!session) return undefined;
-    const item = AttentionQueue.build([session])[0];
-    return item && RequestThread.isDecision(item.kind) ? { item, session } : undefined;
-  }, [session]);
 }

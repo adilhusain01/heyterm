@@ -10,8 +10,6 @@ import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { CloseIcon, ExpandIcon, KeyboardIcon, ShrinkIcon } from "../ui/icons.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
-import { RequestCard } from "./AttentionCard.tsx";
-import { useSessionRequest } from "./DecisionDock.tsx";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
 import type { SessionView } from "../../shared/types.ts";
 
@@ -62,7 +60,6 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   const paneRef = useRef<HTMLElement>(null);
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const display = stateDisplay[session.state];
-  const request = useSessionRequest(session.name);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -134,7 +131,6 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
           </PaneButton>
         </div>
       </header>
-      {request && <RequestCard item={request.item} session={request.session} variant="banner" />}
       <div
         ref={containerRef}
         className="min-h-0 flex-1 cursor-text"

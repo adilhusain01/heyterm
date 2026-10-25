@@ -1,7 +1,7 @@
-// A request from a session, where you can act on it. Three places, one set of parts:
+// A request from a session, where you can act on it. Two places, one set of parts, and only ever
+// one of them on screen, so a request has a single place to answer it:
 // - "chat": a message in the conversation, in the order it arrived; settles once answered.
 // - "bar": one slim row above the bar you talk into, while the conversation is folded away.
-// - "banner": a strip on the asking session's own pane.
 
 import { useHeyTerm } from "../app-context.tsx";
 import { useServerNow } from "../state/use-server-now.ts";
@@ -13,18 +13,10 @@ import { PathDisplay } from "./path-display.ts";
 import { shortDuration, stateDisplay } from "./session-display.ts";
 import type { AttentionItem, PendingPermission, PendingQuestion, SessionView } from "../../shared/types.ts";
 
-type RequestVariant = "chat" | "bar" | "banner";
+type RequestVariant = "chat" | "bar";
 
 export function RequestCard({ item, session, variant }: { item: AttentionItem; session: SessionView; variant: RequestVariant }) {
   if (variant === "bar") return <BarRequest item={item} session={session} />;
-  if (variant === "banner") {
-    return (
-      <section aria-live="polite" className="flex flex-col gap-1.5 border-b border-line bg-raised px-3 py-2.5">
-        <p className="text-meta text-ink">{whatItWants(item, session)}</p>
-        <RequestActions item={item} session={session} showDetail={false} />
-      </section>
-    );
-  }
   return <ChatRequest item={item} session={session} />;
 }
 
