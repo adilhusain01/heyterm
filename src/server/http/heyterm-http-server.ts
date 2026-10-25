@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import sirv from "sirv";
 import { WebSocketServer } from "ws";
+import { AttachmentRules } from "../attachments/attachment-rules.ts";
 import { forwardedHookEvents } from "../hooks/hook-installer.ts";
 import type { EventHub } from "./event-hub.ts";
 import type { PairingTickets } from "./pairing-tickets.ts";
@@ -21,6 +22,8 @@ export class HeyTermHttpServer {
   private readonly sockets = new WebSocketServer({ noServer: true, maxPayload: largestSocketMessageBytes });
   // Called when someone with the token asks HeyTerm to stop.
   onShutdownRequest: () => void = () => undefined;
+  // Saves an image for a session and gives it to that session; main.ts sets it.
+  onAttachment: (sessionName: string, bytes: Buffer, contentType: string) => Promise<{ ok: boolean; text: string }> = async () => ({ ok: false, text: "Attachments are not set up." });
   private readonly serveWeb: ((request: IncomingMessage, response: ServerResponse) => void) | undefined;
 
   constructor(
@@ -83,6 +86,7 @@ export class HeyTermHttpServer {
       return token ? respond(response, 200, JSON.stringify({ token }), "application/json") : respond(response, 401, "");
     }
     if (url.pathname.startsWith("/hooks/") && request.method === "POST") return this.handleHook(request, response, url);
+    if (url.pathname === "/attachments" && request.method === "POST") return this.handleAttachment(request, response, url);
     // Says it is HeyTerm, so a second "heyterm" can tell it is already running.
     if (url.pathname === "/health") return respond(response, 200, JSON.stringify({ ok: true, app: "heyterm" }), "application/json");
     if (url.pathname === "/shutdown" && request.method === "POST") {
@@ -92,6 +96,17 @@ export class HeyTermHttpServer {
     }
     if (this.serveWeb) return this.serveWeb(request, response);
     respond(response, 404, "The web UI is not built yet. Run npm run build, or npm run dev while working on HeyTerm.");
+  }
+
+  // An image dropped or pasted onto a session's pane, as raw bytes with its type.
+  private async handleAttachment(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
+    if (!this.guard.hasToken(request)) return respond(response, 401, "");
+    const contentType = String(request.headers["content-type"] ?? "");
+    if (!AttachmentRules.extensionFor(contentType)) return respond(response, 415, JSON.stringify({ ok: false, text: "Only PNG, JPEG, GIF and WebP images can be attached." }), "application/json");
+    const bytes = await readBytes(request, AttachmentRules.largestBytes).catch(() => undefined);
+    if (!bytes) return respond(response, 413, JSON.stringify({ ok: false, text: "That image is over 20 MB." }), "application/json");
+    const result = await this.onAttachment(url.searchParams.get("session") ?? "", bytes, contentType);
+    respond(response, result.ok ? 200 : 409, JSON.stringify(result), "application/json");
   }
 
   private async handleHook(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
@@ -168,6 +183,24 @@ function respond(response: ServerResponse, status: number, body: string, content
   if (response.writableEnded) return;
   response.writeHead(status, { "Content-Type": contentType, "Cache-Control": "no-store" });
   response.end(body);
+}
+
+function readBytes(request: IncomingMessage, largestBytes: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    request.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > largestBytes) {
+        // Read on without keeping it, so the answer still reaches the page.
+        chunks.length = 0;
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on("end", () => (size > largestBytes ? reject(new Error("body too large")) : resolve(Buffer.concat(chunks))));
+    request.on("error", reject);
+  });
 }
 
 function readBody(request: IncomingMessage, largestBytes: number): Promise<string> {

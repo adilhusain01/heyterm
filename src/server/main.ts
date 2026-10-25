@@ -2,7 +2,8 @@
 // stopping (the stop command, Ctrl+C, Quit in the page, closing the last page) ends in stop().
 
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -13,6 +14,8 @@ import { createAssistant } from "./conductor/create-assistant.ts";
 import { AssistantMemory } from "./conductor/assistant-memory.ts";
 import { loadConfig } from "./config.ts";
 import { PageBuild } from "../shared/page-build.ts";
+import { AttachmentRules } from "./attachments/attachment-rules.ts";
+import { acceptsText } from "./router/fast-path-router.ts";
 import { ExistingSessionConnector } from "./hooks/existing-session-connector.ts";
 import { HeldHookRequests } from "./hooks/held-hook-requests.ts";
 import { AgentHookFiles } from "./hooks/agent-hook-files.ts";
@@ -151,6 +154,18 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   };
   hub.onQuitRequest = () => stopAndExit("Quit in the page");
   server.onShutdownRequest = () => stopAndExit("heyterm stop");
+  server.onAttachment = async (sessionName, bytes, contentType) => {
+    const session = registry.get(sessionName);
+    if (!session) return { ok: false, text: `There is no session called ${sessionName}.` };
+    if (session.origin === "external") return { ok: false, text: `${sessionName} runs in your own terminal, so HeyTerm cannot type into it. Say "open ${sessionName} here" first.` };
+    if (!acceptsText(session)) return { ok: false, text: `${sessionName} is waiting on a decision. Answer it, then drop the image again.` };
+    const folder = path.join(config.dataDirectory, "attachments");
+    await mkdir(folder, { recursive: true });
+    const filePath = path.join(folder, AttachmentRules.fileName(sessionName, AttachmentRules.extensionFor(contentType)!, new Date(), randomBytes(2).toString("hex")));
+    await writeFile(filePath, bytes, { mode: 0o600 });
+    launcher.pasteIntoPrompt(sessionName, AttachmentRules.pastedText(filePath));
+    return { ok: true, text: `Attached the image to ${sessionName}. Add your words and send it.` };
+  };
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) process.once(signal, () => stopAndExit(signal));
 
   const url = `http://127.0.0.1:${config.port}`;

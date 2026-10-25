@@ -92,6 +92,11 @@ export class SessionLauncher {
     return session;
   }
 
+  // Text into the session's prompt as a paste, without pressing Enter: the user adds words and sends.
+  pasteIntoPrompt(name: string, text: string): void {
+    this.host.pasteText(name, text);
+  }
+
   // Moves a session from the user's own terminal into HeyTerm: its Claude there is asked to quit
   // (SIGTERM, which Claude Code exits cleanly on), then the same conversation opens here.
   async adopt(name: string): Promise<SessionView> {

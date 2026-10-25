@@ -1,7 +1,9 @@
 // A session running in the user's own terminal: no live screen here, but its state, its whole last
 // message and anything it waits on.
 
+import { toast } from "sonner";
 import { useHeyTerm } from "../app-context.tsx";
+import { firstImage } from "../transport/attach-image.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { Key } from "../ui/Key.tsx";
 import { Markdown } from "../ui/Markdown.tsx";
@@ -17,7 +19,18 @@ export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: {
   const now = useServerNow();
   const display = stateDisplay[session.state];
   return (
-    <section className="flex h-full min-h-[200px] w-full min-w-0 flex-col overflow-hidden rounded-outer border border-line bg-tray">
+    <section
+      // HeyTerm cannot type into a session in the user's own terminal, so a dropped image is answered with how to move it here.
+      onDragOver={(event) => {
+        if ([...event.dataTransfer.items].some((item) => item.kind === "file")) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        if (!firstImage(event.dataTransfer.files)) return;
+        event.preventDefault();
+        toast.warning(`${session.name} runs in your own terminal, so HeyTerm cannot attach to it. Press Open here first.`);
+      }}
+      className="flex h-full min-h-[200px] w-full min-w-0 flex-col overflow-hidden rounded-outer border border-line bg-tray"
+    >
       <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
         <SessionAvatar name={session.name} state={session.state} size={22} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>

@@ -1,11 +1,12 @@
 // One session's live terminal. Click into it to type by hand; the command bar takes focus back after.
 
+import { attachImage, firstImage } from "../transport/attach-image.ts";
 import { TerminalCopy } from "./terminal-copy.ts";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useHeyTerm } from "../app-context.tsx";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
@@ -54,6 +55,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   const { connection, perform } = useHeyTerm();
   const isFocused = useHeyTermStore((state) => state.focusedSession === session.name);
   const isTyping = useHeyTermStore((state) => state.typingSession === session.name);
+  const [isDropping, setDropping] = useState(false);
   const setTypingSession = useHeyTermStore((state) => state.setTypingSession);
   const recordAction = useHeyTermStore((state) => state.recordAction);
   const now = useServerNow();
@@ -117,7 +119,38 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   const borderClass = isTyping ? "border-ink/60" : isFocused ? "border-line-strong" : "border-line";
 
   return (
-    <section ref={paneRef} className={`flex h-full min-h-[280px] w-full min-w-0 flex-col overflow-hidden rounded-outer border bg-terminal transition-colors duration-200 ${borderClass}`}>
+    <section
+      ref={paneRef}
+      onDragOver={(event) => {
+        if (![...event.dataTransfer.items].some((item) => item.kind === "file" && item.type.startsWith("image/"))) return;
+        event.preventDefault();
+        setDropping(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropping(false);
+      }}
+      onDrop={(event) => {
+        const image = firstImage(event.dataTransfer.files);
+        setDropping(false);
+        if (!image) return;
+        event.preventDefault();
+        void attachImage(session.name, image);
+      }}
+      onPasteCapture={(event) => {
+        // A pasted image goes to the session as a file; pasted text goes to the terminal as before.
+        const image = firstImage(event.clipboardData.files);
+        if (!image) return;
+        event.preventDefault();
+        event.stopPropagation();
+        void attachImage(session.name, image);
+      }}
+      className={`relative flex h-full min-h-[280px] w-full min-w-0 flex-col overflow-hidden rounded-outer border bg-terminal transition-colors duration-200 ${isDropping ? "border-accent" : borderClass}`}
+    >
+      {isDropping && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-terminal/80 text-meta text-terminal-ink">
+          Drop to attach the image to {session.name}
+        </div>
+      )}
       <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
         <SessionAvatar name={session.name} state={session.state} size={22} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>

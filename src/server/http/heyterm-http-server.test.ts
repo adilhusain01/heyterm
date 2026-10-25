@@ -90,4 +90,25 @@ describe("HeyTermHttpServer", () => {
     expect((await pair({ ticket: "guess" })).status).toBe(401);
     await server.close();
   });
+
+  // Adil, 25 October 2026: drop a screenshot onto a session's pane and that session gets the image.
+  it("takes an image for a session only with the token, only as an image, and only up to 20 MB", async () => {
+    const port = 45_000 + Math.floor(Math.random() * 1_000);
+    const server = new HeyTermHttpServer(port, "/no/web", new RequestGuard(port, "token"), {} as SessionRegistry, {} as EventHub, {} as TerminalBridge, new PairingTickets("token"));
+    const received: Array<{ session: string; bytes: number; type: string }> = [];
+    server.onAttachment = async (session, bytes, type) => {
+      received.push({ session, bytes: bytes.length, type });
+      return { ok: true, text: `Attached to ${session}.` };
+    };
+    await server.listen();
+    const post = (headers: Record<string, string>, body: Uint8Array) => fetch(`http://127.0.0.1:${port}/attachments?session=api`, { method: "POST", headers, body: body as unknown as BodyInit });
+    const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    expect((await post({ "Content-Type": "image/png" }, png)).status).toBe(401);
+    expect((await post({ "X-HeyTerm-Token": "token", "Content-Type": "text/html" }, png)).status).toBe(415);
+    expect((await post({ "X-HeyTerm-Token": "token", "Content-Type": "image/png" }, new Uint8Array(21 * 1024 * 1024))).status).toBe(413);
+    const accepted = await post({ "X-HeyTerm-Token": "token", "Content-Type": "image/png" }, png);
+    expect(accepted.status).toBe(200);
+    expect(received).toEqual([{ session: "api", bytes: 8, type: "image/png" }]);
+    await server.close();
+  });
 });
