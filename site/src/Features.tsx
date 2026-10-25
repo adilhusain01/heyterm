@@ -4,8 +4,9 @@ import { useState, type ReactNode } from "react";
 import { AssistantOrb } from "../../src/web/ui/AssistantOrb.tsx";
 import { CheckIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../../src/web/ui/icons.tsx";
 import { Face as SessionAvatar } from "./Face.tsx";
+import { StatePiece } from "./diagrams/StateDiagram.tsx";
+import { WorktreePiece } from "./diagrams/WorktreeDiagram.tsx";
 import { Section, SectionHeading } from "./pieces.tsx";
-import type { SessionState } from "../../src/shared/types.ts";
 
 function Feature({ title, children, piece }: { title: string; children: ReactNode; piece: ReactNode }) {
   return (
@@ -32,7 +33,7 @@ export function Features() {
           <p>Claude Opus 5.5 runs between you and the agents, on your own Claude Code login, so there is no API key to set up.</p>
           <p>It reads every session, sends them work and tells you what happened, and does anything Claude Code can on your computer: commands, installs, files, the web. It asks you out loud only when Claude Code itself would ask, and remembers your conversation across restarts.</p>
         </Feature>
-        <Feature title="Parallel sessions that never collide" piece={<ParallelPiece />}>
+        <Feature title="Parallel sessions that never collide" piece={<WorktreePiece />}>
           <p>Start a second session in a project that already has one, and it gets a git worktree and a branch of its own, so two agents never edit the same files. Its work waits on that branch for you to merge.</p>
           <p>When a task ends you hear how many files it changed, and "what did api change?" names them, edits made through shell commands included.</p>
         </Feature>
@@ -40,9 +41,9 @@ export function Features() {
           <p>On a Mac it speaks with the voice you chose in System Settings, Siri voices included. Elsewhere it uses your browser's voice.</p>
           <p>Nothing is said over your own dictation, and lines wait their turn rather than talking over each other.</p>
         </Feature>
-        <Feature title="Every session has a face" piece={<FacesPiece />}>
+        <Feature title="Every session has a face" piece={<StatePiece />}>
           <p>Each session gets a face drawn from its name, so you find it at a glance in a crowded sidebar. A badge on the face says what it is doing.</p>
-          <p>Fold the sidebar to a rail of faces when the terminals need the room.</p>
+          <p>Its state comes from the agent's own hooks, never from reading the screen. Pick a state to see what you hear and what you can say.</p>
         </Feature>
       </div>
       <Extras />
@@ -90,29 +91,6 @@ function AssistantPiece() {
   );
 }
 
-function ParallelPiece() {
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="ml-auto w-fit rounded-outer bg-raised px-3 py-2 text-body text-ink">start another session in api</p>
-      <p className="flex items-start gap-2 text-small text-ink-muted">
-        <span className="mt-1.5 size-1.5 shrink-0 rounded-mark bg-ink-faint" aria-hidden="true" />
-        <span>
-          Starting api-2 in a copy of the folder of its own, on branch <span className="font-mono whitespace-nowrap text-ink">heyterm/api-2</span>.
-        </span>
-      </p>
-      <p className="flex items-start gap-2 text-small text-ink-muted">
-        <span className="mt-1.5 size-1.5 shrink-0 rounded-mark bg-ink-faint" aria-hidden="true" />
-        api-2 finished: Added rate limits to the login route. Changed 3 files.
-      </p>
-      <p className="ml-auto w-fit rounded-outer bg-raised px-3 py-2 text-body text-ink">what did api-2 change?</p>
-      <div className="flex gap-3">
-        <AssistantOrb state="speaking" size={26} label="The assistant, speaking" />
-        <p className="text-body leading-relaxed text-ink">api-2 changed 3 files in its last task: login.ts, limits.ts and login.test.ts. Since the last commit, 64 lines added and 9 removed.</p>
-      </div>
-    </div>
-  );
-}
-
 const voiceModes = [
   { mode: "Speaking", icon: SpeakerIcon, says: "Says everything: what finished, what failed, what each session needs." },
   { mode: "Quiet", icon: SpeakerQuietIcon, says: "Says only permissions and questions. The rest stays on screen." },
@@ -148,29 +126,6 @@ function VoicePiece() {
       </p>
       <p className="text-small text-ink-faint">Or say "be quiet", "mute" or "talk to me".</p>
     </div>
-  );
-}
-
-const faces: Array<{ name: string; state: SessionState; label: string }> = [
-  { name: "api", state: "working", label: "Working" },
-  { name: "mobile", state: "needs_permission", label: "Needs you" },
-  { name: "tests", state: "done", label: "Done" },
-  { name: "docs", state: "idle", label: "Idle" },
-  { name: "web", state: "failed", label: "Failed" },
-  { name: "shop", state: "asked", label: "Asked you" },
-];
-
-function FacesPiece() {
-  return (
-    <ul className="grid grid-cols-3 gap-4">
-      {faces.map((face) => (
-        <li key={face.name} className="flex flex-col items-center gap-2 text-center">
-          <SessionAvatar name={face.name} state={face.state} size={56} />
-          <span className="font-mono text-small text-ink">{face.name}</span>
-          <span className="-mt-1.5 text-micro text-ink-faint">{face.label}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
 

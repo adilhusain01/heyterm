@@ -6,6 +6,7 @@ import "@fontsource-variable/geist-mono";
 import "@fontsource-variable/martian-mono/wdth.css";
 import "./styles.css";
 import { Footer, GetStarted, Safety } from "./Closing.tsx";
+import { ApprovalFlow } from "./diagrams/ApprovalSequence.tsx";
 import { Features } from "./Features.tsx";
 import { HowItWorks, Waits, WhatYouSay } from "./Middle.tsx";
 import { AgentsStrip, Hero, TopBar } from "./Top.tsx";
@@ -23,6 +24,7 @@ function Page() {
         <Waits />
         <HowItWorks />
         <WhatYouSay />
+        <ApprovalFlow />
         <Features />
         <Safety />
         <GetStarted />

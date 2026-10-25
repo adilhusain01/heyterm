@@ -30,6 +30,9 @@ export function AvatarTile({ name, face, state, size = 28 }: { name: string; fac
         width={size}
         height={size}
         draggable={false}
+        // A face is never what a page waits on; on the landing page it is a file fetched after the text.
+        fetchPriority="low"
+        decoding="async"
         className="select-none"
         style={{ borderRadius: avatarRadius(size), background: `oklch(0.8 0.065 ${hue})`, outline: "1px solid var(--color-image-outline)", outlineOffset: -1 }}
       />

@@ -1,5 +1,6 @@
 // The middle of the story: why it exists (measured), how it works, and what you say to it.
 
+import { HowItWorksDiagram } from "./diagrams/RoutingDiagram.tsx";
 import { SaidLine, Section, SectionHeading } from "./pieces.tsx";
 
 // Measured on one developer's Mac over two weeks (scripts/measure-waits.py in the repo).
@@ -44,40 +45,13 @@ export function Waits() {
   );
 }
 
-const steps = [
-  {
-    title: "Start them by voice",
-    text: "Say which agent and which project. HeyTerm opens it in its own terminal on your computer, and the session shows up with a face of its own.",
-    said: "start a grok session in shop and run the tests",
-  },
-  {
-    title: "Talk to any of them",
-    text: "Name a session and your words go straight to it. Anything else goes to the assistant in the middle, which reads every session, sends them work and answers you out loud.",
-    said: "what is everyone doing?",
-  },
-  {
-    title: "Answer when one needs you",
-    text: "A permission, a question or a folder to trust arrives as a message in the conversation and is said out loud in plain words. Answer it there, or just say so.",
-    said: "approve",
-  },
-];
-
 export function HowItWorks() {
   return (
     <Section id="how">
-      <SectionHeading title="How it works" />
-      <ol className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
-        {steps.map((step, index) => (
-          <li key={step.title} className="flex flex-col gap-4 border-t border-line-strong pt-6">
-            <span className="display text-[28px] text-accent-ink" aria-hidden>
-              {index + 1}
-            </span>
-            <h3 className="text-title font-medium text-ink">{step.title}</h3>
-            <p className="text-body leading-relaxed text-ink-muted">{step.text}</p>
-            <SaidLine>{step.said}</SaidLine>
-          </li>
-        ))}
-      </ol>
+      <SectionHeading title="How it works">
+        <p>Pick a step to see where your words go.</p>
+      </SectionHeading>
+      <HowItWorksDiagram />
     </Section>
   );
 }
