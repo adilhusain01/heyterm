@@ -6,6 +6,7 @@ import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/
 import os from "node:os";
 import path from "node:path";
 import { GlobalAgentHooks } from "./global-agent-hooks.ts";
+import { HookCommands } from "./hook-commands.ts";
 
 export interface AgentHookPaths {
   grokPath: string;
@@ -21,6 +22,8 @@ export function agentHookPaths(): AgentHookPaths {
 }
 
 export class AgentHookFiles {
+  private isInstalled = false;
+
   constructor(
     private readonly scriptPath: string,
     private readonly backupDirectory: string,
@@ -28,29 +31,65 @@ export class AgentHookFiles {
   ) {}
 
   async install(): Promise<void> {
-    // ~/.grok/hooks/heyterm.json: the agent's folder is two levels up.
-    if (await isFolder(path.dirname(path.dirname(this.paths.grokPath)))) {
-      await mkdir(path.dirname(this.paths.grokPath), { recursive: true });
-      await writeAtomically(this.paths.grokPath, GlobalAgentHooks.grokHookFile(this.scriptPath));
+    this.isInstalled = true;
+    await this.installGrok();
+    await this.installCursor();
+  }
+
+  // While HeyTerm runs, something else may rewrite or delete these files (the agent itself, a second
+  // copy of HeyTerm stopping). Puts HeyTerm's hooks back if they are gone; true when it did.
+  async repairIfRemoved(): Promise<boolean> {
+    if (!this.isInstalled) return false;
+    let repaired = false;
+    if ((await this.grokIsInstalled()) && !(await readFile(this.paths.grokPath, "utf8").catch(() => "")).includes(this.marker("Stop", "grok"))) {
+      await this.installGrok();
+      repaired = true;
     }
     if (await isFolder(path.dirname(this.paths.cursorPath))) {
       const current = await readJson(this.paths.cursorPath);
-      if (!current) return;
-      await this.backUp(this.paths.cursorPath);
-      await writeAtomically(this.paths.cursorPath, GlobalAgentHooks.cursorWithHeyTerm(current, this.scriptPath));
+      if (current && !JSON.stringify(current).includes(this.marker("stop", "cursor"))) {
+        await this.installCursor();
+        repaired = true;
+      }
     }
+    return repaired;
   }
 
   async remove(): Promise<void> {
+    this.isInstalled = false;
     await rm(this.paths.grokPath, { force: true });
     const current = await readJson(this.paths.cursorPath);
     if (!current || !current.hooks) return;
-    const cleaned = GlobalAgentHooks.cursorWithoutHeyTerm(current);
+    const cleaned = GlobalAgentHooks.cursorWithoutHeyTerm(current, this.scriptPath);
     if (JSON.stringify(cleaned) === JSON.stringify(current)) return;
     // Only HeyTerm's hooks were in it, so the file goes: nothing of HeyTerm's stays behind.
     const holdsNothingElse = Object.keys(cleaned).every((key) => key === "version");
     if (holdsNothingElse) await rm(this.paths.cursorPath, { force: true });
     else await writeAtomically(this.paths.cursorPath, cleaned);
+  }
+
+  private async installGrok(): Promise<void> {
+    if (!(await this.grokIsInstalled())) return;
+    await mkdir(path.dirname(this.paths.grokPath), { recursive: true });
+    await writeAtomically(this.paths.grokPath, GlobalAgentHooks.grokHookFile(this.scriptPath));
+  }
+
+  private async installCursor(): Promise<void> {
+    if (!(await isFolder(path.dirname(this.paths.cursorPath)))) return;
+    const current = await readJson(this.paths.cursorPath);
+    if (!current) return;
+    await this.backUp(this.paths.cursorPath);
+    await writeAtomically(this.paths.cursorPath, GlobalAgentHooks.cursorWithHeyTerm(current, this.scriptPath));
+  }
+
+  // ~/.grok/hooks/heyterm.json: the agent's folder is two levels up.
+  private grokIsInstalled(): Promise<boolean> {
+    return isFolder(path.dirname(path.dirname(this.paths.grokPath)));
+  }
+
+  // One of HeyTerm's hook commands as it reads inside a JSON file, to tell whether its hooks are still there.
+  private marker(eventName: string, agent: "grok" | "cursor"): string {
+    return JSON.stringify(HookCommands.forAgent(this.scriptPath, eventName, agent)).slice(1, -1);
   }
 
   private async backUp(filePath: string): Promise<void> {

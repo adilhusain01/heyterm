@@ -23,17 +23,19 @@ export class GlobalAgentHooks {
   }
 
   static cursorWithHeyTerm(file: CursorHooksFile, scriptPath: string): CursorHooksFile {
-    const cleaned = GlobalAgentHooks.cursorWithoutHeyTerm(file);
+    const cleaned = GlobalAgentHooks.cursorWithoutHeyTerm(file, scriptPath);
     const hooks = { ...(cleaned.hooks ?? {}) };
     for (const eventName of cursorEvents) hooks[eventName] = [...(hooks[eventName] ?? []), { command: HookCommands.forAgent(scriptPath, eventName, "cursor"), timeout: hookTimeoutSeconds }];
     return { ...cleaned, version: cleaned.version ?? 1, hooks };
   }
 
-  static cursorWithoutHeyTerm(file: CursorHooksFile): CursorHooksFile {
+  // With a forwarder path, only that copy's hooks go; without one, every copy's.
+  static cursorWithoutHeyTerm(file: CursorHooksFile, scriptPath?: string): CursorHooksFile {
     if (!file.hooks) return file;
+    const isOurs = (command: string) => (scriptPath ? HookCommands.belongsTo(command, scriptPath) : HookCommands.isHeyTerm(command));
     const remaining: Record<string, CursorHook[]> = {};
     for (const [eventName, entries] of Object.entries(file.hooks)) {
-      const kept = entries.filter((entry) => !HookCommands.isHeyTerm(entry.command ?? ""));
+      const kept = entries.filter((entry) => !isOurs(entry.command ?? ""));
       if (kept.length > 0) remaining[eventName] = kept;
     }
     const { hooks: _removedHooks, ...rest } = file;

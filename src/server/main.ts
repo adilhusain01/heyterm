@@ -57,6 +57,12 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   // Grok Build and Cursor take hooks only from global files: in place while HeyTerm runs.
   const agentHookFiles = new AgentHookFiles(hooks.forwardScriptPath, path.join(config.dataDirectory, "backups"));
   await agentHookFiles.install().catch((error: Error) => console.error(`Could not add HeyTerm's Grok and Cursor hooks: ${error.message}`));
+  const hookRepairTimer = setInterval(() => {
+    agentHookFiles
+      .repairIfRemoved()
+      .then((repaired) => repaired && console.log("Put HeyTerm's Grok and Cursor hooks back; something had removed them."))
+      .catch(() => undefined);
+  }, 30_000);
   await stopSessionsFromOlderVersion(config.tmuxSocketName);
 
   const host = new TerminalHost();
@@ -104,6 +110,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
     stopping ??= (async () => {
       console.log(`\nStopping HeyTerm (${reason}).`);
       clearTimeout(closedPageTimer);
+      clearInterval(hookRepairTimer);
       trustWatcher.stop();
       claudeSessionWatcher.stop();
       assistant.close();

@@ -26,6 +26,11 @@ export class HookCommands {
   static isHeyTerm(command: string): boolean {
     return [forwardScriptName, ...olderScriptNames].some((name) => command.includes(name));
   }
+
+  // A hook of this copy of HeyTerm (its own forwarder), or one left by HeyTerm's old name.
+  static belongsTo(command: string, scriptPath: string): boolean {
+    return command.includes(quoted(scriptPath)) || olderScriptNames.some((name) => command.includes(name));
+  }
 }
 
 // Paths go in double quotes, which every shell reads the same way as long as nothing inside them

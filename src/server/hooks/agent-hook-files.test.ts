@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -45,5 +45,36 @@ describe("AgentHookFiles", () => {
     await files.remove();
     await expect(readFile(paths.cursorPath, "utf8")).rejects.toThrow();
   });
-});
 
+  // Seen on 25 October 2026: ~/.cursor/hooks.json vanished while HeyTerm ran, and Cursor sessions
+  // stopped reporting until it was put back by hand.
+  it("puts its hooks back while it runs when something removed them", async () => {
+    const paths = await makeHome(true, true);
+    const files = new AgentHookFiles("/data/heyterm-forward.cjs", paths.backups, paths);
+    await files.install();
+    await rm(paths.cursorPath);
+    await rm(paths.grokPath);
+    expect(await files.repairIfRemoved()).toBe(true);
+    expect(await readFile(paths.cursorPath, "utf8")).toContain("agent stop cursor");
+    expect(await readFile(paths.grokPath, "utf8")).toContain("agent Stop grok");
+  });
+
+  it("leaves its hooks alone when they are still there, without another backup", async () => {
+    const paths = await makeHome(true, true);
+    await writeFile(paths.cursorPath, JSON.stringify({ version: 1, hooks: {} }));
+    const files = new AgentHookFiles("/data/heyterm-forward.cjs", paths.backups, paths);
+    await files.install();
+    const backupsAfterInstall = await readdir(paths.backups);
+    expect(await files.repairIfRemoved()).toBe(false);
+    expect(await readdir(paths.backups)).toEqual(backupsAfterInstall);
+  });
+
+  it("does not put back hooks after it has taken them out on stop", async () => {
+    const paths = await makeHome(false, true);
+    const files = new AgentHookFiles("/data/heyterm-forward.cjs", paths.backups, paths);
+    await files.install();
+    await files.remove();
+    expect(await files.repairIfRemoved()).toBe(false);
+    await expect(readFile(paths.cursorPath, "utf8")).rejects.toThrow();
+  });
+});

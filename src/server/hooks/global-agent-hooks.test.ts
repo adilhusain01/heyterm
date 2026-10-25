@@ -41,6 +41,21 @@ describe("GlobalAgentHooks, for Cursor", () => {
     expect(twice.hooks.stop).toHaveLength(2);
   });
 
+  // A second copy of HeyTerm (a test copy beside the real one) has its own data folder and forwarder.
+  // Each copy adds and takes out only its own hooks, so neither erases the other's.
+  it("keeps another HeyTerm copy's hooks when adding or taking out its own", () => {
+    const otherCopy = "/tmp/test-copy/heyterm-forward.cjs";
+    const both = GlobalAgentHooks.cursorWithHeyTerm(GlobalAgentHooks.cursorWithHeyTerm(usersOwn, otherCopy), script) as { hooks: Record<string, Array<{ command: string }>> };
+    expect(both.hooks.stop?.map((entry) => entry.command)).toEqual(["./audit.sh", 'node "/tmp/test-copy/heyterm-forward.cjs" agent stop cursor', 'node "/data/heyterm-forward.cjs" agent stop cursor']);
+    const afterOneStops = GlobalAgentHooks.cursorWithoutHeyTerm(both, script) as { hooks: Record<string, Array<{ command: string }>> };
+    expect(afterOneStops.hooks.stop?.map((entry) => entry.command)).toEqual(["./audit.sh", 'node "/tmp/test-copy/heyterm-forward.cjs" agent stop cursor']);
+  });
+
+  it("still takes out hooks left by HeyTerm's old name", () => {
+    const withOld = { version: 1, hooks: { stop: [{ command: 'node "/data/callsign-forward.cjs" agent stop cursor' }] } };
+    expect(GlobalAgentHooks.cursorWithoutHeyTerm(withOld, script)).toEqual({ version: 1 });
+  });
+
   it("leaves an empty file as nothing when HeyTerm's hooks were all there was", () => {
     expect(GlobalAgentHooks.cursorWithoutHeyTerm(GlobalAgentHooks.cursorWithHeyTerm({}, script))).toEqual({ version: 1 });
   });
