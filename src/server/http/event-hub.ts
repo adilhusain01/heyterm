@@ -61,7 +61,7 @@ export class EventHub {
     }
     try {
       if (message.type === "utterance") await this.executor.handleUtterance(String(message.text), message.source === "voice" ? "voice" : "keyboard");
-      if (message.type === "action") await this.executor.perform(message.action, "click");
+      if (message.type === "action") await this.executor.performClick(message.action);
       if (message.type === "focus") this.executor.setFocus(String(message.session));
       if (message.type === "setup_refresh") await this.sendSetup();
       if (message.type === "set_project_roots") await this.changeProjectRoots(message.roots);

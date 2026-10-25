@@ -84,7 +84,7 @@ export function CommandBar() {
         </div>
         <PendingStrip control={control} />
         {typingSession && (
-          <button type="button" onClick={() => setTypingSession(undefined)} className="cursor-pointer rounded-inner border border-line bg-raised px-3 py-1.5 text-left text-meta text-ink-muted hover:text-ink">
+          <button type="button" onClick={() => setTypingSession(undefined)} className="cursor-pointer rounded-inner border border-line bg-raised px-3 py-1.5 text-left text-meta text-ink-muted transition-colors duration-150 hover:text-ink">
             Typing into <span className="font-mono text-ink">{typingSession}</span>. Click here to talk to HeyTerm again.
           </button>
         )}

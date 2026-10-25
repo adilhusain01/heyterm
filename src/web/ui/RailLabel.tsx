@@ -49,7 +49,7 @@ export function RailLabel({ label, children }: { label: ReactNode; children: Rea
           <div
             ref={labelRef}
             aria-hidden
-            className="pointer-events-none fixed z-50 flex max-w-[280px] flex-col gap-0.5 rounded-inner border border-line-strong bg-raised px-2.5 py-1.5 text-meta text-ink shadow-key"
+            className="pointer-events-none fixed z-50 flex max-w-[280px] flex-col gap-0.5 rounded-inner border border-line-strong bg-canvas px-2.5 py-1.5 text-meta text-ink"
             style={{ top: position?.top ?? -9999, left: position?.left ?? -9999 }}
           >
             {label}

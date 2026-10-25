@@ -11,15 +11,15 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
     <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-6">
       <div className="flex w-full max-w-[520px] flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <h1 className="text-[22px] font-medium tracking-tight text-ink">Run your coding agents by voice</h1>
-          <p className="text-[14px] leading-relaxed text-ink-muted">
+          <h1 className="text-display font-semibold tracking-tight text-accent-ink">Run your coding agents by voice</h1>
+          <p className="text-body leading-relaxed text-ink-muted">
             Start several Claude Code, Codex or Gemini sessions, then talk. HeyTerm sends your words to the right one, tells you when one needs you, and lets you approve or answer without
             touching the keyboard.
           </p>
         </div>
         <div className="rounded-outer border border-line bg-panel p-1">
           <p className="px-3 pt-2.5 pb-2 text-meta text-ink-muted">Hold your dictation key and say:</p>
-          <p className="rounded-inner bg-raised px-3 py-2.5 font-mono text-[14px] text-ink">start a session in {exampleProject} and explain how it is laid out</p>
+          <p className="rounded-inner bg-raised px-3 py-2.5 font-mono text-body text-ink">start a session in {exampleProject} and explain how it is laid out</p>
         </div>
         {projects.length > 0 ? (
           <div className="flex flex-col gap-2">
@@ -40,15 +40,15 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
         ) : (
           <p className="text-meta text-ink-muted">
             No projects found yet.{" "}
-            <button type="button" onClick={onOpenSetup} className="cursor-pointer text-ink underline underline-offset-2">
+            <button type="button" onClick={onOpenSetup} className="cursor-pointer text-accent-ink underline decoration-accent/40 underline-offset-2 transition-[text-decoration-color] duration-150 hover:decoration-accent">
               Add your project folders
             </button>
             .
           </p>
         )}
-        <p className="text-[12.5px] text-ink-faint">
+        <p className="text-small text-ink-faint">
           Already have Claude running in other terminals?{" "}
-          <button type="button" onClick={onOpenSetup} className="cursor-pointer text-ink-muted underline underline-offset-2">
+          <button type="button" onClick={onOpenSetup} className="cursor-pointer text-ink-muted underline decoration-line-strong underline-offset-2 transition-[text-decoration-color] duration-150 hover:decoration-ink-muted">
             Show those sessions
           </button>{" "}
           in Setup.

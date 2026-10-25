@@ -12,6 +12,7 @@ import { TerminalGrid } from "./components/TerminalGrid.tsx";
 import { WelcomeState } from "./components/WelcomeState.tsx";
 import { isPlayground } from "./playground/is-playground.ts";
 import { useHeyTermStore } from "./state/heyterm-store.ts";
+import { useAppliedTheme } from "./state/use-applied-theme.ts";
 import type { HeyTermConnection } from "./transport/connection.ts";
 import { VoiceChoice } from "./voice/voice-choice.ts";
 import type { Announcer } from "./voice/announcer.ts";
@@ -25,6 +26,7 @@ export function App({ connection, announcer }: { connection: HeyTermConnection; 
   const [isSetupOpen, setSetupOpen] = useState(false);
   const closeSetup = useCallback(() => setSetupOpen(false), []);
 
+  const theme = useAppliedTheme();
   useServerMessages(connection, announcer);
   useChosenVoice(connection, announcer);
   const setSpeaking = useHeyTermStore((state) => state.setSpeaking);
@@ -55,7 +57,21 @@ export function App({ connection, announcer }: { connection: HeyTermConnection; 
         </div>
       </div>
       {isSetupOpen && <SetupPanel onClose={closeSetup} />}
-      <Toaster theme="dark" position="bottom-right" offset={{ bottom: 96, right: 16 }} toastOptions={{ style: { borderRadius: 6 } }} />
+      <Toaster
+        theme={theme}
+        position="bottom-right"
+        offset={{ bottom: 96, right: 16 }}
+        toastOptions={{
+          style: {
+            borderRadius: "var(--radius-inner)",
+            background: "var(--color-canvas)",
+            color: "var(--color-ink)",
+            border: "1px solid var(--color-line-strong)",
+            boxShadow: "none",
+            fontFamily: "var(--font-sans)",
+          },
+        }}
+      />
     </HeyTermProvider>
   );
 }

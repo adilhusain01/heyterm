@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { HeyTermHttpServer } from "./heyterm-http-server.ts";
@@ -8,6 +11,23 @@ import type { TerminalBridge } from "./terminal-bridge.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
 
 describe("HeyTermHttpServer", () => {
+  it("makes the browser check the page on every load, so an updated HeyTerm shows at once, while hashed assets are kept", async () => {
+    const webDirectory = mkdtempSync(path.join(tmpdir(), "heyterm-web-"));
+    mkdirSync(path.join(webDirectory, "assets"));
+    writeFileSync(path.join(webDirectory, "index.html"), "<!doctype html><title>HeyTerm</title>");
+    writeFileSync(path.join(webDirectory, "theme-boot.js"), "void 0;");
+    writeFileSync(path.join(webDirectory, "assets", "index-abc123.js"), "void 0;");
+    const port = 46_000 + Math.floor(Math.random() * 1_000);
+    const server = new HeyTermHttpServer(port, webDirectory, new RequestGuard(port, "token"), {} as SessionRegistry, {} as EventHub, {} as TerminalBridge, new PairingTickets("token"));
+    await server.listen();
+    const cacheControl = async (pathname: string) => (await fetch(`http://127.0.0.1:${port}${pathname}`)).headers.get("cache-control");
+    expect(await cacheControl("/")).toBe("no-cache");
+    expect(await cacheControl("/theme-boot.js")).toBe("no-cache");
+    expect(await cacheControl("/assets/index-abc123.js")).toBe("public, max-age=31536000, immutable");
+    await server.close();
+    rmSync(webDirectory, { recursive: true, force: true });
+  });
+
   it("survives a socket message over the size limit, closing only that socket", async () => {
     const port = 47_000 + Math.floor(Math.random() * 1_000);
     const hub = { connect: () => undefined } as unknown as EventHub;

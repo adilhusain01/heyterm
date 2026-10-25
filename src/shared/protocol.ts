@@ -1,7 +1,7 @@
 // Messages between the HeyTerm server and the web UI over /ws.
 
 import type { SessionDigest } from "./catch-up.ts";
-import type { AgentKind, AnnouncementMode, RouterAction, SessionView } from "./types.ts";
+import type { AgentKind, AnnouncementMode, AttentionKind, RouterAction, SessionView } from "./types.ts";
 
 export interface Feedback {
   text: string;
@@ -63,7 +63,14 @@ export interface SetupStatus {
   keepRunningWithoutPage: boolean;
 }
 
-export type ConversationEntryKind = "user" | "assistant" | "tool" | "event" | "error";
+export type ConversationEntryKind = "user" | "assistant" | "tool" | "event" | "request" | "error";
+
+// Which session request a "request" line is about; it stays answerable while that request waits.
+export interface ConversationRequest {
+  session: string;
+  kind: AttentionKind;
+  since: number;
+}
 
 // One line of the conversation with the assistant: what the user said, what it replied, the
 // commands and session actions it took, and what happened in the sessions.
@@ -72,6 +79,7 @@ export interface ConversationEntry {
   at: number;
   kind: ConversationEntryKind;
   text: string;
+  request?: ConversationRequest;
 }
 
 export type ServerMessage =

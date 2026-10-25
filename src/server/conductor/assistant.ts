@@ -6,8 +6,9 @@ import { ConductorTurnText, type Situation } from "./conductor-prompt.ts";
 import { NarrationRules, SpokenReply } from "./conductor-rules.ts";
 import { AnnouncementText, AttentionQueue } from "../../shared/attention.ts";
 import { AttentionArrivals } from "../../shared/attention-arrivals.ts";
+import { RequestThread } from "../../shared/request-thread.ts";
 import type { Conductor } from "./conductor.ts";
-import type { ConversationEntry, ConversationEntryKind } from "../../shared/protocol.ts";
+import type { ConversationEntry, ConversationEntryKind, ConversationRequest } from "../../shared/protocol.ts";
 import type { AnnouncementMode, AttentionItem, SessionView } from "../../shared/types.ts";
 
 // Arrivals this close together are told in one go.
@@ -53,6 +54,11 @@ export class Assistant extends EventEmitter<AssistantEvents> {
     this.record("user", utterance);
   }
 
+  // A request answered with a click, shown as the user's reply under it.
+  recordReply(words: string): void {
+    this.record("user", words);
+  }
+
   recordOutcome(text: string): void {
     this.record("event", text);
   }
@@ -80,6 +86,11 @@ export class Assistant extends EventEmitter<AssistantEvents> {
   noteSessions(sessions: SessionView[]): void {
     const arrived = this.arrivals.note(AttentionQueue.build(sessions));
     if (arrived.length === 0) return;
+    // Into the conversation at once, so a request can be answered there before it is put into words.
+    for (const item of arrived) {
+      if (RequestThread.isDecision(item.kind)) this.record("request", item.headline, { session: item.sessionName, kind: item.kind, since: item.since });
+      else this.record("event", item.headline);
+    }
     this.waitingArrivals.push(...arrived);
     this.scheduleNarration();
   }
@@ -103,7 +114,6 @@ export class Assistant extends EventEmitter<AssistantEvents> {
   private async narrate(): Promise<void> {
     const items = this.waitingArrivals;
     this.waitingArrivals = [];
-    for (const item of items) this.record("event", item.headline);
     const mode = this.announcementMode();
     const told = mode === "mute" ? [] : mode === "quiet" ? items.filter((item) => kindsToldInQuietMode.includes(item.kind)) : items;
     if (told.length === 0) return;
@@ -147,8 +157,9 @@ export class Assistant extends EventEmitter<AssistantEvents> {
     if (this.announcementMode() !== "mute") this.emit("say", "Something went wrong on my side. It's on screen.");
   }
 
-  private record(kind: ConversationEntryKind, text: string): void {
-    this.entries = [...this.entries, { id: this.nextEntryId++, at: Date.now(), kind, text }].slice(-keptEntries);
+  private record(kind: ConversationEntryKind, text: string, request?: ConversationRequest): void {
+    const entry: ConversationEntry = request ? { id: this.nextEntryId++, at: Date.now(), kind, text, request } : { id: this.nextEntryId++, at: Date.now(), kind, text };
+    this.entries = [...this.entries, entry].slice(-keptEntries);
     this.emit("conversation", this.entries);
   }
 }

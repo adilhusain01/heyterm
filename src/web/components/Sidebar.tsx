@@ -10,7 +10,8 @@ import { useServerNow } from "../state/use-server-now.ts";
 import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
 import { RailLabel } from "../ui/RailLabel.tsx";
 import { BringBackIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon, SettingsIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../ui/icons.tsx";
-import { SessionAvatar } from "../ui/SessionAvatar.tsx";
+import { Segmented } from "../ui/Segmented.tsx";
+import { avatarRadius, SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { Tray } from "../ui/Surfaces.tsx";
 import { SessionIdentity } from "./session-identity.ts";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
@@ -21,7 +22,14 @@ const modeLabel: Record<AnnouncementMode, string> = { speak: "Speaking", quiet: 
 
 export function Sidebar({ onOpenSetup }: { onOpenSetup: () => void }) {
   const collapsed = useHeyTermStore((state) => state.layout.sidebarCollapsed);
-  return collapsed ? <SidebarRail onOpenSetup={onOpenSetup} /> : <SidebarPanel onOpenSetup={onOpenSetup} />;
+  if (!collapsed) return <SidebarPanel onOpenSetup={onOpenSetup} />;
+  // The rail is for wide screens. On a phone the sidebar stacks above the terminals and never folds.
+  return (
+    <>
+      <SidebarRail onOpenSetup={onOpenSetup} className="hidden md:flex" />
+      <SidebarPanel onOpenSetup={onOpenSetup} className="flex md:hidden" />
+    </>
+  );
 }
 
 function useOrderedSessions() {
@@ -33,7 +41,7 @@ function useOrderedSessions() {
   }, [sessions]);
 }
 
-function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
+function SidebarPanel({ onOpenSetup, className = "flex" }: { onOpenSetup: () => void; className?: string }) {
   const sessions = useHeyTermStore((state) => state.sessions);
   const recentlyClosed = useHeyTermStore((state) => state.recentlyClosed);
   const changeLayout = useHeyTermStore((state) => state.changeLayout);
@@ -41,12 +49,12 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
   const [isPickerOpen, setPickerOpen] = useState(false);
 
   return (
-    <aside className="flex max-h-[45vh] min-h-0 w-full shrink-0 flex-col border-b border-line bg-panel md:max-h-none md:w-[280px] md:border-r md:border-b-0">
+    <aside className={`${className} max-h-[45vh] min-h-0 w-full shrink-0 flex-col border-b border-line bg-panel md:max-h-none md:w-[280px] md:border-r md:border-b-0`}>
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
         <img src="/favicon.svg" alt="" width={22} height={22} className="shrink-0" />
         <span className="text-meta font-semibold tracking-tight text-ink">HeyTerm</span>
         <ConnectionMark />
-        {isPlayground && <span className="rounded-mark border border-line px-1.5 text-[12px] text-ink-muted">Playground</span>}
+        {isPlayground && <span className="rounded-mark border border-line px-1.5 text-small text-ink-muted">Playground</span>}
         <RailButton label="Fold the sidebar" onClick={() => changeLayout({ sidebarCollapsed: true })} className="ml-auto hidden md:flex">
           <PanelLeftCloseIcon size={16} />
         </RailButton>
@@ -100,13 +108,13 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
   );
 }
 
-function SidebarRail({ onOpenSetup }: { onOpenSetup: () => void }) {
+function SidebarRail({ onOpenSetup, className }: { onOpenSetup: () => void; className: string }) {
   const changeLayout = useHeyTermStore((state) => state.changeLayout);
   const recentlyClosed = useHeyTermStore((state) => state.recentlyClosed);
   const { queue, ordered } = useOrderedSessions();
   const headName = queue[0]?.sessionName;
   return (
-    <aside className="flex min-h-0 w-[60px] shrink-0 flex-col items-center border-r border-line bg-panel">
+    <aside className={`${className} min-h-0 w-[60px] shrink-0 flex-col items-center border-r border-line bg-panel`}>
       <header className="flex h-12 shrink-0 items-center">
         <img src="/favicon.svg" alt="HeyTerm" width={24} height={24} />
       </header>
@@ -149,14 +157,14 @@ function RailSession({ session, isHead }: { session: SessionView; isHead: boolea
     <>
       <span className="flex items-center gap-1.5">
         <span className="font-mono text-ink">{session.name}</span>
-        {session.agent !== "claude" && <span className="text-[12px] text-ink-faint">{session.agent}</span>}
-        {session.origin === "external" && <span className="text-[12px] text-ink-faint">own terminal</span>}
+        {session.agent !== "claude" && <span className="text-small text-ink-faint">{session.agent}</span>}
+        {session.origin === "external" && <span className="text-small text-ink-faint">own terminal</span>}
       </span>
-      <span className="flex items-center gap-1.5 text-[12.5px]">
+      <span className="flex items-center gap-1.5 text-small">
         <span className={display.textClass}>{display.label}</span>
         {waitedFor && <span className="font-mono text-ink-faint tabular-nums">{waitedFor}</span>}
       </span>
-      {detail && <span className="truncate text-[12.5px] text-ink-faint">{detail}</span>}
+      {detail && <span className="truncate text-small text-ink-faint">{detail}</span>}
     </>
   );
   return (
@@ -165,10 +173,11 @@ function RailSession({ session, isHead }: { session: SessionView; isHead: boolea
         type="button"
         aria-label={`${session.name}, ${display.label}`}
         onClick={() => perform({ type: "focus", session: session.name })}
-        className={`press flex cursor-pointer flex-col items-center gap-0.5 rounded-[9px] p-[3px] transition-colors duration-150 hover:bg-raised ${focusedSession === session.name ? "bg-raised ring-1 ring-line-strong" : ""} ${isHead ? "ring-1 ring-ink/40" : ""}`}
+        style={{ borderRadius: avatarRadius(32) + 3 }}
+        className={`press flex cursor-pointer flex-col items-center gap-0.5 p-[3px] transition-colors duration-150 hover:bg-raised ${focusedSession === session.name ? "bg-raised ring-1 ring-line-strong" : ""} ${isHead ? "ring-1 ring-ink/40" : ""}`}
       >
         <SessionAvatar name={session.name} state={session.state} size={32} />
-        {waitedFor && <span className={`font-mono text-[11px] leading-none tabular-nums ${display.textClass}`}>{waitedFor}</span>}
+        {waitedFor && <span className={`font-mono text-micro tabular-nums ${display.textClass}`}>{waitedFor}</span>}
       </button>
     </RailLabel>
   );
@@ -189,7 +198,8 @@ function RailClosedSession({ name }: { name: string }) {
         type="button"
         aria-label={`Bring back ${name}`}
         onClick={() => perform({ type: "resume", session: name })}
-        className="press cursor-pointer rounded-[9px] p-[3px] opacity-50 transition-[opacity,background-color] duration-150 hover:bg-raised hover:opacity-100"
+        style={{ borderRadius: avatarRadius(26) + 3 }}
+        className="press cursor-pointer p-[3px] opacity-50 transition-[opacity,background-color] duration-150 hover:bg-raised hover:opacity-100"
       >
         <SessionAvatar name={name} size={26} />
       </button>
@@ -215,10 +225,10 @@ function SessionRow({ session }: { session: SessionView }) {
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-center gap-1.5">
           <span className="truncate font-mono text-meta text-ink">{session.name}</span>
-          {session.agent !== "claude" && <span className="shrink-0 text-[12px] text-ink-faint">{session.agent}</span>}
-          {session.origin === "external" && <span className="shrink-0 text-[12px] text-ink-faint">own terminal</span>}
+          {session.agent !== "claude" && <span className="shrink-0 text-small text-ink-faint">{session.agent}</span>}
+          {session.origin === "external" && <span className="shrink-0 text-small text-ink-faint">own terminal</span>}
         </span>
-        <span className="flex items-center gap-1.5 text-[12.5px]">
+        <span className="flex items-center gap-1.5 text-small">
           <span className={display.textClass}>{display.label}</span>
           {isWaitingOnUser(session.state) && <span className="font-mono text-ink-faint tabular-nums">{shortDuration(now - session.stateSince)}</span>}
           {detail && <span className="truncate text-ink-faint">· {detail}</span>}
@@ -253,20 +263,13 @@ function NewSessionPicker({ onDone }: { onDone: () => void }) {
   return (
     <Tray className="enter-rise mb-1 flex flex-col gap-1 p-1">
       {installedAgents.length > 1 && (
-        <div role="radiogroup" aria-label="Agent" className="flex gap-1">
-          {installedAgents.map((installed) => (
-            <button
-              key={installed.kind}
-              type="button"
-              role="radio"
-              aria-checked={agent === installed.kind}
-              onClick={() => setAgent(installed.kind)}
-              className={`h-7 flex-1 cursor-pointer rounded-[4px] text-[12.5px] transition-colors duration-150 ${agent === installed.kind ? "bg-key text-ink shadow-key" : "text-ink-muted hover:bg-raised hover:text-ink"}`}
-            >
-              {installed.label.replace(" CLI", "").replace(" Code", "")}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Agent"
+          stretch
+          value={agent}
+          onChange={setAgent}
+          options={installedAgents.map((installed) => ({ value: installed.kind, label: installed.label.replace(" CLI", "").replace(" Code", "") }))}
+        />
       )}
       <input
         autoFocus
@@ -274,7 +277,7 @@ function NewSessionPicker({ onDone }: { onDone: () => void }) {
         onChange={(event) => setFilter(event.target.value)}
         onKeyDown={(event) => event.key === "Escape" && onDone()}
         placeholder="Find a project"
-        className="h-8 rounded-[4px] border border-line bg-panel px-2.5 text-meta text-ink outline-none placeholder:text-ink-faint focus:border-line-strong"
+        className="h-8 rounded-tiny border border-line bg-panel px-2.5 text-meta text-ink outline-none placeholder:text-ink-faint focus:border-line-strong"
       />
       {shown.map((project) => (
         <button
@@ -284,7 +287,7 @@ function NewSessionPicker({ onDone }: { onDone: () => void }) {
             perform({ type: "spawn", project, ...(agent === "claude" ? {} : { agent }) });
             onDone();
           }}
-          className="flex cursor-pointer items-center gap-2 rounded-[4px] px-2 py-1.5 text-left font-mono text-meta text-ink hover:bg-raised"
+          className="flex cursor-pointer items-center gap-2 rounded-tiny px-2 py-1.5 text-left font-mono text-meta text-ink transition-colors duration-150 hover:bg-raised"
         >
           <SessionAvatar name={project} size={18} />
           {project}
@@ -303,7 +306,7 @@ function SidebarFooter({ onOpenSetup }: { onOpenSetup: () => void }) {
   const voiceShare = handsOff.voiceShare;
   return (
     <footer className="flex shrink-0 flex-col gap-2 border-t border-line p-3">
-      <div className="flex items-center gap-3 px-1 text-[12.5px] text-ink-faint">
+      <div className="flex items-center gap-3 px-1 text-small text-ink-faint">
         <span title="How long sessions waited for you today">
           Waited <span className="font-mono text-ink-muted tabular-nums">{shortDuration(waitedToday)}</span>
         </span>
@@ -388,7 +391,7 @@ function ConnectionMark() {
   const status = useHeyTermStore((state) => state.connectionStatus);
   if (status === "open") return null;
   const text = status === "needs_token" ? "Open it with the heyterm command" : status === "connecting" ? "Connecting" : "Reconnecting";
-  return <span className="truncate rounded-mark bg-permission/15 px-1.5 py-0.5 text-[12px] text-permission">{text}</span>;
+  return <span className="truncate rounded-mark bg-permission/15 px-1.5 py-0.5 text-small text-permission">{text}</span>;
 }
 
 function attentionRank(queue: ReturnType<typeof AttentionQueue.build>, session: SessionView): number {

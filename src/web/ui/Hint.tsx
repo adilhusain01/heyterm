@@ -5,5 +5,5 @@ export function Hint({ children }: { children: React.ReactNode }) {
 }
 
 export function Kbd({ children }: { children: React.ReactNode }) {
-  return <kbd className="rounded-mark border border-line bg-tray px-1.5 py-0.5 font-mono text-[12.5px] text-ink-faint">{children}</kbd>;
+  return <kbd className="rounded-mark border border-line bg-tray px-1.5 py-0.5 font-mono text-small text-ink-faint">{children}</kbd>;
 }

@@ -102,7 +102,7 @@ function GridToolbar({ sessions, focused }: { sessions: SessionView[]; focused: 
               key={session.name}
               type="button"
               onClick={() => perform({ type: "focus", session: session.name })}
-              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-inner px-2 py-1 text-[12.5px] transition-colors duration-150 ${session.name === focused.name ? "bg-raised text-ink" : "text-ink-muted hover:bg-raised hover:text-ink"}`}
+              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-inner px-2 py-1 text-small transition-colors duration-150 ${session.name === focused.name ? "bg-raised text-ink" : "text-ink-muted hover:bg-raised hover:text-ink"}`}
             >
               <SessionAvatar name={session.name} state={session.state} size={18} />
               <span className="font-mono">{session.name}</span>
@@ -111,7 +111,7 @@ function GridToolbar({ sessions, focused }: { sessions: SessionView[]; focused: 
           ))}
         </div>
       ) : (
-        <span className="flex-1 text-[12.5px] text-ink-faint">
+        <span className="flex-1 text-small text-ink-faint">
           {sessions.length} {sessions.length === 1 ? "session" : "sessions"}
         </span>
       )}
@@ -139,7 +139,7 @@ function ArrangementButton({ label, selected, onClick, children }: { label: stri
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`flex size-7 cursor-pointer items-center justify-center rounded-[6px] transition-colors duration-150 ${selected ? "bg-key text-ink shadow-key" : "text-ink-faint hover:text-ink"}`}
+      className={`flex size-7 cursor-pointer items-center justify-center rounded-small transition-colors duration-150 ${selected ? "bg-key text-ink shadow-key" : "text-ink-faint hover:text-ink"}`}
     >
       {children}
     </button>

@@ -8,7 +8,8 @@ import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
 import { Key } from "../ui/Key.tsx";
 import { VoiceChoice } from "../voice/voice-choice.ts";
-import { CloseIcon } from "../ui/icons.tsx";
+import { CloseIcon, MoonIcon, SunIcon } from "../ui/icons.tsx";
+import { Segmented } from "../ui/Segmented.tsx";
 import type { SetupStatus } from "../../shared/protocol.ts";
 
 export function SetupPanel({ onClose }: { onClose: () => void }) {
@@ -23,7 +24,7 @@ export function SetupPanel({ onClose }: { onClose: () => void }) {
   }, [connection, onClose]);
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-canvas/60" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-40 flex justify-end bg-scrim" onMouseDown={onClose}>
       <aside
         role="dialog"
         aria-label="Setup"
@@ -31,14 +32,34 @@ export function SetupPanel({ onClose }: { onClose: () => void }) {
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="flex items-center px-3 pt-2.5 pb-1.5">
-          <h2 className="text-[15px] font-medium text-ink">Setup</h2>
+          <h2 className="text-body font-medium text-ink">Setup</h2>
           <button type="button" aria-label="Close setup" onClick={onClose} className="press ml-auto flex size-8 cursor-pointer items-center justify-center rounded-inner text-ink-muted hover:bg-raised hover:text-ink">
             <CloseIcon />
           </button>
         </header>
+        <AppearanceSection />
         {isPlayground ? <InstallSteps /> : setup ? <SetupSections setup={setup} /> : <p className="px-3 text-meta text-ink-muted">Checking this computer…</p>}
       </aside>
     </div>
+  );
+}
+
+function AppearanceSection() {
+  const theme = useHeyTermStore((state) => state.layout.theme);
+  const changeLayout = useHeyTermStore((state) => state.changeLayout);
+  return (
+    <Section title="Appearance">
+      <Segmented
+        label="Theme"
+        value={theme}
+        onChange={(value) => changeLayout({ theme: value })}
+        options={[
+          { value: "light", label: "Light", icon: <SunIcon size={14} /> },
+          { value: "dark", label: "Dark", icon: <MoonIcon size={14} /> },
+          { value: "system", label: "System" },
+        ]}
+      />
+    </Section>
   );
 }
 
@@ -60,7 +81,7 @@ function InstallSteps() {
           </>
         }
       >
-        <pre className="overflow-x-auto rounded-inner border border-line bg-tray px-2.5 py-2 font-mono text-[12.5px] leading-relaxed text-ink shadow-tray">{["npx heyterm doctor", "npx heyterm"].join("\n")}</pre>
+        <pre className="overflow-x-auto rounded-inner border border-line bg-tray px-2.5 py-2 font-mono text-small leading-relaxed text-ink shadow-tray">{["npx heyterm doctor", "npx heyterm"].join("\n")}</pre>
         <a href="https://github.com/adilhusain01/heyterm" target="_blank" rel="noopener noreferrer" className="text-meta text-ink-muted underline decoration-line-strong underline-offset-2 hover:text-ink">
           Source and docs on GitHub
         </a>
@@ -129,16 +150,15 @@ function VoiceSection() {
       }
     >
       {macVoiceAvailable && (
-        <div className="flex flex-col gap-1.5">
-          <div role="radiogroup" aria-label="Speaking voice" className="flex gap-1">
-            <ChoiceButton selected={voice === "mac"} onClick={() => setVoicePreference("mac")}>
-              Mac voice
-            </ChoiceButton>
-            <ChoiceButton selected={voice === "browser"} onClick={() => setVoicePreference("browser")}>
-              Browser voice
-            </ChoiceButton>
-          </div>
-        </div>
+        <Segmented
+          label="Speaking voice"
+          value={voice}
+          onChange={(value) => setVoicePreference(value)}
+          options={[
+            { value: "mac", label: "Mac voice" },
+            { value: "browser", label: "Browser voice" },
+          ]}
+        />
       )}
       <div className="flex gap-1">
         <PanelButton
@@ -180,7 +200,7 @@ function ProjectFoldersSection({ setup }: { setup: SetupStatus }) {
         onChange={(event) => setText(event.target.value)}
         rows={3}
         spellCheck={false}
-        className="rounded-inner border border-line bg-tray px-2.5 py-2 font-mono shadow-tray text-[12.5px] leading-relaxed text-ink outline-none focus:border-line-strong"
+        className="rounded-inner border border-line bg-tray px-2.5 py-2 font-mono shadow-tray text-small leading-relaxed text-ink outline-none focus:border-line-strong"
       />
       <div>
         <PanelButton onClick={() => connection.send({ type: "set_project_roots", roots: text.split("\n") })}>Save folders</PanelButton>
@@ -250,24 +270,10 @@ function CheckRow({ ok, label, value, fix }: { ok: boolean; label: string; value
       <div className="flex items-center gap-2 text-meta">
         <span className={`size-2 rounded-mark ${ok ? "bg-finished" : "bg-permission"}`} />
         <span className="text-ink">{label}</span>
-        <span className="ml-auto font-mono text-[12.5px] text-ink-muted">{value}</span>
+        <span className="ml-auto font-mono text-small text-ink-muted">{value}</span>
       </div>
-      {fix && <p className="pl-4 font-mono text-[12.5px] text-permission">{fix}</p>}
+      {fix && <p className="pl-4 font-mono text-small text-permission">{fix}</p>}
     </div>
-  );
-}
-
-function ChoiceButton({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onClick}
-      className={`press h-8 cursor-pointer rounded-inner border px-3 text-meta font-medium ${selected ? "border-line bg-key text-ink shadow-key ring-1 ring-ink/50" : "key-lift border-line bg-key text-ink-muted shadow-key hover:bg-key-hover hover:text-ink"}`}
-    >
-      {children}
-    </button>
   );
 }
 

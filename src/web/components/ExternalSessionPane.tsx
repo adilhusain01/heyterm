@@ -19,13 +19,13 @@ export function ExternalSessionPane({ session }: { session: SessionView }) {
       <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
         <SessionAvatar name={session.name} state={session.state} size={22} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
-        <span className={`text-[12.5px] ${display.textClass}`}>{display.label}</span>
-        {isWaitingOnUser(session.state) && <span className="font-mono text-[12.5px] text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
-        <span className="ml-auto text-[12.5px] text-ink-faint">in your own terminal</span>
+        <span className={`text-small ${display.textClass}`}>{display.label}</span>
+        {isWaitingOnUser(session.state) && <span className="font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
+        <span className="ml-auto text-small text-ink-faint">in your own terminal</span>
       </header>
       {request && <RequestCard item={request.item} session={request.session} variant="banner" />}
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        <p className="truncate font-mono text-[12.5px] text-ink-faint">{session.projectPath}</p>
+        <p className="truncate font-mono text-small text-ink-faint">{session.projectPath}</p>
         {SessionIdentity.promptPreview(session.lastPrompt ?? "") && <p className="line-clamp-3 text-meta text-ink-muted">Last task: {SessionIdentity.promptPreview(session.lastPrompt ?? "")}</p>}
         {session.lastMessage && <Markdown text={session.lastMessage} className="text-body text-ink" />}
       </div>

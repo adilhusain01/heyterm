@@ -12,7 +12,7 @@ interface KeyProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const toneClass: Record<KeyTone, string> = {
-  primary: "key-lift bg-ink text-canvas shadow-key hover:bg-white",
+  primary: "key-lift bg-primary text-primary-ink shadow-key hover:bg-primary-hover",
   plain: "key-lift border border-line bg-key text-ink shadow-key hover:bg-key-hover",
   // For rows inside a list: no shadow, a fill on hover.
   quiet: "text-ink-muted hover:bg-raised hover:text-ink",

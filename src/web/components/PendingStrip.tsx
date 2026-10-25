@@ -18,7 +18,7 @@ export function PendingStrip({ control }: { control: ControlState }) {
         <div className="flex items-baseline gap-2 text-meta">
           <span className="shrink-0 font-mono text-ink-muted">to {control.preview.session}</span>
           <span className="min-w-0 flex-1 truncate text-ink">{control.preview.text}</span>
-          <span className="shrink-0 text-[12.5px] text-ink-faint">say cancel to stop</span>
+          <span className="shrink-0 text-small text-ink-faint">say cancel to stop</span>
           <StripButton onClick={() => perform({ type: "send_now" })}>Send now</StripButton>
           <StripButton onClick={() => perform({ type: "cancel" })}>Cancel</StripButton>
         </div>
@@ -55,7 +55,7 @@ export function PendingStrip({ control }: { control: ControlState }) {
 
   if (control.routing) {
     return (
-      <div className="flex items-center gap-2 px-1 text-[12.5px] text-ink-muted lg:hidden">
+      <div className="flex items-center gap-2 px-1 text-small text-ink-muted lg:hidden">
         <AssistantOrb state="thinking" size={16} />
         Thinking
       </div>
@@ -65,8 +65,8 @@ export function PendingStrip({ control }: { control: ControlState }) {
   // Below the width where the conversation column shows, its latest reply sits here instead.
   return (
     <>
-      {latestReply && <p className="truncate px-1 text-[12.5px] text-ink-muted lg:hidden">{latestReply}</p>}
-      {control.lastHeard && <p className={`truncate px-1 text-[12.5px] text-ink-faint ${latestReply ? "hidden lg:block" : ""}`}>Heard: {control.lastHeard}</p>}
+      {latestReply && <p className="truncate px-1 text-small text-ink-muted lg:hidden">{latestReply}</p>}
+      {control.lastHeard && <p className={`truncate px-1 text-small text-ink-faint ${latestReply ? "hidden lg:block" : ""}`}>Heard: {control.lastHeard}</p>}
     </>
   );
 }

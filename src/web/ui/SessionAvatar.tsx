@@ -29,6 +29,11 @@ function faceFor(name: string): string {
   return face;
 }
 
+// The corner grows with the face, so an 18px face and a 32px one have the same shape.
+export function avatarRadius(size: number): number {
+  return Math.round(size * 0.24);
+}
+
 export function SessionAvatar({ name, state, size = 28 }: { name: string; state?: SessionState; size?: number }) {
   const hue = SessionIdentity.hue(name);
   const badge = state ? badgeColor[state] : undefined;
@@ -40,8 +45,8 @@ export function SessionAvatar({ name, state, size = 28 }: { name: string; state?
         width={size}
         height={size}
         draggable={false}
-        className="rounded-[7px] select-none"
-        style={{ background: `oklch(0.78 0.07 ${hue})`, boxShadow: `inset 0 0 0 1px oklch(0.62 0.07 ${hue})` }}
+        className="select-none"
+        style={{ borderRadius: avatarRadius(size), background: `oklch(0.8 0.065 ${hue})`, outline: "1px solid var(--color-image-outline)", outlineOffset: -1 }}
       />
       {badge && <span className={`absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-panel ${badge} ${state === "working" ? "animate-pulse" : ""}`} />}
     </span>

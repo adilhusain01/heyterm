@@ -186,3 +186,36 @@ export function SearchIcon(props: IconProps) {
     </IconFrame>
   );
 }
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <IconFrame {...props}>
+      <path d="M20 6L9 17l-5-5" />
+    </IconFrame>
+  );
+}
+
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <IconFrame {...props}>
+      <path d="M12 5v14m7-7l-7 7l-7-7" />
+    </IconFrame>
+  );
+}
+
+export function SunIcon(props: IconProps) {
+  return (
+    <IconFrame {...props}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </IconFrame>
+  );
+}
+
+export function MoonIcon(props: IconProps) {
+  return (
+    <IconFrame {...props}>
+      <path d="M12 3a6 6 0 0 0 9 9a9 9 0 1 1-9-9" />
+    </IconFrame>
+  );
+}

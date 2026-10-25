@@ -1,35 +1,77 @@
-// A request from a session, where you can act on it: docked above the bar you talk into, and as a
-// slim banner on the asking session's own pane. Says what it wants, what to say, and offers buttons.
+// A request from a session, where you can act on it. Three places, one set of parts:
+// - "chat": a message in the conversation, in the order it arrived; settles once answered.
+// - "bar": one slim row above the bar you talk into, while the conversation is folded away.
+// - "banner": a strip on the asking session's own pane.
 
 import { useHeyTerm } from "../app-context.tsx";
 import { useServerNow } from "../state/use-server-now.ts";
 import { FoldedText } from "../ui/FoldedText.tsx";
+import { CheckIcon } from "../ui/icons.tsx";
 import { Key } from "../ui/Key.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
-import { shortDuration } from "./session-display.ts";
+import { PathDisplay } from "./path-display.ts";
+import { shortDuration, stateDisplay } from "./session-display.ts";
 import type { AttentionItem, PendingPermission, PendingQuestion, SessionView } from "../../shared/types.ts";
 
-// The kinds that wait on a decision. Finished work is announced and badged, not docked.
-export const decisionKinds: AttentionItem["kind"][] = ["permission", "question", "trust", "failed"];
+type RequestVariant = "chat" | "bar" | "banner";
 
-export function RequestCard({ item, session, variant }: { item: AttentionItem; session: SessionView; variant: "dock" | "banner" }) {
+export function RequestCard({ item, session, variant }: { item: AttentionItem; session: SessionView; variant: RequestVariant }) {
+  if (variant === "bar") return <BarRequest item={item} session={session} />;
+  if (variant === "banner") {
+    return (
+      <section aria-live="polite" className="flex flex-col gap-1.5 border-b border-line bg-raised px-3 py-2.5">
+        <p className="text-meta text-ink">{whatItWants(item, session)}</p>
+        <RequestActions item={item} session={session} showDetail={false} />
+      </section>
+    );
+  }
+  return <ChatRequest item={item} session={session} />;
+}
+
+function ChatRequest({ item, session }: { item: AttentionItem; session: SessionView }) {
   const now = useServerNow();
-  const isDock = variant === "dock";
+  const display = stateDisplay[session.state];
   return (
-    <section
-      key={`${item.sessionName}-${item.kind}-${item.since}`}
-      aria-live="polite"
-      className={`enter-rise flex gap-3 ${isDock ? "rounded-outer border border-line-strong bg-raised p-3 shadow-key" : "border-b border-line bg-raised px-3 py-2.5"}`}
-    >
-      {isDock && <SessionAvatar name={session.name} state={session.state} size={32} />}
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <p className="flex items-baseline gap-2 text-meta">
-          {isDock && <span className="font-mono text-ink">{session.name}</span>}
-          <span className="text-ink">{whatItWants(item, session)}</span>
-          {isDock && <span className="ml-auto shrink-0 font-mono text-[12.5px] text-ink-faint tabular-nums">{shortDuration(now - item.since)}</span>}
-        </p>
-        <RequestDetail item={item} session={session} folded={!isDock} />
-      </div>
+    <section aria-live="polite" aria-label={`${session.name}: ${whatItWants(item, session)}`} className="flex flex-col gap-2.5 rounded-outer border border-line-strong bg-canvas p-3">
+      <header className="flex items-center gap-2 text-meta">
+        <SessionAvatar name={session.name} state={session.state} size={22} />
+        <span className="font-mono text-ink">{session.name}</span>
+        <span className={display.textClass}>{display.label}</span>
+        <span className="ml-auto font-mono text-small text-ink-faint tabular-nums">{shortDuration(now - item.since)}</span>
+      </header>
+      <p className="text-body text-ink">{whatItWants(item, session)}</p>
+      <RequestActions item={item} session={session} showDetail />
+    </section>
+  );
+}
+
+// A request that was answered, kept in the conversation as a quiet line so the thread still reads.
+export function SettledRequest({ text, sessionName }: { text: string; sessionName: string }) {
+  return (
+    <p className="flex items-center gap-2 text-meta text-ink-muted">
+      <span className="opacity-60">
+        <SessionAvatar name={sessionName} size={18} />
+      </span>
+      <span className="min-w-0 flex-1 truncate">{text}</span>
+      <span className="flex shrink-0 items-center gap-1 text-small text-ink-faint">
+        <CheckIcon size={13} />
+        Answered
+      </span>
+    </p>
+  );
+}
+
+function BarRequest({ item, session }: { item: AttentionItem; session: SessionView }) {
+  const detail = barDetail(item, session);
+  return (
+    <section aria-live="polite" className="flex min-h-11 items-center gap-2.5 py-1.5 pr-1.5 pl-2.5">
+      <SessionAvatar name={session.name} state={session.state} size={24} />
+      <p className="flex min-w-0 flex-1 items-baseline gap-2 text-meta">
+        <span className="shrink-0 font-mono text-ink">{session.name}</span>
+        <span className="shrink-0 text-ink">{whatItWants(item, session)}</span>
+        {detail && <span className="truncate font-mono text-small text-ink-faint">{detail}</span>}
+      </p>
+      <RequestKeys item={item} session={session} />
     </section>
   );
 }
@@ -46,78 +88,92 @@ function whatItWants(item: AttentionItem, session: SessionView): string {
   return item.headline.replace(`${session.name} `, "");
 }
 
-function RequestDetail({ item, session, folded }: { item: AttentionItem; session: SessionView; folded: boolean }) {
+// The one line of detail the slim row has room for: the command, or the folder.
+function barDetail(item: AttentionItem, session: SessionView): string | undefined {
   const pending = session.pending;
-  if (item.kind === "permission" && pending?.kind === "permission") return <PermissionActions sessionName={session.name} pending={pending} showDetail={!folded} />;
-  if (item.kind === "question" && pending?.kind === "question") return <QuestionActions sessionName={session.name} pending={pending} />;
-  if (item.kind === "trust") return <TrustActions session={session} showDetail={!folded} />;
-  return <OpenAction session={session} />;
+  if (item.kind === "permission" && pending?.kind === "permission") return pending.summary.split("\n")[0];
+  if (item.kind === "trust" && session.trustSubject !== "hooks") return PathDisplay.tail(session.projectPath);
+  return undefined;
 }
 
-function PermissionActions({ sessionName, pending, showDetail }: { sessionName: string; pending: PendingPermission; showDetail: boolean }) {
-  const { perform } = useHeyTerm();
+function RequestActions({ item, session, showDetail }: { item: AttentionItem; session: SessionView; showDetail: boolean }) {
+  const pending = session.pending;
   return (
     <>
-      {showDetail && <FoldedText text={pending.summary} lines={2} />}
-      <ActionRow hint={'Say "approve", or "no" and why'}>
-        <Key tone="primary" size="small" onClick={() => perform({ type: "approve", session: sessionName, requestId: pending.requestId, confirmed: true })}>
-          Approve
-        </Key>
-        <Key size="small" onClick={() => perform({ type: "deny", session: sessionName, requestId: pending.requestId })}>
-          Deny
-        </Key>
-      </ActionRow>
+      {showDetail && item.kind === "permission" && pending?.kind === "permission" && <FoldedText text={pending.summary} lines={3} />}
+      {showDetail && item.kind === "trust" && session.trustSubject !== "hooks" && (
+        <p className="truncate rounded-inner border border-line bg-tray px-2.5 py-2 font-mono text-small text-ink shadow-tray" title={session.projectPath}>
+          {PathDisplay.tail(session.projectPath)}
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <RequestKeys item={item} session={session} />
+        <span className="ml-1 text-small text-ink-faint">{spokenHint(item, session)}</span>
+      </div>
     </>
   );
 }
 
-function QuestionActions({ sessionName, pending }: { sessionName: string; pending: PendingQuestion }) {
+function spokenHint(item: AttentionItem, session: SessionView): string {
+  if (item.kind === "permission") return 'Or say "approve", or "no" and why';
+  if (item.kind === "question") return "Or say an option, its number, or your own words";
+  if (item.kind === "trust") return 'Or say "trust it"';
+  return `Or say "go to ${session.name}"`;
+}
+
+function RequestKeys({ item, session }: { item: AttentionItem; session: SessionView }) {
+  const pending = session.pending;
+  if (item.kind === "permission" && pending?.kind === "permission") return <PermissionKeys sessionName={session.name} pending={pending} />;
+  if (item.kind === "question" && pending?.kind === "question") return <QuestionKeys sessionName={session.name} pending={pending} />;
+  if (item.kind === "trust") return <TrustKey sessionName={session.name} />;
+  return <OpenKey sessionName={session.name} />;
+}
+
+function PermissionKeys({ sessionName, pending }: { sessionName: string; pending: PendingPermission }) {
+  const { perform } = useHeyTerm();
+  return (
+    <span className="flex shrink-0 gap-1.5">
+      <Key tone="primary" size="small" onClick={() => perform({ type: "approve", session: sessionName, requestId: pending.requestId, confirmed: true })}>
+        Approve
+      </Key>
+      <Key size="small" onClick={() => perform({ type: "deny", session: sessionName, requestId: pending.requestId })}>
+        Deny
+      </Key>
+    </span>
+  );
+}
+
+function QuestionKeys({ sessionName, pending }: { sessionName: string; pending: PendingQuestion }) {
   const { perform } = useHeyTerm();
   const [question] = pending.questions;
   if (!question) return null;
   const answer = (label: string) => perform({ type: "answer", session: sessionName, requestId: pending.requestId, answers: { [question.question]: label } });
   return (
-    <ActionRow hint="Say an option, its number, or answer in your own words">
+    <span className="flex flex-wrap gap-1.5">
       {question.options.map((option, index) => (
         <Key key={option.label} size="small" title={option.description} onClick={() => answer(option.label)}>
           <span className="font-mono text-ink-faint">{index + 1}</span>
           {option.label}
         </Key>
       ))}
-    </ActionRow>
+    </span>
   );
 }
 
-function TrustActions({ session, showDetail }: { session: SessionView; showDetail: boolean }) {
+function TrustKey({ sessionName }: { sessionName: string }) {
   const { perform } = useHeyTerm();
   return (
-    <>
-      {showDetail && session.trustSubject !== "hooks" && <FoldedText text={session.projectPath} lines={1} />}
-      <ActionRow hint={'Say "trust it"'}>
-        <Key tone="primary" size="small" onClick={() => perform({ type: "trust", session: session.name })}>
-          Trust
-        </Key>
-      </ActionRow>
-    </>
+    <Key tone="primary" size="small" className="shrink-0" onClick={() => perform({ type: "trust", session: sessionName })}>
+      Trust
+    </Key>
   );
 }
 
-function OpenAction({ session }: { session: SessionView }) {
+function OpenKey({ sessionName }: { sessionName: string }) {
   const { perform } = useHeyTerm();
   return (
-    <ActionRow hint={`Say "go to ${session.name}"`}>
-      <Key size="small" onClick={() => perform({ type: "focus", session: session.name })}>
-        Open
-      </Key>
-    </ActionRow>
-  );
-}
-
-function ActionRow({ hint, children }: { hint: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      {children}
-      <span className="ml-1 text-[12.5px] text-ink-faint">{hint}</span>
-    </div>
+    <Key size="small" className="shrink-0" onClick={() => perform({ type: "focus", session: sessionName })}>
+      Open
+    </Key>
   );
 }

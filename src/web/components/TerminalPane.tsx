@@ -18,12 +18,30 @@ import type { SessionView } from "../../shared/types.ts";
 // Keystrokes this close together count as one keyboard action in the hands-off meter.
 const keystrokeBurstMilliseconds = 2_000;
 
+// Gruvbox Material dark in both page themes: agent CLIs pick their text colours for a dark terminal,
+// so a light one would hide some of their text. The background matches --color-terminal.
 const terminalTheme = {
-  background: "#07090b",
-  foreground: "#e8ebef",
-  cursor: "#e8ebef",
-  cursorAccent: "#0a0c0f",
-  selectionBackground: "#333b46",
+  background: "#1d2021",
+  foreground: "#d4be98",
+  cursor: "#d4be98",
+  cursorAccent: "#1d2021",
+  selectionBackground: "#45403d",
+  black: "#32302f",
+  red: "#ea6962",
+  green: "#a9b665",
+  yellow: "#d8a657",
+  blue: "#7daea3",
+  magenta: "#d3869b",
+  cyan: "#89b482",
+  white: "#d4be98",
+  brightBlack: "#928374",
+  brightRed: "#ea6962",
+  brightGreen: "#a9b665",
+  brightYellow: "#d8a657",
+  brightBlue: "#7daea3",
+  brightMagenta: "#d3869b",
+  brightCyan: "#89b482",
+  brightWhite: "#ddc7a1",
 };
 
 interface TerminalPaneProps {
@@ -93,15 +111,15 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   const borderClass = isTyping ? "border-ink/60" : isFocused ? "border-line-strong" : "border-line";
 
   return (
-    <section ref={paneRef} className={`flex h-full min-h-[280px] w-full min-w-0 flex-col overflow-hidden rounded-outer border bg-tray transition-colors duration-200 ${borderClass}`}>
+    <section ref={paneRef} className={`flex h-full min-h-[280px] w-full min-w-0 flex-col overflow-hidden rounded-outer border bg-terminal transition-colors duration-200 ${borderClass}`}>
       <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
         <SessionAvatar name={session.name} state={session.state} size={22} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
-        <span className={`text-[12.5px] ${display.textClass}`}>{display.label}</span>
-        {isWaitingOnUser(session.state) && <span className="font-mono text-[12.5px] text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
+        <span className={`text-small ${display.textClass}`}>{display.label}</span>
+        {isWaitingOnUser(session.state) && <span className="font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
         <div className="ml-auto flex items-center gap-0.5">
           {isTyping && (
-            <span className="mr-1 flex items-center gap-1 text-[12.5px] text-ink-muted">
+            <span className="mr-1 flex items-center gap-1 text-small text-ink-muted">
               <KeyboardIcon size={13} /> Typing here
             </span>
           )}
@@ -128,7 +146,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
 
 function PaneButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className="press flex size-7 cursor-pointer items-center justify-center rounded-[6px] text-ink-muted hover:bg-raised hover:text-ink">
+    <button type="button" aria-label={label} title={label} onClick={onClick} className="press flex size-7 cursor-pointer items-center justify-center rounded-small text-ink-muted hover:bg-raised hover:text-ink">
       {children}
     </button>
   );

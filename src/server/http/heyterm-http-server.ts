@@ -32,7 +32,7 @@ export class HeyTermHttpServer {
     private readonly terminals: TerminalBridge,
     private readonly tickets: PairingTickets,
   ) {
-    this.serveWeb = existsSync(webDirectory) ? sirv(webDirectory, { single: true }) : undefined;
+    this.serveWeb = existsSync(webDirectory) ? sirv(webDirectory, { single: true, setHeaders: cachingHeaders }) : undefined;
     this.server.on("upgrade", (request, socket, head) => {
       if (!this.guard.isFromThisMac(request) || !this.guard.hasToken(request)) return socket.destroy();
       const url = new URL(request.url ?? "/", "http://127.0.0.1");
@@ -109,6 +109,12 @@ export class HeyTermHttpServer {
       : await this.registry.applyHookEvent({ name: eventName, sessionName, payload, receivedAt: Date.now() });
     respond(response, 200, answer, "application/json");
   }
+}
+
+// Built assets carry a content hash in their name, so they never change and are kept. Everything else
+// (the page, the theme script, the icon) is checked on every load, so an update shows at once.
+function cachingHeaders(response: ServerResponse, pathname: string): void {
+  response.setHeader("Cache-Control", pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache");
 }
 
 // No framing by other sites (clickjacking), no scripts or connections but HeyTerm's own, no referrer.

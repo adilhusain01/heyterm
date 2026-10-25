@@ -6,6 +6,7 @@ import { PendingControls } from "./pending-controls.ts";
 import { UtteranceLimits } from "./utterance-limits.ts";
 import { SessionActions } from "./session-actions.ts";
 import { AttentionQueue } from "../../shared/attention.ts";
+import { RequestThread } from "../../shared/request-thread.ts";
 import { acceptsText, type FastPathRouter } from "../router/fast-path-router.ts";
 import { ConductorRouting } from "../conductor/conductor-rules.ts";
 import type { Assistant } from "../conductor/assistant.ts";
@@ -92,6 +93,13 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
     // A new command sends a waiting preview first, unless the command is about the preview.
     if (this.controls.preview && action.type !== "cancel" && action.type !== "send_now") await this.sendPreviewNow();
     await this.perform(action, source === "voice" ? utterance : "keyboard", utterance);
+  }
+
+  // A button on the page. An answer to a request also shows in the conversation as the user's reply.
+  async performClick(action: RouterAction): Promise<void> {
+    const replyWords = RequestThread.replyWords(action);
+    if (replyWords) this.assistant?.recordReply(replyWords);
+    return this.perform(action, "click");
   }
 
   async perform(action: RouterAction, decidedBy: string, utterance = ""): Promise<void> {

@@ -12,14 +12,14 @@ export function FoldedText({ text, lines = 4, mono = true }: { text: string; lin
       {/* The padding sits outside the clamped element, so no part of a hidden line shows through. */}
       <div className="px-2.5 py-2">
         <pre
-          className={`overflow-hidden whitespace-pre-wrap break-words text-ink ${mono ? "font-mono text-[12.5px] leading-relaxed" : "font-sans text-meta"}`}
+          className={`overflow-hidden whitespace-pre-wrap break-words text-ink ${mono ? "font-mono text-small leading-relaxed" : "font-sans text-meta"}`}
           style={isOpen || !isLong ? undefined : { display: "-webkit-box", WebkitLineClamp: lines, WebkitBoxOrient: "vertical" }}
         >
           {text}
         </pre>
       </div>
       {isLong && (
-        <button type="button" onClick={() => setOpen(!isOpen)} className="cursor-pointer border-t border-line px-2.5 py-1 text-left text-meta text-ink-muted hover:text-ink">
+        <button type="button" onClick={() => setOpen(!isOpen)} className="cursor-pointer border-t border-line px-2.5 py-1 text-left text-meta text-ink-muted transition-colors duration-150 hover:text-ink">
           {isOpen ? "Show less" : `Show all ${lineCount > 1 ? `${lineCount} lines` : ""}`.trim()}
         </button>
       )}

@@ -50,7 +50,7 @@ export function HelpTip({ title, children }: { title: string; children: ReactNod
         aria-label={`About ${title}`}
         aria-expanded={isOpen}
         onClick={() => setOpen(!isOpen)}
-        className={`flex size-5 cursor-pointer items-center justify-center rounded-[4px] transition-colors duration-150 hover:bg-raised hover:text-ink ${isOpen ? "text-ink" : "text-ink-faint"}`}
+        className={`flex size-5 cursor-pointer items-center justify-center rounded-tiny transition-colors duration-150 hover:bg-raised hover:text-ink ${isOpen ? "text-ink" : "text-ink-faint"}`}
       >
         <HelpIcon size={13} />
       </button>
@@ -60,11 +60,11 @@ export function HelpTip({ title, children }: { title: string; children: ReactNod
             ref={cardRef}
             role="dialog"
             aria-label={title}
-            className="enter-rise fixed z-50 flex flex-col gap-1.5 rounded-inner border border-line-strong bg-raised p-3 text-left shadow-key"
+            className="enter-rise fixed z-50 flex flex-col gap-1.5 rounded-inner border border-line-strong bg-canvas p-3 text-left"
             style={{ width: cardWidth, top: position?.top ?? -9999, left: position?.left ?? -9999 }}
           >
             <span className="text-meta font-medium text-ink">{title}</span>
-            <span className="flex flex-col gap-2 text-[12.5px] leading-relaxed text-ink-muted">{children}</span>
+            <span className="flex flex-col gap-2 text-small leading-relaxed text-ink-muted">{children}</span>
           </div>,
           document.body,
         )}
@@ -74,5 +74,5 @@ export function HelpTip({ title, children }: { title: string; children: ReactNod
 
 // A phrase to say, set apart in the help text.
 export function SayThis({ children }: { children: ReactNode }) {
-  return <span className="rounded-[4px] border border-line bg-tray px-1 py-px font-mono text-[12px] whitespace-nowrap text-ink">"{children}"</span>;
+  return <span className="rounded-tiny border border-line bg-tray px-1 py-px font-mono text-small whitespace-nowrap text-ink">"{children}"</span>;
 }
