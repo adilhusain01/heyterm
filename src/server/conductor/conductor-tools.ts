@@ -115,7 +115,18 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
           }),
         ),
       ),
-      tool("bring_back_session", "Bring back a recently closed session.", { name: z.string() }, async ({ name }) =>
+      tool(
+        "open_session_here",
+        "Move a session that runs in the developer's own terminal into HeyTerm: it closes there and the same conversation reopens here. Use it when they want such a session here. If it is working, ask them first, then call with confirmed.",
+        { name: z.string(), confirmed: z.boolean().optional() },
+        ({ name, confirmed }) =>
+          withSession(name, async (session) => {
+            if (session.origin !== "external") return `${name} already runs in HeyTerm.`;
+            if (session.state === "working" && !confirmed) return `${name} is still working, and moving it stops its turn. Ask the developer, then call again with confirmed.`;
+            return (await sessionActions.adopt(name, (sessionName) => executor.setFocus(sessionName))).text;
+          }),
+      ),
+      tool("bring_back_session", "Bring back a session listed under Recently closed. Not for one still open in the developer's own terminal: use open_session_here for that.", { name: z.string() }, async ({ name }) =>
         reply((await sessionActions.perform({ type: "resume", session: name }, (sessionName) => executor.setFocus(sessionName))).text),
       ),
       tool("interrupt_session", "Stop what a session is doing right now, like pressing Escape.", { name: z.string() }, ({ name }) =>

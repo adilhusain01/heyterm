@@ -161,6 +161,7 @@ export type RouterAction =
   | { type: "rename"; session: string; newName: string }
   | { type: "forget_closed"; session: string }
   | { type: "changes"; session: string }
+  | { type: "adopt"; session: string; confirmed: boolean }
   | { type: "confirm" }
   | { type: "cancel" }
   | { type: "send_now" }

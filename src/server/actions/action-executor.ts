@@ -119,6 +119,8 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
         return this.confirm();
       case "close":
         return this.close(action.session, action.confirmed);
+      case "adopt":
+        return this.adopt(action.session, action.confirmed);
       case "forget_closed":
         return this.tell(await this.sessionActions.forgetClosed(action.session));
       case "rename": {
@@ -215,6 +217,19 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
     if (problem) return { renamed: false, text: problem };
     if (this.focusedSession === sessionName) this.setFocus(newName);
     return { renamed: true, text: `Renamed ${sessionName} to ${newName}.` };
+  }
+
+  // Moves a session from the user's own terminal into HeyTerm; a working one is asked about first.
+  private async adopt(sessionName: string, confirmed: boolean): Promise<void> {
+    const session = this.registry.get(sessionName);
+    if (!session) return this.tell({ text: `There is no session called ${sessionName}.`, tone: "warning", speak: true });
+    if (session.origin !== "external") return this.tell({ text: `${sessionName} already runs in HeyTerm.`, tone: "info", speak: true });
+    if (!confirmed && session.state === "working") {
+      this.controls.awaitConfirmation(`move ${sessionName} here`, () => this.adopt(sessionName, true));
+      return this.tell({ text: `${sessionName} is still working, and moving it stops its turn. Say confirm to move it.`, tone: "warning", speak: true });
+    }
+    this.controls.dropConfirmation();
+    this.tell(await this.sessionActions.adopt(sessionName, (name) => this.setFocus(name)));
   }
 
   private async confirm(): Promise<void> {

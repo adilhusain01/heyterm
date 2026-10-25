@@ -6,6 +6,8 @@ import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
 import { promisify } from "node:util";
 import { ScreenReader } from "./screen-reader.ts";
+import { ClaudeSessionRecords } from "./claude-session-watcher.ts";
+import { ConversationOwner } from "./conversation-owner.ts";
 import type { SessionWorktrees, WorktreeRemoval } from "./session-worktrees.ts";
 import { WorktreePlan } from "./worktree-plan.ts";
 import { AgentAdapters, type AgentLaunchContext } from "../agents/agent-adapters.ts";
@@ -30,6 +32,9 @@ interface LauncherPaths {
 }
 
 export class AgentNotInstalledError extends Error {}
+
+// How long a session in the user's terminal gets to quit before HeyTerm gives up moving it.
+const adoptExitWaitMilliseconds = 8_000;
 
 export class SessionLauncher {
   constructor(
@@ -72,8 +77,10 @@ export class SessionLauncher {
 
   async resume(closed: SessionView): Promise<SessionView> {
     await this.ensureInstalled(closed.agent);
-    const now = Date.now();
-    const session: SessionView = { ...closed, state: "starting", stateSince: now, lastSeenAt: now, pending: undefined, activitySinceSeen: [] };
+    if (ConversationOwner.liveProcess(closed, await ClaudeSessionRecords.read(), ClaudeSessionRecords.processIsRunning)) {
+      throw new Error(`${closed.name}'s conversation is still open in another terminal. Close it there, or say "open ${closed.name} here" to move it.`);
+    }
+    const session = ConversationOwner.reopenedHere(closed, Date.now());
     this.registry.add(session);
     const conversationSaved = closed.transcriptPath ? await fileExists(closed.transcriptPath) : closed.lastPrompt !== undefined;
     const point = { agentSessionId: closed.agentSessionId, conversationSaved };
@@ -83,6 +90,23 @@ export class SessionLauncher {
     const launchId = this.registry.get(session.name)?.agentSessionId;
     this.launch(session, adapter.resume(point, { ...this.launchContext(session.name), agentSessionId: launchId }));
     return session;
+  }
+
+  // Moves a session from the user's own terminal into HeyTerm: its Claude there is asked to quit
+  // (SIGTERM, which Claude Code exits cleanly on), then the same conversation opens here.
+  async adopt(name: string): Promise<SessionView> {
+    const session = this.registry.get(name);
+    if (!session || session.origin !== "external") throw new Error(`${name} is not a session in your own terminal.`);
+    const pid = ConversationOwner.liveProcess(session, await ClaudeSessionRecords.read(), ClaudeSessionRecords.processIsRunning);
+    if (pid !== undefined) {
+      process.kill(pid, "SIGTERM");
+      for (let waited = 0; waited < adoptExitWaitMilliseconds && ClaudeSessionRecords.processIsRunning(pid); waited += 200) await new Promise((resolve) => setTimeout(resolve, 200));
+      if (ClaudeSessionRecords.processIsRunning(pid)) throw new Error(`${name} did not close in your terminal. Quit it there, then say "bring back ${name}".`);
+    }
+    this.registry.remove(name);
+    const closed = this.registry.recentlyClosedSessions().find((candidate) => candidate.name === name);
+    if (!closed) throw new Error(`${name} could not be reopened here.`);
+    return this.resume(closed);
   }
 
   // When a closed session leaves the list, its worktree goes too, unless that would lose work.

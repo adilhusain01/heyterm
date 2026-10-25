@@ -18,6 +18,8 @@ const sessionCommands: SessionCommand[] = [
   { pattern: /^(?:what's|what is|how's|how is) (.+?) (?:doing|up to)$/, build: (session) => ({ type: "status", session }) },
   { pattern: /^status (?:of|for) (.+)$/, build: (session) => ({ type: "status", session }) },
   { pattern: /^what (?:did|has) (.+?) (?:change|changed|edit|edited)$/, build: (session) => ({ type: "changes", session }) },
+  // Before focus, which would read "open synqed here" as showing a session called "synqed here".
+  { pattern: /^(?:open|move|bring|pull) (.+?) (?:here|over here|into heyterm|in heyterm|to heyterm)$/, build: (session) => ({ type: "adopt", session, confirmed: false }) },
   { pattern: /^(?:go to|show me|show|switch to|focus on|focus|look at|bring up|open) (.+)$/, build: (session) => ({ type: "focus", session }) },
   { pattern: /^(?:close|kill|end|shut down|quit|exit) (.+)$/, build: (session) => ({ type: "close", session, confirmed: false }) },
   { pattern: /^(?:stop|interrupt|pause|halt|hold) (.+)$/, build: (session) => ({ type: "interrupt", session }) },

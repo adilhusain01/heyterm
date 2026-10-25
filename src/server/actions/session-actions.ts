@@ -70,6 +70,16 @@ export class SessionActions {
     return ChangeSummary.describe(sessionName, files, counts);
   }
 
+  async adopt(sessionName: string, focus: (sessionName: string) => void): Promise<Feedback> {
+    try {
+      const session = await this.launcher.adopt(sessionName);
+      focus(session.name);
+      return { text: `Moved ${session.name} here. It closed in your terminal, and its conversation goes on in HeyTerm.`, tone: "success", speak: true };
+    } catch (error) {
+      return { text: error instanceof Error ? error.message : String(error), tone: "warning", speak: true };
+    }
+  }
+
   // Off the list, and its worktree with it when nothing in the worktree would be lost.
   async forgetClosed(sessionName: string): Promise<Feedback> {
     const closed = this.registry.recentlyClosedSessions().find((session) => session.name === sessionName);

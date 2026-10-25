@@ -1,7 +1,9 @@
 // A session running in the user's own terminal: no live screen here, but its state, its whole last
 // message and anything it waits on.
 
+import { useHeyTerm } from "../app-context.tsx";
 import { useServerNow } from "../state/use-server-now.ts";
+import { Key } from "../ui/Key.tsx";
 import { Markdown } from "../ui/Markdown.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { SessionIdentity } from "./session-identity.ts";
@@ -11,6 +13,7 @@ import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.
 import type { SessionView } from "../../shared/types.ts";
 
 export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: { session: SessionView; isExpanded: boolean; onToggleExpanded?: () => void }) {
+  const { perform } = useHeyTerm();
   const now = useServerNow();
   const display = stateDisplay[session.state];
   return (
@@ -21,6 +24,10 @@ export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: {
         <span className={`text-small ${display.textClass}`}>{display.label}</span>
         {isWaitingOnUser(session.state) && <span className="font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
         <span className="ml-auto text-small text-ink-faint">in your own terminal</span>
+        {/* Closes it in that terminal and reopens the same conversation here, with a live screen. */}
+        <Key size="small" className="shrink-0" onClick={() => perform({ type: "adopt", session: session.name, confirmed: false })}>
+          Open here
+        </Key>
         {onToggleExpanded && (
           <PaneButton label={isExpanded ? "Show all sessions" : "Show only this session"} onClick={onToggleExpanded}>
             {isExpanded ? <ShrinkIcon size={14} /> : <ExpandIcon size={14} />}

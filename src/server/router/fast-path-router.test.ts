@@ -233,6 +233,14 @@ describe("session commands", () => {
     }
   });
 
+  // Adil, 25 October 2026: "i want this current whisker session resumed there in the app".
+  it("moves a session from the user's own terminal into HeyTerm", () => {
+    expect(router.route("open synqed here", makeContext())).toEqual({ type: "adopt", session: "synqed", confirmed: false });
+    expect(router.route("move peeker into heyterm", makeContext())).toEqual({ type: "adopt", session: "peeker", confirmed: false });
+    expect(router.route("bring bookboy here", makeContext())).toEqual({ type: "adopt", session: "bookboy", confirmed: false });
+    expect(router.route("open synqed", makeContext())).toEqual({ type: "focus", session: "synqed" });
+  });
+
   it("asks what a session changed", () => {
     expect(router.route("what did synqed change", makeContext())).toEqual({ type: "changes", session: "synqed" });
     expect(router.route("what has peeker changed?", makeContext())).toEqual({ type: "changes", session: "peeker" });
