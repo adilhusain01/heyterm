@@ -107,3 +107,7 @@ npm run build:playground   # dist/playground: the same UI on three simulated age
 Built for [No Hands: The Wispr Challenge](https://www.wemakedevs.org/wispr) by WeMakeDevs and Wispr Flow.
 
 The look is specified in `docs/DESIGN.md`.
+
+## Licence
+
+MIT, see `LICENSE`. The packages HeyTerm ships keep their own licences, listed in `THIRD_PARTY_NOTICES.md`.

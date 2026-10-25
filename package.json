@@ -11,7 +11,7 @@
     "build:playground": "vite build --mode playground --outDir ../../dist/playground",
     "notices": "node scripts/notices.mjs"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "private": "true",
   "dependencies": {
