@@ -77,7 +77,7 @@ function InstallSteps() {
         help={
           <>
             <span>Works on macOS, Linux and Windows with Node.js 20 or newer.</span>
-            <span>Install at least one agent: Claude Code, Codex (npm install -g @openai/codex) or Gemini CLI (npm install -g @google/gemini-cli). The assistant uses your Claude login.</span>
+            <span>Install at least one agent: Claude Code, Codex (npm install -g @openai/codex), Gemini CLI (npm install -g @google/gemini-cli), Grok Build or Cursor. The assistant uses your Claude login.</span>
           </>
         }
       >

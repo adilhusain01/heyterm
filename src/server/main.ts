@@ -12,6 +12,7 @@ import { createAssistant } from "./conductor/create-assistant.ts";
 import { loadConfig } from "./config.ts";
 import { ExistingSessionConnector } from "./hooks/existing-session-connector.ts";
 import { HeldHookRequests } from "./hooks/held-hook-requests.ts";
+import { AgentHookFiles } from "./hooks/agent-hook-files.ts";
 import { HookInstaller } from "./hooks/hook-installer.ts";
 import { HeyTermHttpServer } from "./http/heyterm-http-server.ts";
 import { EventHub } from "./http/event-hub.ts";
@@ -52,6 +53,9 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   const userConfig = new UserConfig(config.dataDirectory);
   const savedChoices = await userConfig.load();
   const hooks = await new HookInstaller(config.dataDirectory, config.port).install();
+  // Grok Build and Cursor take hooks only from global files: in place while HeyTerm runs.
+  const agentHookFiles = new AgentHookFiles(hooks.forwardScriptPath, path.join(config.dataDirectory, "backups"));
+  await agentHookFiles.install().catch((error: Error) => console.error(`Could not add HeyTerm's Grok and Cursor hooks: ${error.message}`));
   await stopSessionsFromOlderVersion(config.tmuxSocketName);
 
   const host = new TerminalHost();
@@ -102,6 +106,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
       launcher.shutdown();
       // Leave the user's Claude settings as they were before HeyTerm started.
       if ((await userConfig.load()).showOwnTerminalSessions) await connector.disconnect().catch(() => undefined);
+      await agentHookFiles.remove().catch(() => undefined);
       await registry.saveNow().catch(() => undefined);
       await server.close();
       console.log("HeyTerm stopped. Its sessions are under Recently closed next time.");

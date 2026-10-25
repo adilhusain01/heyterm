@@ -1,6 +1,7 @@
 // Starts, resumes, closes and types into agent sessions, each running in one of HeyTerm's own
 // terminals. When HeyTerm stops, its sessions stop too, and come back from "Recently closed".
 
+import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
 import { promisify } from "node:util";
@@ -53,9 +54,11 @@ export class SessionLauncher {
       lastSeenAt: now,
       activitySinceSeen: [],
       waitedMillisecondsToday: 0,
+      // Grok's hooks come from a global file; the id HeyTerm gives it is how its events find this session.
+      agentSessionId: AgentAdapters.get(agent).choosesSessionIdAtLaunch ? randomUUID() : undefined,
     };
     this.registry.add(session);
-    this.launch(session, AgentAdapters.get(agent).newSession(this.launchContext(name)));
+    this.launch(session, AgentAdapters.get(agent).newSession({ ...this.launchContext(name), agentSessionId: session.agentSessionId }));
     if (task) void this.sendWhenReady(name, task);
     return session;
   }
@@ -67,7 +70,11 @@ export class SessionLauncher {
     this.registry.add(session);
     const conversationSaved = closed.transcriptPath ? await fileExists(closed.transcriptPath) : closed.lastPrompt !== undefined;
     const point = { agentSessionId: closed.agentSessionId, conversationSaved };
-    this.launch(session, AgentAdapters.get(closed.agent).resume(point, this.launchContext(session.name)));
+    const adapter = AgentAdapters.get(closed.agent);
+    // A conversation that was never saved starts again, under a new id where the agent takes one.
+    if (adapter.choosesSessionIdAtLaunch && !conversationSaved) this.registry.update(session.name, (current) => ({ ...current, agentSessionId: randomUUID() }));
+    const launchId = this.registry.get(session.name)?.agentSessionId;
+    this.launch(session, adapter.resume(point, { ...this.launchContext(session.name), agentSessionId: launchId }));
     return session;
   }
 

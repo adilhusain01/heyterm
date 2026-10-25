@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* The app's own tokens and motion, so the page and the product are one design. */
+@import "../../src/web/tokens.css";
+@import "../../src/web/motion.css";
+
+@theme {
+  /* Martian Mono for display: Gruvbox began as a terminal palette, and the page speaks its language.
+     Geist, the app's face, carries everything that is read. */
+  --font-display: "Martian Mono Variable", ui-monospace, monospace;
+
+  --text-hero: clamp(2.25rem, 1.4rem + 3.6vw, 4.25rem);
+  --text-hero--line-height: 1.04;
+  --text-section: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem);
+  --text-section--line-height: 1.12;
+  --text-lede: 1.1875rem;
+  --text-lede--line-height: 1.55;
+}
+
+html {
+  scroll-padding-top: 24px;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer base {
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 28%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+}
+
+/* Display type: condensed and heavy, set tight, the way a terminal banner sits. */
+.display {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 88;
+  font-weight: 640;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.lede {
+  text-wrap: pretty;
+}
+
+/* The caret in the hero's dictation bar. */
+@keyframes caret-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+.caret {
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+/* A line in the hero's terminals arrives the way output does: at once, then settled. */
+.line-in {
+  transition: opacity 160ms var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
+}

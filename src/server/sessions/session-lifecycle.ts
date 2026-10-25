@@ -40,9 +40,14 @@ export class SessionLifecycle {
       }
       case "SessionEnd":
         return SessionLifecycle.moveTo({ ...session, pending: undefined }, "stopped", event.receivedAt);
-      case "Notification":
-        // Permission and idle notifications repeat what other hooks already said.
-        return session;
+      case "Notification": {
+        // Agents that report through translated hooks (see agent-hook-translator.ts) send two kinds:
+        // a permission card the user answers in the agent's own terminal, and the agent's reply
+        // ahead of the turn's end. For Claude Code, notifications repeat what other hooks said.
+        if (payload.waits_in_terminal === true) return SessionLifecycle.moveTo({ ...session, blockedByTerminalDialog: true }, "asked", event.receivedAt);
+        const reply = stringField(payload, "assistant_message");
+        return reply ? { ...session, lastMessage: reply } : session;
+      }
     }
   }
 
@@ -90,7 +95,8 @@ export class SessionLifecycle {
   }
 
   private static applyTurnEnd(session: SessionView, event: HookEvent): SessionView {
-    const lastMessage = stringField(event.payload, "last_assistant_message");
+    if (event.payload.turn_cancelled === true) return SessionLifecycle.moveTo({ ...session, pending: undefined }, "idle", event.receivedAt);
+    const lastMessage = event.payload.keep_last_message === true ? (session.lastMessage ?? "") : stringField(event.payload, "last_assistant_message");
     const withMessage = SessionLifecycle.addActivity({ ...session, lastMessage, pending: undefined }, "message", lastMessage, event.receivedAt);
     return SessionLifecycle.moveTo(withMessage, endsWithQuestion(lastMessage) ? "asked" : "done", event.receivedAt);
   }

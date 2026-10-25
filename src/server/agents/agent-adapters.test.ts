@@ -32,6 +32,24 @@ describe("AgentAdapters", () => {
   });
 
   it("names every agent it knows, for the start menu and the assistant", () => {
-    expect(AgentAdapters.all().map((adapter) => adapter.kind)).toEqual(["claude", "codex", "gemini"]);
+    expect(AgentAdapters.all().map((adapter) => adapter.kind)).toEqual(["claude", "codex", "gemini", "grok", "cursor"]);
+  });
+
+  it("starts Grok Build under the session id HeyTerm chose, so its hook events can be told apart", () => {
+    expect(AgentAdapters.get("grok").newSession({ ...context, agentSessionId: "0199-grok" })).toEqual({ program: "grok", args: ["-s", "0199-grok"] });
+  });
+
+  it("resumes Grok Build by that id once it has a conversation", () => {
+    expect(AgentAdapters.get("grok").resume({ agentSessionId: "0199-grok", conversationSaved: true }, context)).toEqual({ program: "grok", args: ["-r", "0199-grok"] });
+    expect(AgentAdapters.get("grok").resume({ agentSessionId: "0199-grok", conversationSaved: false }, { ...context, agentSessionId: "0199-new" }).args).toEqual(["-s", "0199-new"]);
+  });
+
+  it("runs Cursor as cursor-agent, since Grok's own agent command can come first on the PATH", () => {
+    expect(AgentAdapters.get("cursor").newSession(context)).toEqual({ program: "cursor-agent", args: [] });
+    expect(AgentAdapters.get("cursor").resume({ agentSessionId: "chat-1", conversationSaved: true }, context)).toEqual({ program: "cursor-agent", args: ["--resume", "chat-1"] });
+  });
+
+  it("knows which agents need an id chosen before they start", () => {
+    expect(AgentAdapters.all().filter((adapter) => adapter.choosesSessionIdAtLaunch).map((adapter) => adapter.kind)).toEqual(["grok"]);
   });
 });

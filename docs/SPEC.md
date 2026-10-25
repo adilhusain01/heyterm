@@ -43,6 +43,14 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 - An outside session appears under its title or folder name. Its permissions and questions can be answered by voice and it is announced like any other, but HeyTerm does not type into it and does not close it; it says so when asked.
 - When HeyTerm restarts, outside sessions are forgotten until their next event. A dialog HeyTerm was holding in one of its own sessions stays on screen in the terminal; that session is marked as blocked by the dialog, refuses typed text, and is announced as waiting on a dialog in its terminal until it reports again.
 
+## Grok Build and Cursor
+
+- Both read hooks only from global files. While HeyTerm runs, Grok gets `~/.grok/hooks/heyterm.json` and Cursor gets HeyTerm's entries added to `~/.cursor/hooks.json`; both come out on stop and on uninstall, and a Cursor file that held nothing else is removed.
+- Every hook is tagged with its agent and runs only under that agent (`GROK_HOOK_EVENT` for Grok, `CURSOR_VERSION` for Cursor), because Grok also runs the hooks in Cursor's and Claude's files. The user's own Claude hooks never report a Grok or Cursor session.
+- A Grok session starts under a session id HeyTerm chose (`grok -s`) and resumes with `grok -r`. A Cursor conversation is claimed by the newest Cursor session HeyTerm started in that folder. Events from any other session are ignored.
+- Only reporting events are registered; none can approve or block a tool. Grok's permission card is shown as waiting in its terminal. Grok's folder-trust card is answered with its `y` key. Cursor's prompt hook always replies `{"continue":true}`.
+- Checked live on 25 October 2026 with Grok Build 1.0.70: trust, a task sent by name, the finished state and its message. Cursor is not checked yet: its CLI was not signed in.
+
 ## Answers and approvals
 
 - A multiple-choice question from Claude (`AskUserQuestion`) is answered from the hook with the option you named ("the second one", "Neon"), so no arrow keys are pressed.

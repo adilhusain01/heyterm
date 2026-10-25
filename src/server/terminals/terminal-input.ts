@@ -12,6 +12,8 @@ const keySequences: Record<string, string> = {
   Down: "\x1b[B",
   Right: "\x1b[C",
   Left: "\x1b[D",
+  // Grok Build's dialogs answer to a letter.
+  y: "y",
 };
 
 const pasteStart = "\x1b[200~";

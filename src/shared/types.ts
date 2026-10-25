@@ -11,7 +11,7 @@ export type SessionState =
   | "failed"
   | "stopped";
 
-export type AgentKind = "claude" | "codex" | "gemini";
+export type AgentKind = "claude" | "codex" | "gemini" | "grok" | "cursor";
 
 export type RiskLevel = "low" | "high";
 

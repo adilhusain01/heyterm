@@ -95,6 +95,8 @@ export class HeyTermHttpServer {
   private async handleHook(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
     if (!this.guard.hasToken(request)) return respond(response, 401, "");
     const eventName = url.pathname.slice("/hooks/".length) as HookEventName;
+    const agent = url.searchParams.get("agent");
+    if (agent === "grok" || agent === "cursor") return this.handleAgentHook(request, response, agent, eventName);
     const sessionName = url.searchParams.get("session") ?? "";
     const isExternal = url.searchParams.get("external") === "1";
     if (!forwardedHookEvents.includes(eventName) || (!sessionName && !isExternal)) return respond(response, 400, "");
@@ -108,6 +110,18 @@ export class HeyTermHttpServer {
       ? await this.registry.applyExternalHookEvent(eventName, payload, Date.now())
       : await this.registry.applyHookEvent({ name: eventName, sessionName, payload, receivedAt: Date.now() });
     respond(response, 200, answer, "application/json");
+  }
+
+  // Grok Build and Cursor name events their own way; the registry translates them.
+  private async handleAgentHook(request: IncomingMessage, response: ServerResponse, agent: "grok" | "cursor", eventName: string): Promise<void> {
+    if (!/^[A-Za-z]+$/.test(eventName)) return respond(response, 400, "");
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(await readBody(request, largestHookBodyBytes)) as Record<string, unknown>;
+    } catch {
+      return respond(response, 400, "");
+    }
+    respond(response, 200, await this.registry.applyAgentHookEvent(agent, eventName, payload, Date.now()), "application/json");
   }
 }
 

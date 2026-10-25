@@ -93,11 +93,11 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
       ),
       tool(
         "start_session",
-        "Start a new coding agent session in a folder, with its first task if there is one. The folder is a project name from list_projects or any folder path on this Mac, such as ~/Documents/Projects. The agent is Claude Code unless the developer asks for Codex or Gemini.",
+        "Start a new coding agent session in a folder, with its first task if there is one. The folder is a project name from list_projects or any folder path on this Mac, such as ~/Documents/Projects. The agent is Claude Code unless the developer asks for Codex, Gemini, Grok (Grok Build) or Cursor.",
         {
           project: z.string().describe("A project name, or a folder path"),
           task: z.string().optional(),
-          agent: z.enum(["claude", "codex", "gemini"]).optional(),
+          agent: z.enum(["claude", "codex", "gemini", "grok", "cursor"]).optional(),
         },
         async ({ project, task, agent }) =>
           reply((await sessionActions.perform({ type: "spawn", project, ...(task ? { task } : {}), ...(agent ? { agent } : {}) }, (sessionName) => executor.setFocus(sessionName))).text),

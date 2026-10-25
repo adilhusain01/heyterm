@@ -3,7 +3,9 @@
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import path from "node:path";
+import { AgentSessionMatch } from "./agent-session-match.ts";
 import { ExternalSessionNaming } from "./external-session-naming.ts";
+import { AgentHookTranslator, type HookedAgentKind } from "../agents/agent-hook-translator.ts";
 import { SessionLifecycle } from "./session-lifecycle.ts";
 import type { StateStore } from "./state-store.ts";
 import type { HeldHookRequests } from "../hooks/held-hook-requests.ts";
@@ -86,6 +88,19 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     }
     if (event.name === "UserPromptSubmit") this.resolvePromptWaiters(event.sessionName);
     return requestId ? this.heldRequests.hold(requestId, event.sessionName) : "";
+  }
+
+  // An event from Grok Build or Cursor, which run HeyTerm's hooks from a global file in every session.
+  // Only the sessions HeyTerm started move; the reply is what the hook prints.
+  async applyAgentHookEvent(agent: HookedAgentKind, eventName: string, rawPayload: Record<string, unknown>, receivedAt: number): Promise<string> {
+    const defaultReply = AgentHookTranslator.defaultReply(agent, eventName);
+    const event = AgentHookTranslator.translate(agent, eventName, rawPayload);
+    if (!event) return defaultReply;
+    const found = AgentSessionMatch.find(this.list(), agent, event.agentSessionId, String(event.payload.cwd ?? ""));
+    if (!found) return defaultReply;
+    if (found.claimsId) this.set({ ...found.session, agentSessionId: event.agentSessionId });
+    const answer = await this.applyHookEvent({ name: event.name, sessionName: found.session.name, payload: event.payload, receivedAt });
+    return answer || defaultReply;
   }
 
   // An event from a session the user started in their own terminal, known by its Claude session id.

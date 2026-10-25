@@ -4,6 +4,8 @@
 // "Trust all and continue" for hooks it has not seen before (HeyTerm's, the first time).
 const trustOptionText = /Yes, I trust this folder|\bTrust (?:all )?and continue\b/;
 const hookReviewText = /Hooks need review/;
+// Grok Build asks "Do you trust the contents of this directory?" and answers to a letter per option.
+const grokTrustText = /Do you trust the contents of this directory\?[\s\S]*Yes, proceed\s+y\b/;
 
 export type TrustSubject = "folder" | "hooks";
 // Claude Code marks the selected option with ❯, Codex with ›.
@@ -18,6 +20,7 @@ export class ScreenReader {
 
   // Keys that select "Yes, I trust this folder" and confirm it, or undefined when the dialog is not showing.
   static trustDialogKeys(screenText: string): string[] | undefined {
+    if (grokTrustText.test(screenText)) return ["y"];
     const lines = screenText.split("\n");
     const trustLineIndex = lines.findIndex((line) => trustOptionText.test(line));
     if (trustLineIndex === -1) return undefined;
