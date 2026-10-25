@@ -74,4 +74,29 @@ describe("the hook forwarder", () => {
     await run(await writeScript(port), ["heyterm", "../shutdown"], { HEYTERM_SESSION: "web" }, "{}");
     expect(requests).toEqual([]);
   });
+
+  it("sends a Grok or Cursor event tagged with its agent, only when that agent is the one running it", async () => {
+    const { port, requests } = await startServer("");
+    const scriptPath = await writeScript(port);
+    await run(scriptPath, ["agent", "Stop", "grok"], { GROK_HOOK_EVENT: "stop" }, "{}");
+    await run(scriptPath, ["agent", "stop", "cursor"], { CURSOR_VERSION: "2026.10.22" }, "{}");
+    // Grok also runs the hooks in Cursor's file; those must not be read as Cursor's.
+    await run(scriptPath, ["agent", "stop", "cursor"], { GROK_HOOK_EVENT: "stop", CURSOR_VERSION: "" }, "{}");
+    await run(scriptPath, ["agent", "Stop", "grok"], {}, "{}");
+    expect(requests.map((request) => request.url)).toEqual(["/hooks/Stop?agent=grok", "/hooks/stop?agent=cursor"]);
+  });
+
+  it("keeps Grok's and Cursor's runs of Claude's settings out of the outside sessions", async () => {
+    const { port, requests } = await startServer("");
+    const scriptPath = await writeScript(port);
+    await run(scriptPath, ["external", "Stop"], { GROK_HOOK_EVENT: "stop" }, "{}");
+    await run(scriptPath, ["external", "Stop"], { CURSOR_VERSION: "2026.10.22" }, "{}");
+    expect(requests).toEqual([]);
+  });
+
+  it("lets a Cursor prompt through even when HeyTerm cannot answer", async () => {
+    const result = await run(await writeScript(1), ["agent", "beforeSubmitPrompt", "cursor"], { CURSOR_VERSION: "2026.10.22" }, "{}");
+    expect(result).toEqual({ stdout: '{"continue":true}', code: 0 });
+  });
 });
+

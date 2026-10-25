@@ -13,6 +13,8 @@ export interface AgentLaunchContext {
   claudeSettingsPath: string;
   // The command that forwards one hook event to HeyTerm.
   hookCommand: (eventName: string) => string;
+  // For agents that take a session id at launch (Grok Build): the id HeyTerm chose for a new conversation.
+  agentSessionId?: string;
 }
 
 export interface ResumePoint {
@@ -28,6 +30,9 @@ export interface AgentAdapter {
   installHint: string;
   newSession(context: AgentLaunchContext): AgentLaunch;
   resume(point: ResumePoint, context: AgentLaunchContext): AgentLaunch;
+  // HeyTerm picks the id before launch, because the agent's hooks come from a global file and the
+  // id is how HeyTerm knows its own sessions' events.
+  choosesSessionIdAtLaunch?: boolean;
 }
 
 // The agent waits this long for an answer to a permission; HeyTerm answers or lets go first.
@@ -69,7 +74,33 @@ const gemini: AgentAdapter = {
   resume: (point) => ({ program: "gemini", args: point.agentSessionId && point.conversationSaved ? ["--resume", point.agentSessionId] : [] }),
 };
 
-const adapters: AgentAdapter[] = [claude, codex, gemini];
+// Grok Build reads hooks only from global files, so HeyTerm writes ~/.grok/hooks/heyterm.json while it
+// runs and starts each session under an id it chose (see agent-hook-translator.ts).
+const grok: AgentAdapter = {
+  kind: "grok",
+  label: "Grok Build",
+  program: "grok",
+  installHint: "Install it with curl -fsSL https://x.ai/cli/install.sh | bash, then sign in with grok login.",
+  choosesSessionIdAtLaunch: true,
+  newSession: (context) => ({ program: "grok", args: context.agentSessionId ? ["-s", context.agentSessionId] : [] }),
+  resume: (point, context) => {
+    if (point.agentSessionId && point.conversationSaved) return { program: "grok", args: ["-r", point.agentSessionId] };
+    return grok.newSession(context);
+  },
+};
+
+// Cursor reads hooks only from ~/.cursor/hooks.json, so HeyTerm adds its own entries there while it
+// runs. Its command is cursor-agent: Grok Build also puts an "agent" command on the PATH.
+const cursor: AgentAdapter = {
+  kind: "cursor",
+  label: "Cursor",
+  program: "cursor-agent",
+  installHint: "Install it with curl https://cursor.com/install -fsS | bash, then sign in with cursor-agent login.",
+  newSession: () => ({ program: "cursor-agent", args: [] }),
+  resume: (point) => ({ program: "cursor-agent", args: point.agentSessionId && point.conversationSaved ? ["--resume", point.agentSessionId] : [] }),
+};
+
+const adapters: AgentAdapter[] = [claude, codex, gemini, grok, cursor];
 
 export class AgentAdapters {
   static get(kind: AgentKind): AgentAdapter {

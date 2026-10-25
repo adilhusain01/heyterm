@@ -2,12 +2,15 @@
 // user's Claude settings (everything else in the file stays), and its own folder goes to the Trash.
 
 import { readFile, rename, writeFile } from "node:fs/promises";
+import { AgentHookFiles, agentHookPaths, type AgentHookPaths } from "../hooks/agent-hook-files.ts";
 import { UserSettingsHooks } from "../hooks/user-settings-hooks.ts";
 
 interface UninstallerOptions {
   dataDirectory: string;
   claudeSettingsPath: string;
   moveToTrash: (target: string) => Promise<void>;
+  // Where Grok Build's and Cursor's hook files are; the real ones unless a test says otherwise.
+  agentHookPaths?: AgentHookPaths;
 }
 
 export interface UninstallReport {
@@ -21,6 +24,7 @@ export class Uninstaller {
 
   async run(): Promise<UninstallReport> {
     const removedHooks = await this.removeHooks();
+    await new AgentHookFiles("", "", this.options.agentHookPaths ?? agentHookPaths()).remove().catch(() => undefined);
     const report: UninstallReport = { removedHooks, trashed: [], leftBehind: [] };
     try {
       await this.options.moveToTrash(this.options.dataDirectory);

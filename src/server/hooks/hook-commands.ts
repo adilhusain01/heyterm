@@ -11,6 +11,12 @@ export class HookCommands {
     return `node ${quoted(scriptPath)} heyterm ${eventName}`;
   }
 
+  // For agents that read hooks only from global files (Grok Build, Cursor). The forwarder checks the
+  // agent is really the one named, since Grok also runs the hooks in Cursor's file.
+  static forAgent(scriptPath: string, eventName: string, agent: "grok" | "cursor"): string {
+    return `node ${quoted(scriptPath)} agent ${eventName} ${agent}`;
+  }
+
   // For the user's own settings. If HeyTerm has been removed and the script is gone, this does
   // nothing and fails nothing, so the user never sees a hook error.
   static forExistingSessions(scriptPath: string, eventName: string): string {

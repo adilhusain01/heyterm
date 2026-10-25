@@ -22,7 +22,7 @@ const sessionCommands: SessionCommand[] = [
   { pattern: /^(?:bring back|resume|reopen|restart) (.+)$/, build: (session) => ({ type: "resume", session }), isResume: true },
 ];
 
-const spawnPattern = /^(?:start|open|spin up|create|launch|begin)(?: a| an)?(?: new)?(?: (claude|codex|gemini))?(?: (?:session|agent|terminal))? (?:in|on|for|at) /;
+const spawnPattern = /^(?:start|open|spin up|create|launch|begin)(?: a| an)?(?: new)?(?: (claude|codex|gemini|grok(?: build)?|cursor))?(?: (?:session|agent|terminal))? (?:in|on|for|at) /;
 const taskJoinWords = new Set(["and", "to", "then", "so"]);
 
 export interface FastPathOptions {
@@ -86,7 +86,7 @@ export class FastPathRouter {
       while (spans[taskWordIndex] && taskJoinWords.has(spans[taskWordIndex]!.word)) taskWordIndex += 1;
       const task = textFromWord(utterance, spans, taskWordIndex);
       // Claude Code is the default, so it is not named in the action.
-      const agent: AgentKind | undefined = prefix[1] === "codex" || prefix[1] === "gemini" ? prefix[1] : undefined;
+      const agent: AgentKind | undefined = namedAgent(prefix[1]);
       return { type: "spawn", project: project.name, ...(agent ? { agent } : {}), ...(task ? { task } : {}) };
     }
     return undefined;
@@ -137,4 +137,11 @@ export class FastPathRouter {
 // A session showing a dialog would take typed text as keys pressed in the dialog.
 export function acceptsText(session: SessionView): boolean {
   return !["needs_permission", "needs_trust", "stopped", "starting"].includes(session.state) && session.pending === undefined && !session.blockedByTerminalDialog;
+}
+
+// The agent named before "session", as said: "grok build" is Grok. Claude Code is the default.
+function namedAgent(spoken: string | undefined): AgentKind | undefined {
+  if (spoken === "codex" || spoken === "gemini" || spoken === "cursor") return spoken;
+  if (spoken?.startsWith("grok")) return "grok";
+  return undefined;
 }

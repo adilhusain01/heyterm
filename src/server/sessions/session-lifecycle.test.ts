@@ -151,3 +151,29 @@ describe("SessionLifecycle", () => {
     expect(session.activitySinceSeen.at(-1)?.text).toBe("step 249");
   });
 });
+
+describe("SessionLifecycle, for agents reporting through translated hooks (Grok Build, Cursor)", () => {
+  it("is idle after a cancelled turn, keeping what it last said", () => {
+    const session = SessionLifecycle.apply(makeSession({ state: "working", lastMessage: "Earlier words." }), makeEvent("Stop", { turn_cancelled: true }));
+    expect(session.state).toBe("idle");
+    expect(session.lastMessage).toBe("Earlier words.");
+  });
+
+  it("waits on the user when a permission card is open in the agent's own terminal", () => {
+    const session = SessionLifecycle.apply(makeSession({ state: "working" }), makeEvent("Notification", { waits_in_terminal: true }));
+    expect(session.state).toBe("asked");
+    expect(session.blockedByTerminalDialog).toBe(true);
+  });
+
+  it("keeps a reply that arrives before the turn ends, without changing the state", () => {
+    const session = SessionLifecycle.apply(makeSession({ state: "working" }), makeEvent("Notification", { assistant_message: "Added the test." }));
+    expect(session.state).toBe("working");
+    expect(session.lastMessage).toBe("Added the test.");
+  });
+
+  it("finishes with the reply it already kept when the turn's end carries none", () => {
+    const session = SessionLifecycle.apply(makeSession({ state: "working", lastMessage: "Added the test." }), makeEvent("Stop", { keep_last_message: true }));
+    expect(session.state).toBe("done");
+    expect(session.lastMessage).toBe("Added the test.");
+  });
+});

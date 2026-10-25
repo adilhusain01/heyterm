@@ -46,4 +46,19 @@ describe("Uninstaller", () => {
     const report = await new Uninstaller({ dataDirectory, claudeSettingsPath: "/no/such/settings.json", moveToTrash: async () => undefined }).run();
     expect(report.removedHooks).toBe(false);
   });
+
+  it("takes HeyTerm's Grok Build and Cursor hooks out as well, leaving the user's own Cursor hooks", async () => {
+    const { home, dataDirectory, claudeSettingsPath } = await makeHome();
+    const grokPath = path.join(home, ".grok", "hooks", "heyterm.json");
+    const cursorPath = path.join(home, ".cursor", "hooks.json");
+    await mkdir(path.dirname(grokPath), { recursive: true });
+    await mkdir(path.dirname(cursorPath), { recursive: true });
+    await writeFile(grokPath, "{}");
+    const usersOwn = { command: "./audit.sh" };
+    await writeFile(cursorPath, JSON.stringify({ version: 1, hooks: { stop: [usersOwn, { command: HookCommands.forAgent("/x/heyterm-forward.cjs", "stop", "cursor") }] } }));
+    await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async () => undefined, agentHookPaths: { grokPath, cursorPath } }).run();
+    await expect(stat(grokPath)).rejects.toThrow();
+    expect(JSON.parse(await readFile(cursorPath, "utf8"))).toEqual({ version: 1, hooks: { stop: [usersOwn] } });
+  });
 });
+

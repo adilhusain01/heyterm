@@ -190,6 +190,12 @@ describe("other agents and closed sessions", () => {
     expect(router.route("open gemini in peeker and fix the menu", makeContext())).toEqual({ type: "spawn", project: "peeker", agent: "gemini", task: "fix the menu" });
   });
 
+  it("starts a Grok Build or Cursor session when the user names the agent", () => {
+    expect(router.route("start a grok session in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio", agent: "grok" });
+    expect(router.route("open grok build in peeker and fix the menu", makeContext())).toEqual({ type: "spawn", project: "peeker", agent: "grok", task: "fix the menu" });
+    expect(router.route("start a cursor session in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio", agent: "cursor" });
+  });
+
   it("starts Claude Code when no agent is named, as before", () => {
     expect(router.route("start a session in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio" });
   });
