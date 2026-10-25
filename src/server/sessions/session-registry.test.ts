@@ -42,3 +42,18 @@ describe("SessionRegistry.applyAgentHookEvent", () => {
     expect(await registry.applyAgentHookEvent("cursor", "beforeSubmitPrompt", { conversation_id: "nobody", workspace_roots: ["/p/x"], prompt: "x" }, 10)).toBe('{"continue":true}');
   });
 });
+
+describe("SessionRegistry.reconcileClaudeSessions", () => {
+  const minute = 60_000;
+
+  it("moves a stopped turn back to idle and closes a session whose Claude has gone", () => {
+    const registry = makeRegistry();
+    registry.add(session("synqed", { origin: "external", agent: "claude", agentSessionId: "a", state: "working", stateSince: 10 * minute }));
+    registry.add(session("synqed-3", { origin: "external", agent: "claude", agentSessionId: "b", state: "idle", stateSince: 10 * minute }));
+    const records = new Map([["a", { pid: 8515, sessionId: "a", status: "shell", statusUpdatedAt: 12 * minute }]]);
+    registry.reconcileClaudeSessions(records, (pid) => pid === 8515, 13 * minute);
+    expect(registry.get("synqed")).toMatchObject({ state: "idle", stateSince: 13 * minute });
+    expect(registry.get("synqed-3")).toBeUndefined();
+    expect(registry.recentlyClosedSessions().map((closed) => closed.name)).toContain("synqed-3");
+  });
+});

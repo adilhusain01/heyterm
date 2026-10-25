@@ -1,0 +1,66 @@
+// Reads Claude Code's records of its running sessions every few seconds and lets the registry catch
+// up with what the hooks never report: a turn the user stopped, and a terminal closed without an end.
+// The rules are in claude-session-status.ts.
+
+import { readdir, readFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { ClaudeSessionStatus, type ClaudeSessionRecord } from "./claude-session-status.ts";
+import type { SessionRegistry } from "./session-registry.ts";
+
+const pollMilliseconds = 2_000;
+
+// HEYTERM_CLAUDE_SESSIONS_DIRECTORY points HeyTerm alone somewhere else, for tests.
+function claudeSessionsDirectory(): string {
+  return process.env.HEYTERM_CLAUDE_SESSIONS_DIRECTORY ?? path.join(process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude"), "sessions");
+}
+
+export class ClaudeSessionWatcher {
+  private timer: NodeJS.Timeout | undefined;
+  private polling = false;
+
+  constructor(private readonly registry: SessionRegistry) {}
+
+  start(): void {
+    this.timer = setInterval(() => void this.poll(), pollMilliseconds);
+  }
+
+  stop(): void {
+    clearInterval(this.timer);
+  }
+
+  private async poll(): Promise<void> {
+    if (this.polling) return;
+    this.polling = true;
+    try {
+      const records = await ClaudeSessionWatcher.readRecords(claudeSessionsDirectory());
+      // A Claude Code too old to keep records tells HeyTerm nothing, so nothing is changed.
+      if (records) this.registry.reconcileClaudeSessions(records, ClaudeSessionWatcher.processIsRunning, Date.now());
+    } finally {
+      this.polling = false;
+    }
+  }
+
+  private static async readRecords(directory: string): Promise<Map<string, ClaudeSessionRecord> | undefined> {
+    const names = await readdir(directory).catch(() => undefined);
+    if (!names) return undefined;
+    const records = new Map<string, ClaudeSessionRecord>();
+    for (const name of names) {
+      if (!name.endsWith(".json")) continue;
+      const text = await readFile(path.join(directory, name), "utf8").catch(() => "");
+      const record = ClaudeSessionStatus.parseRecord(text);
+      if (record) records.set(record.sessionId, record);
+    }
+    return records;
+  }
+
+  // Signal 0 checks a process exists without touching it; EPERM means it exists under another user.
+  private static processIsRunning(pid: number): boolean {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (error) {
+      return (error as NodeJS.ErrnoException).code === "EPERM";
+    }
+  }
+}

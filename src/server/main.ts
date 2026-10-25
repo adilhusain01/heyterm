@@ -26,6 +26,7 @@ import { SessionLauncher } from "./sessions/session-launcher.ts";
 import { SessionRegistry } from "./sessions/session-registry.ts";
 import { StateStore } from "./sessions/state-store.ts";
 import { TrustDialogWatcher } from "./sessions/trust-dialog-watcher.ts";
+import { ClaudeSessionWatcher } from "./sessions/claude-session-watcher.ts";
 import { DataFolder } from "./setup/data-folder.ts";
 import { SetupService } from "./setup/setup-service.ts";
 import { InputLog } from "./setup/input-log.ts";
@@ -69,6 +70,8 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   launcher.restoreAfterStart();
   const trustWatcher = new TrustDialogWatcher(host, registry);
   trustWatcher.start();
+  const claudeSessionWatcher = new ClaudeSessionWatcher(registry);
+  claudeSessionWatcher.start();
 
   const projects = new ProjectCatalog(config.projectRoots);
   const audit = new AuditLog(config.dataDirectory);
@@ -102,6 +105,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
       console.log(`\nStopping HeyTerm (${reason}).`);
       clearTimeout(closedPageTimer);
       trustWatcher.stop();
+      claudeSessionWatcher.stop();
       assistant.close();
       launcher.shutdown();
       // Leave the user's Claude settings as they were before HeyTerm started.

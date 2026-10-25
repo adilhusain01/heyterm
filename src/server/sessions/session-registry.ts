@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import { AgentSessionMatch } from "./agent-session-match.ts";
+import { ClaudeSessionStatus, type ClaudeSessionRecord } from "./claude-session-status.ts";
 import { ExternalSessionNaming } from "./external-session-naming.ts";
 import { AgentHookTranslator, type HookedAgentKind } from "../agents/agent-hook-translator.ts";
 import { SessionLifecycle } from "./session-lifecycle.ts";
@@ -101,6 +102,20 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     if (found.claimsId) this.set({ ...found.session, agentSessionId: event.agentSessionId });
     const answer = await this.applyHookEvent({ name: event.name, sessionName: found.session.name, payload: event.payload, receivedAt });
     return answer || defaultReply;
+  }
+
+  // Brings Claude sessions in line with Claude Code's own records: a stopped turn returns to idle,
+  // and a session from the user's terminal whose Claude has gone is closed.
+  reconcileClaudeSessions(records: Map<string, ClaudeSessionRecord>, processIsRunning: (pid: number) => boolean, now: number): void {
+    for (const session of this.list()) {
+      const record = session.agentSessionId ? records.get(session.agentSessionId) : undefined;
+      const verdict = ClaudeSessionStatus.verdict(session, record, record ? processIsRunning(record.pid) : false, now);
+      if (verdict === "turn_stopped") {
+        this.heldRequests.letGoAllFor(session.name);
+        this.update(session.name, (current) => SessionLifecycle.applyTurnStopped(current, now));
+      }
+      if (verdict === "ended") this.remove(session.name);
+    }
   }
 
   // An event from a session the user started in their own terminal, known by its Claude session id.

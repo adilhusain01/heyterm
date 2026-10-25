@@ -55,6 +55,11 @@ export class SessionLifecycle {
     return SessionLifecycle.moveTo({ ...session, trustSubject }, "needs_trust", now);
   }
 
+  // Claude Code was stopped mid-turn (no Stop hook is sent for that) and waits at its prompt.
+  static applyTurnStopped(session: SessionView, now: number): SessionView {
+    return SessionLifecycle.moveTo({ ...session, pending: undefined, blockedByTerminalDialog: undefined }, "idle", now);
+  }
+
   static markSeen(session: SessionView, now: number): SessionView {
     return { ...session, lastSeenAt: now, activitySinceSeen: [] };
   }
