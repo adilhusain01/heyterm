@@ -1,5 +1,7 @@
 <p align="center"><img src="assets/logo-mark.svg" width="96" height="96" alt="HeyTerm"></p>
 
+<p align="center"><a href="https://www.npmjs.com/package/heyterm">npm</a> · <a href="LICENSE">MIT</a> · <a href="SECURITY.md">Security</a></p>
+
 # HeyTerm
 
 Run your coding agents by voice. HeyTerm is one window for all your Claude Code, Codex and Gemini CLI sessions, with an assistant in the middle: you talk through Wispr Flow (or any dictation tool), it works out which session you mean and does it, and it tells you when a session needs you. Five agents at once, no keyboard, no trackpad.
@@ -38,7 +40,7 @@ npx heyterm doctor    # checks Node and which agents are installed
 npx heyterm           # starts HeyTerm and opens it in your browser
 ```
 
-Until the package is on npm, run it from source instead:
+To run it from source instead:
 
 ```bash
 git clone https://github.com/adilhusain01/heyterm && cd heyterm
