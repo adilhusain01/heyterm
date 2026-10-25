@@ -1,6 +1,7 @@
 // The real backend: WebSockets to the HeyTerm server on this Mac, reconnecting when it restarts.
 
 import { ensurePageToken, pageToken } from "./page-token.ts";
+import { UnsentMessages } from "./unsent-messages.ts";
 import type { HeyTermConnection, ConnectionHandlers, TerminalChannel } from "./connection.ts";
 import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
 
@@ -8,7 +9,7 @@ const longestReconnectDelayMilliseconds = 5_000;
 
 export class SocketConnection implements HeyTermConnection {
   private socket: WebSocket | undefined;
-  private readonly unsent: string[] = [];
+  private readonly unsent = new UnsentMessages();
 
   connect(handlers: ConnectionHandlers): () => void {
     let stopped = false;
@@ -23,7 +24,12 @@ export class SocketConnection implements HeyTermConnection {
       socket.onopen = () => {
         attempt = 0;
         handlers.onStatus("open");
-        for (const text of this.unsent.splice(0)) socket.send(text);
+        const { fresh, droppedCount } = this.unsent.takeFresh(Date.now());
+        for (const text of fresh) socket.send(text);
+        if (droppedCount > 0) {
+          const text = droppedCount === 1 ? "One thing you said or clicked while HeyTerm was away was not sent. Say it again if you still want it." : `${droppedCount} things you said or clicked while HeyTerm was away were not sent. Say them again if you still want them.`;
+          handlers.onMessage({ type: "feedback", feedback: { text, tone: "warning", speak: false } });
+        }
       };
       socket.onmessage = (event) => handlers.onMessage(JSON.parse(String(event.data)) as ServerMessage);
       socket.onclose = () => {
@@ -44,7 +50,7 @@ export class SocketConnection implements HeyTermConnection {
   send(message: ClientMessage): void {
     const text = JSON.stringify(message);
     if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(text);
-    else this.unsent.push(text);
+    else this.unsent.add(text, Date.now());
   }
 
   openTerminal(sessionName: string, columns: number, rows: number): TerminalChannel {
