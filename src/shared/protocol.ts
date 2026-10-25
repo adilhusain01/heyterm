@@ -98,6 +98,8 @@ export type ServerMessage =
       projects: string[];
       control: ControlState;
       serverTime: number;
+      // The page script this server's index.html loaded when it started, to spot a page from another build.
+      pageEntry?: string;
     }
   | { type: "feedback"; feedback: Feedback }
   | { type: "focus"; session: string }

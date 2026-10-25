@@ -28,6 +28,7 @@ export class EventHub {
     private readonly setup: SetupService,
     private readonly macVoice: MacVoice,
     private readonly assistant: Assistant,
+    private readonly pageEntry?: string,
   ) {
     assistant.on("conversation", (entries) => this.broadcast({ type: "conversation", entries }));
     assistant.on("say", (text) => this.broadcast({ type: "say", text }));
@@ -129,6 +130,7 @@ export class EventHub {
       projects: this.projectNames,
       control: this.executor.controlState(),
       serverTime: Date.now(),
+      ...(this.pageEntry ? { pageEntry: this.pageEntry } : {}),
     };
   }
 

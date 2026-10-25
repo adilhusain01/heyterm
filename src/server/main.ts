@@ -2,6 +2,7 @@
 // stopping (the stop command, Ctrl+C, Quit in the page, closing the last page) ends in stop().
 
 import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -10,6 +11,7 @@ import { DecisionActions } from "./actions/decision-actions.ts";
 import { SessionActions } from "./actions/session-actions.ts";
 import { createAssistant } from "./conductor/create-assistant.ts";
 import { loadConfig } from "./config.ts";
+import { PageBuild } from "../shared/page-build.ts";
 import { ExistingSessionConnector } from "./hooks/existing-session-connector.ts";
 import { HeldHookRequests } from "./hooks/held-hook-requests.ts";
 import { AgentHookFiles } from "./hooks/agent-hook-files.ts";
@@ -97,7 +99,8 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   if (showOwnTerminalSessions) await connector.connect().catch((error: Error) => console.error(error.message));
 
   const setup = new SetupService(projects, userConfig, connector, config.routerModel);
-  const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant);
+  const pageEntry = PageBuild.entryFromIndexHtml(await readFile(path.join(config.webDirectory, "index.html"), "utf8").catch(() => ""));
+  const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant, pageEntry);
   hub.inputLog = new InputLog(config.dataDirectory);
   const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin);
   const tickets = new PairingTickets(hooks.token);

@@ -1,5 +1,6 @@
 // The window: top bar, the rail of what needs you, the terminals, and the command bar.
 
+import { checkPageBuild } from "./transport/page-build-check.ts";
 import { useCallback, useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import { HeyTermProvider } from "./app-context.tsx";
@@ -92,6 +93,7 @@ function useServerMessages(connection: HeyTermConnection, announcer: Announcer) 
           const arrived = announcer.noteSessions(message.sessions);
           notifyWhenHidden(arrived);
           updateTitle(message.sessions.filter((session) => ["needs_permission", "asked", "needs_trust", "failed"].includes(session.state)).length);
+          if (!isPlayground) void checkPageBuild(message.pageEntry);
         }
         if (message.type === "say") announcer.sayWhenQuiet(message.text);
         if (message.type === "speech_done") announcer.noteMacLineDone(message.id);
