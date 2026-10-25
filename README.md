@@ -1,6 +1,6 @@
 <p align="center"><img src="assets/logo-mark.svg" width="96" height="96" alt="HeyTerm"></p>
 
-<p align="center"><a href="https://www.npmjs.com/package/heyterm">npm</a> · <a href="LICENSE">MIT</a> · <a href="SECURITY.md">Security</a></p>
+<p align="center"><a href="https://heyterm.vercel.app">Website</a> · <a href="https://heyterm.vercel.app/playground/">Playground</a> · <a href="https://www.npmjs.com/package/heyterm">npm</a> · <a href="LICENSE">MIT</a> · <a href="SECURITY.md">Security</a></p>
 
 # HeyTerm
 
@@ -39,6 +39,9 @@ HeyTerm speaks with your Mac's own voice (whatever is set in System Settings, Ac
 - **Gruvbox, light or dark.** HeyTerm starts in Gruvbox Material light; Setup, Appearance switches to dark or follows your system. Terminals stay dark in both, because coding agents colour their text for a dark terminal.
 
 ## Getting started
+
+To see it without installing anything, open the [playground](https://heyterm.vercel.app/playground/): the same interface on three simulated agents.
+
 
 You need Node.js 20 or newer on macOS, Linux or Windows, and at least one coding agent signed in once: [Claude Code](https://code.claude.com), [Codex](https://github.com/openai/codex) (`npm install -g @openai/codex`), [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`npm install -g @google/gemini-cli`), Grok Build (`curl -fsSL https://x.ai/cli/install.sh | bash`, then `grok login`) or Cursor (`curl https://cursor.com/install -fsS | bash`, then `cursor-agent login`). The assistant in the middle runs on Claude Code.
 
