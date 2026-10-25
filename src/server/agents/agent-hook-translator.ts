@@ -20,6 +20,8 @@ type Payload = Record<string, unknown>;
 const grokToolNames: Record<string, string> = {
   run_terminal_command: "Bash",
   search_replace: "Edit",
+  // Seen in a recorded session; the guide's alias list does not name it.
+  write: "Write",
   read_file: "Read",
   list_dir: "Glob",
   grep: "Grep",
@@ -56,6 +58,8 @@ function fromGrok(eventName: string, payload: Payload): TranslatedHookEvent | un
     case "PostToolUse":
       return event(eventName, grokTool(payload));
     case "Stop":
+      // Grok fires one more Stop as it shuts down; the session's end, not a finished turn.
+      if (text(payload.reason) === "shutdown") return undefined;
       return event("Stop", { last_assistant_message: text(payload.last_assistant_message) || text(payload.lastAssistantMessage) });
     case "StopCancelled":
       return event("Stop", { turn_cancelled: true });

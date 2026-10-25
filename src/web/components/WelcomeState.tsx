@@ -13,7 +13,7 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
         <div className="flex flex-col gap-2">
           <h1 className="text-display font-semibold tracking-tight text-accent-ink">Run your coding agents by voice</h1>
           <p className="text-body leading-relaxed text-ink-muted">
-            Start several Claude Code, Codex or Gemini sessions, then talk. HeyTerm sends your words to the right one, tells you when one needs you, and lets you approve or answer without
+            Start Claude Code, Codex, Gemini, Grok or Cursor sessions side by side, then talk. HeyTerm sends your words to the right one, tells you when one needs you, and lets you approve or answer without
             touching the keyboard.
           </p>
         </div>

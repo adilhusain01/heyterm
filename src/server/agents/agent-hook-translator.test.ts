@@ -46,6 +46,22 @@ describe("AgentHookTranslator, for Grok Build", () => {
   });
 });
 
+describe("AgentHookTranslator, on events recorded from Grok Build 1.0.70 on 25 October 2026", () => {
+  const recorded = { hook_event_name: "PreToolUse", session_id: "01a17272-bc61", cwd: "/p/api", permission_mode: "bypassPermissions" };
+
+  it("names Grok's file-writing tool as Claude Code's Write", () => {
+    expect(AgentHookTranslator.translate("grok", "PreToolUse", { ...recorded, toolName: "write", tool_name: "write" })?.payload).toMatchObject({ tool_name: "Write" });
+  });
+
+  it("ignores the extra Stop Grok fires as it shuts down, which is not a finished turn", () => {
+    expect(AgentHookTranslator.translate("grok", "Stop", { ...recorded, hook_event_name: "Stop", reason: "shutdown" })).toBeUndefined();
+  });
+
+  it("keeps a real turn end, which Grok marks end_turn", () => {
+    expect(AgentHookTranslator.translate("grok", "Stop", { ...recorded, hook_event_name: "Stop", reason: "end_turn", last_assistant_message: "Created hello.txt." })?.name).toBe("Stop");
+  });
+});
+
 describe("AgentHookTranslator, for Cursor", () => {
   it("reads a submitted prompt under the conversation id", () => {
     expect(AgentHookTranslator.translate("cursor", "beforeSubmitPrompt", { ...cursorCommon, prompt: "add a test" })).toEqual({

@@ -93,4 +93,21 @@ describe("ScreenReader.trustDialogKeys", () => {
   it("finds no dialog when the trust question text is there but no option is", () => {
     expect(ScreenReader.trustDialogKeys("Is this a project you created or one you trust?")).toBeUndefined();
   });
+
+  // Captured from Grok Build 1.0.70 on 25 October 2026: options marked by their letter, not a pointer.
+  const grokTrustScreen = `
+                                      Do you trust the contents of this directory?
+/private/tmp/scratch/project
+                                Grok Build may run or modify contents in this directory,
+                                                 posing security risks.
+                                             Yes, proceed                 y
+                                             No, quit                     n
+                                                                                           Grok Build  1.0.70 [stable]
+`;
+
+  it("trusts a folder in Grok Build by pressing its y key", () => {
+    expect(ScreenReader.trustDialogKeys(grokTrustScreen)).toEqual(["y"]);
+    expect(ScreenReader.trustSubject(grokTrustScreen)).toBe("folder");
+  });
 });
+

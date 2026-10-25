@@ -37,4 +37,13 @@ describe("AgentHookFiles", () => {
     await new AgentHookFiles("/data/heyterm-forward.cjs", paths.backups, paths).install();
     expect(await readFile(paths.cursorPath, "utf8")).toBe("{ not json");
   });
+
+  it("leaves no Cursor file behind when it created one that holds nothing else", async () => {
+    const paths = await makeHome(false, true);
+    const files = new AgentHookFiles("/data/heyterm-forward.cjs", paths.backups, paths);
+    await files.install();
+    await files.remove();
+    await expect(readFile(paths.cursorPath, "utf8")).rejects.toThrow();
+  });
 });
+

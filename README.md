@@ -4,7 +4,7 @@
 
 # HeyTerm
 
-Run your coding agents by voice. HeyTerm is one window for all your Claude Code, Codex and Gemini CLI sessions, with an assistant in the middle: you talk through Wispr Flow (or any dictation tool), it works out which session you mean and does it, and it tells you when a session needs you. Five agents at once, no keyboard, no trackpad.
+Run your coding agents by voice. HeyTerm is one window for all your Claude Code, Codex, Gemini CLI, Grok Build and Cursor sessions, with an assistant in the middle: you talk through Wispr Flow (or any dictation tool), it works out which session you mean and does it, and it tells you when a session needs you. Five agents at once, no keyboard, no trackpad.
 
 ## Why
 
@@ -40,7 +40,7 @@ HeyTerm speaks with your Mac's own voice (whatever is set in System Settings, Ac
 
 ## Getting started
 
-You need Node.js 20 or newer on macOS, Linux or Windows, and at least one coding agent signed in once: [Claude Code](https://code.claude.com), [Codex](https://github.com/openai/codex) (`npm install -g @openai/codex`) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`npm install -g @google/gemini-cli`). The assistant in the middle runs on Claude Code.
+You need Node.js 20 or newer on macOS, Linux or Windows, and at least one coding agent signed in once: [Claude Code](https://code.claude.com), [Codex](https://github.com/openai/codex) (`npm install -g @openai/codex`), [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`npm install -g @google/gemini-cli`), Grok Build (`curl -fsSL https://x.ai/cli/install.sh | bash`, then `grok login`) or Cursor (`curl https://cursor.com/install -fsS | bash`, then `cursor-agent login`). The assistant in the middle runs on Claude Code.
 
 ```bash
 npx heyterm doctor    # checks Node and which agents are installed
@@ -59,7 +59,7 @@ Then:
 
 1. Click anywhere on the page once, so the browser lets HeyTerm speak.
 2. Open Setup and check your project folders. HeyTerm looks in `~/Documents/Projects`, `~/Projects`, `~/code`, `~/dev`, `~/src` and `~/Developer` by default, and the assistant can start a session in any folder you name.
-3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…" or "open gemini in…" for the other agents.
+3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…", "open gemini in…", "start a grok session in…" or "open cursor in…" for the other agents.
 4. Use headphones, so HeyTerm's spoken alerts never end up in your own dictation.
 
 To see the Claude sessions you start in your own terminals as well, open Setup and press **Show them** under Your own Claude sessions. While HeyTerm runs, its hooks sit in `~/.claude/settings.json` (backed up first in `~/.heyterm/backups`); they come out when HeyTerm stops. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.
@@ -78,6 +78,7 @@ Closing the page stops HeyTerm after 15 seconds, so a reload never does. Setup h
 
 - **Sessions run in HeyTerm's own terminals** (pseudo-terminals it owns, the same on macOS, Linux and Windows), with a copy of each screen so the assistant can read it and a page opened later sees it.
 - **Agent hooks report every state**, so nothing is guessed from the screen. Claude Code gets them through a settings file for its session; Codex through config overrides for that run (Codex asks once to trust them; say "trust it"). Your own `~/.codex` and Claude settings are not changed.
+- **Grok Build and Cursor read hooks only from global files**, so while HeyTerm runs it writes `~/.grok/hooks/heyterm.json` and adds its entries to `~/.cursor/hooks.json` (backed up first), and takes them out again when it stops or is uninstalled. They only report what happens; nothing in them can approve or block a tool, so each agent's own permission rules stay in charge, and sessions HeyTerm did not start are ignored. Grok's permission card shows as waiting in its terminal: say "go to" the session and answer there.
 - **A permission or a multiple-choice question is held open until you answer by voice**; answering in the terminal by hand still works, and wins.
 - **No extra gates**: HeyTerm adds no permission layer of its own. What an agent's permission mode allows, it runs; when the agent asks, you hear what it wants and its risk, and "approve" answers.
 - **Text is sent as a real prompt**, pasted into the session and confirmed by its prompt hook.

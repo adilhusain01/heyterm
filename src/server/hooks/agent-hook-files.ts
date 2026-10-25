@@ -46,7 +46,11 @@ export class AgentHookFiles {
     const current = await readJson(this.paths.cursorPath);
     if (!current || !current.hooks) return;
     const cleaned = GlobalAgentHooks.cursorWithoutHeyTerm(current);
-    if (JSON.stringify(cleaned) !== JSON.stringify(current)) await writeAtomically(this.paths.cursorPath, cleaned);
+    if (JSON.stringify(cleaned) === JSON.stringify(current)) return;
+    // Only HeyTerm's hooks were in it, so the file goes: nothing of HeyTerm's stays behind.
+    const holdsNothingElse = Object.keys(cleaned).every((key) => key === "version");
+    if (holdsNothingElse) await rm(this.paths.cursorPath, { force: true });
+    else await writeAtomically(this.paths.cursorPath, cleaned);
   }
 
   private async backUp(filePath: string): Promise<void> {
