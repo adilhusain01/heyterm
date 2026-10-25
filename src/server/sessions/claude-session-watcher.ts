@@ -49,13 +49,13 @@ export class ClaudeSessionWatcher {
     const names = await readdir(directory).catch(() => undefined);
     if (!names) return undefined;
     const records = new Map<string, ClaudeSessionRecord>();
-    for (const name of names) {
-      if (!name.endsWith(".json")) continue;
+    const recordFileNames = names.filter((name) => name.endsWith(".json"));
+    for (const name of recordFileNames) {
       const text = await readFile(path.join(directory, name), "utf8").catch(() => "");
       const record = ClaudeSessionStatus.parseRecord(text);
       if (record) records.set(record.sessionId, record);
     }
-    return records;
+    return ClaudeSessionStatus.recordsCanBeTrusted(recordFileNames.length, records.size) ? records : undefined;
   }
 
   // Signal 0 checks a process exists without touching it; EPERM means it exists under another user.

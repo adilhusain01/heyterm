@@ -95,3 +95,19 @@ describe("ClaudeSessionStatus.parseRecord", () => {
     expect(ClaudeSessionStatus.parseRecord(JSON.stringify({ pid: 3 }))).toBeUndefined();
   });
 });
+
+describe("ClaudeSessionStatus.recordsCanBeTrusted", () => {
+  it("trusts an empty folder, which means no Claude is running", () => {
+    expect(ClaudeSessionStatus.recordsCanBeTrusted(0, 0)).toBe(true);
+  });
+
+  // The records are Claude Code's own and undocumented; if a new version writes them differently,
+  // HeyTerm must not take that as every session having ended.
+  it("does not trust a folder of records it cannot read", () => {
+    expect(ClaudeSessionStatus.recordsCanBeTrusted(3, 0)).toBe(false);
+  });
+
+  it("trusts records it can read, even beside one it cannot", () => {
+    expect(ClaudeSessionStatus.recordsCanBeTrusted(3, 2)).toBe(true);
+  });
+});

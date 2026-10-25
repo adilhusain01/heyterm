@@ -39,6 +39,12 @@ export class ClaudeSessionStatus {
     return now - statusChangedAt >= ClaudeSessionStatus.settleMilliseconds ? "turn_stopped" : undefined;
   }
 
+  // A folder with no records means no Claude is running. Record files of which none can be read
+  // mean Claude Code changed how it writes them, which says nothing about the sessions.
+  static recordsCanBeTrusted(recordFileCount: number, readableRecordCount: number): boolean {
+    return recordFileCount === 0 || readableRecordCount > 0;
+  }
+
   static parseRecord(text: string): ClaudeSessionRecord | undefined {
     let parsed: unknown;
     try {
