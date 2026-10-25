@@ -7,6 +7,7 @@ import { orbStatusText, useOrbState } from "../state/use-orb-state.ts";
 import { AssistantOrb } from "../ui/AssistantOrb.tsx";
 import { PanelRightCloseIcon } from "../ui/icons.tsx";
 import { Markdown } from "../ui/Markdown.tsx";
+import { DecisionDock } from "./DecisionDock.tsx";
 import type { ConversationEntry } from "../../shared/protocol.ts";
 
 export function ConversationPanel() {
@@ -47,6 +48,8 @@ export function ConversationPanel() {
           <PanelRightCloseIcon size={16} />
         </button>
       </header>
+      {/* What needs a decision, pinned above the conversation so it never scrolls away. */}
+      <DockedRequests />
       {entries.length === 0 ? (
         <EmptyConversation />
       ) : (
@@ -116,4 +119,12 @@ function latestStepSinceYouSpoke(entries: ConversationEntry[]): string | undefin
 function stepLabel(toolText: string): string {
   const shortened = toolText.length > 48 ? `${toolText.slice(0, 47)}…` : toolText;
   return shortened.charAt(0).toUpperCase() + shortened.slice(1);
+}
+
+function DockedRequests() {
+  return (
+    <div className="max-h-[50%] shrink-0 overflow-y-auto border-b border-line p-3 empty:hidden">
+      <DecisionDock />
+    </div>
+  );
 }

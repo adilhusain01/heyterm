@@ -8,6 +8,7 @@ import { isPlayground } from "../playground/is-playground.ts";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
+import { RailLabel } from "../ui/RailLabel.tsx";
 import { BringBackIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon, SettingsIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../ui/icons.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { Tray } from "../ui/Surfaces.tsx";
@@ -100,40 +101,99 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
 }
 
 function SidebarRail({ onOpenSetup }: { onOpenSetup: () => void }) {
-  const { perform } = useHeyTerm();
   const changeLayout = useHeyTermStore((state) => state.changeLayout);
-  const focusedSession = useHeyTermStore((state) => state.focusedSession);
+  const recentlyClosed = useHeyTermStore((state) => state.recentlyClosed);
   const { queue, ordered } = useOrderedSessions();
   const headName = queue[0]?.sessionName;
   return (
-    <aside className="flex min-h-0 w-[60px] shrink-0 flex-col items-center gap-1 border-r border-line bg-panel py-2">
-      <img src="/favicon.svg" alt="HeyTerm" width={26} height={26} className="mb-1" />
-      <RailButton label="Open the sidebar" onClick={() => changeLayout({ sidebarCollapsed: false })}>
+    <aside className="flex min-h-0 w-[60px] shrink-0 flex-col items-center border-r border-line bg-panel">
+      <header className="flex h-12 shrink-0 items-center">
+        <img src="/favicon.svg" alt="HeyTerm" width={24} height={24} />
+      </header>
+      <LabeledRailButton label="Open the sidebar" onClick={() => changeLayout({ sidebarCollapsed: false })}>
         <PanelLeftOpenIcon size={16} />
-      </RailButton>
-      <div className="my-1 h-px w-6 bg-line" />
-      <div className="flex min-h-0 flex-1 flex-col items-center gap-1.5 overflow-y-auto">
+      </LabeledRailButton>
+      <div className="my-2 h-px w-6 shrink-0 bg-line" />
+      <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto pb-2">
         {ordered.map((session) => (
-          <button
-            key={session.name}
-            type="button"
-            title={`${session.name}, ${stateDisplay[session.state].label}`}
-            aria-label={`${session.name}, ${stateDisplay[session.state].label}`}
-            onClick={() => perform({ type: "focus", session: session.name })}
-            className={`press cursor-pointer rounded-[9px] p-[3px] transition-colors duration-150 hover:bg-raised ${focusedSession === session.name ? "bg-raised ring-1 ring-line-strong" : ""} ${headName === session.name ? "ring-1 ring-ink/40" : ""}`}
-          >
-            <SessionAvatar name={session.name} state={session.state} size={32} />
-          </button>
+          <RailSession key={session.name} session={session} isHead={headName === session.name} />
         ))}
-        <RailButton label="New session" onClick={() => changeLayout({ sidebarCollapsed: false })}>
+        <LabeledRailButton label="New session" onClick={() => changeLayout({ sidebarCollapsed: false })}>
           <PlusIcon size={16} />
-        </RailButton>
+        </LabeledRailButton>
+        {recentlyClosed.length > 0 && <div className="my-1 h-px w-6 shrink-0 bg-line" />}
+        {recentlyClosed.slice(0, 6).map((closed) => (
+          <RailClosedSession key={closed.name} name={closed.name} />
+        ))}
       </div>
-      <ModeButton compact />
-      <RailButton label="Setup" onClick={onOpenSetup}>
-        <SettingsIcon size={16} />
-      </RailButton>
+      <footer className="flex w-full shrink-0 flex-col items-center gap-1 border-t border-line py-2">
+        <ModeButton compact />
+        <LabeledRailButton label={isPlayground ? "Install" : "Setup"} onClick={onOpenSetup}>
+          <SettingsIcon size={16} />
+        </LabeledRailButton>
+      </footer>
     </aside>
+  );
+}
+
+// A face in the folded sidebar. Waiting sessions keep their time under the face, as the open sidebar shows it.
+function RailSession({ session, isHead }: { session: SessionView; isHead: boolean }) {
+  const { perform } = useHeyTerm();
+  const focusedSession = useHeyTermStore((state) => state.focusedSession);
+  const now = useServerNow();
+  const display = stateDisplay[session.state];
+  const isWaiting = isWaitingOnUser(session.state);
+  const waitedFor = isWaiting ? shortDuration(now - session.stateSince) : "";
+  const detail = isWaiting ? "" : SessionIdentity.promptPreview(session.lastPrompt ?? "");
+  const label = (
+    <>
+      <span className="flex items-center gap-1.5">
+        <span className="font-mono text-ink">{session.name}</span>
+        {session.agent !== "claude" && <span className="text-[12px] text-ink-faint">{session.agent}</span>}
+        {session.origin === "external" && <span className="text-[12px] text-ink-faint">own terminal</span>}
+      </span>
+      <span className="flex items-center gap-1.5 text-[12.5px]">
+        <span className={display.textClass}>{display.label}</span>
+        {waitedFor && <span className="font-mono text-ink-faint tabular-nums">{waitedFor}</span>}
+      </span>
+      {detail && <span className="truncate text-[12.5px] text-ink-faint">{detail}</span>}
+    </>
+  );
+  return (
+    <RailLabel label={label}>
+      <button
+        type="button"
+        aria-label={`${session.name}, ${display.label}`}
+        onClick={() => perform({ type: "focus", session: session.name })}
+        className={`press flex cursor-pointer flex-col items-center gap-0.5 rounded-[9px] p-[3px] transition-colors duration-150 hover:bg-raised ${focusedSession === session.name ? "bg-raised ring-1 ring-line-strong" : ""} ${isHead ? "ring-1 ring-ink/40" : ""}`}
+      >
+        <SessionAvatar name={session.name} state={session.state} size={32} />
+        {waitedFor && <span className={`font-mono text-[11px] leading-none tabular-nums ${display.textClass}`}>{waitedFor}</span>}
+      </button>
+    </RailLabel>
+  );
+}
+
+function RailClosedSession({ name }: { name: string }) {
+  const { perform } = useHeyTerm();
+  return (
+    <RailLabel
+      label={
+        <span className="flex items-center gap-1.5">
+          <BringBackIcon size={13} className="text-ink-faint" />
+          Bring back <span className="font-mono">{name}</span>
+        </span>
+      }
+    >
+      <button
+        type="button"
+        aria-label={`Bring back ${name}`}
+        onClick={() => perform({ type: "resume", session: name })}
+        className="press cursor-pointer rounded-[9px] p-[3px] opacity-50 transition-[opacity,background-color] duration-150 hover:bg-raised hover:opacity-100"
+      >
+        <SessionAvatar name={name} size={26} />
+      </button>
+    </RailLabel>
   );
 }
 
@@ -277,9 +337,9 @@ function ModeButton({ compact = false }: { compact?: boolean }) {
   const title = "Speaking says everything, Quiet only permissions and questions, Muted plays sounds only. Or say: be quiet, mute, talk to me.";
   if (compact) {
     return (
-      <RailButton label={`${modeLabel[mode]}. ${title}`} onClick={() => perform({ type: "mode", mode: nextMode[mode] })}>
+      <LabeledRailButton label={`${modeLabel[mode]}. Click to change, or say "be quiet", "mute" or "talk to me".`} onClick={() => perform({ type: "mode", mode: nextMode[mode] })}>
         <ModeIcon size={16} />
-      </RailButton>
+      </LabeledRailButton>
     );
   }
   return (
@@ -305,9 +365,20 @@ function SectionHeading({ title, help, action }: { title: string; help: React.Re
   );
 }
 
-function RailButton({ label, onClick, children, className = "" }: { label: string; onClick: () => void; children: React.ReactNode; className?: string }) {
+// An icon button in the folded sidebar, named beside it on hover instead of with the browser's slow tooltip.
+function LabeledRailButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className={`press flex size-8 cursor-pointer items-center justify-center rounded-inner text-ink-muted transition-colors duration-150 hover:bg-raised hover:text-ink ${className}`}>
+    <RailLabel label={label}>
+      <RailButton label={label} onClick={onClick} showsTitle={false}>
+        {children}
+      </RailButton>
+    </RailLabel>
+  );
+}
+
+function RailButton({ label, onClick, children, className = "", showsTitle = true }: { label: string; onClick: () => void; children: React.ReactNode; className?: string; showsTitle?: boolean }) {
+  return (
+    <button type="button" aria-label={label} title={showsTitle ? label : undefined} onClick={onClick} className={`press flex size-8 cursor-pointer items-center justify-center rounded-inner text-ink-muted transition-colors duration-150 hover:bg-raised hover:text-ink ${className}`}>
       {children}
     </button>
   );

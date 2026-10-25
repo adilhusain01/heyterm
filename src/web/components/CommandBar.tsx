@@ -11,6 +11,7 @@ import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useOrbState } from "../state/use-orb-state.ts";
 import { AssistantOrb } from "../ui/AssistantOrb.tsx";
 import { Kbd } from "../ui/Hint.tsx";
+import { isPlayground } from "../playground/is-playground.ts";
 import { DecisionDock } from "./DecisionDock.tsx";
 import { PendingStrip } from "./PendingStrip.tsx";
 
@@ -19,6 +20,7 @@ export function CommandBar() {
   const typingSession = useHeyTermStore((state) => state.typingSession);
   const setTypingSession = useHeyTermStore((state) => state.setTypingSession);
   const control = useHeyTermStore((state) => state.control);
+  const conversationCollapsed = useHeyTermStore((state) => state.layout.conversationCollapsed);
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const detector = useRef(new DictationDetector());
@@ -76,7 +78,10 @@ export function CommandBar() {
   return (
     <footer className="shrink-0 border-t border-line bg-panel px-2 pt-2 pb-2.5">
       <div className="mx-auto flex max-w-[1100px] flex-col gap-1.5">
-        <DecisionDock />
+        {/* Above the bar only when the conversation column is not showing, which is where requests live. */}
+        <div className={isPlayground || conversationCollapsed ? "" : "lg:hidden"}>
+          <DecisionDock />
+        </div>
         <PendingStrip control={control} />
         {typingSession && (
           <button type="button" onClick={() => setTypingSession(undefined)} className="cursor-pointer rounded-inner border border-line bg-raised px-3 py-1.5 text-left text-meta text-ink-muted hover:text-ink">

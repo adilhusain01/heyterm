@@ -44,9 +44,9 @@ All live in `src/web/styles.css` under `@theme`, and every component takes its v
 ## Layout
 
 - No top bar. The left sidebar holds the name, every session with its face, Recently closed, today's numbers, the sound mode and Setup.
-- Requests sit where you act on them: the most urgent one docks above the bar you talk into (others as faces to switch to), and each asking session shows a slim banner on its own pane. It folds to a 60px rail of session faces with the sound mode and Setup at the bottom.
+- It folds to a 60px rail of session faces. A waiting face keeps its wait under it, recently closed sessions sit faded below a rule and come back on a click, and every face and icon is named beside it on hover (`RailLabel`: the first after 300ms, its neighbours at once). The sound mode and Setup sit under a rule at the bottom, as in the open sidebar.
 - Centre: the terminals, in a grid whose columns follow the width (each at least 440px; past two rows the grid scrolls instead of shrinking), or one at a time with tabs to switch. A pane's expand key switches to one at a time.
-- Right: the conversation with the assistant, its orb and status line at the top. It folds away; a key in the terminal toolbar brings it back.
+- Right: the conversation with the assistant, its orb and status line at the top. Requests pin under that header, above the conversation: the most urgent one with the others as faces to switch to. Each asking session also shows a slim banner on its own pane. The column folds away; a key in the terminal toolbar brings it back, and while it is folded (or the screen is under 1024px, or in the playground) the requests dock above the bar you talk into instead.
 - Bottom: the bar you talk into, with the orb at its left showing whether it hears you.
 - Explanations live behind "?" cards, not in paragraphs under headings.
 
