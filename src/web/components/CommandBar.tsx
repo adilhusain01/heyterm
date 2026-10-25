@@ -86,11 +86,8 @@ export function CommandBar() {
           <DecisionDock />
         </div>
         <PendingStrip control={control} />
-        {typingSession && (
-          <button type="button" onClick={() => setTypingSession(undefined)} className="cursor-pointer rounded-inner border border-line bg-raised px-3 py-1.5 text-left text-meta text-ink-muted transition-colors duration-150 hover:text-ink">
-            Typing into <span className="font-mono text-ink">{typingSession}</span>. Click here to talk to HeyTerm again.
-          </button>
-        )}
+        {/* Typing in a terminal shows on that pane's header ("Typing here"), not as a strip here;
+            clicking the bar, or dictating into it, talks to HeyTerm again. */}
         {!typingSession && listening !== "listening" && listening !== "typing_in_terminal" && (
           <button type="button" onClick={() => inputRef.current?.focus()} className="enter-rise cursor-pointer rounded-inner border border-permission/40 bg-permission/10 px-3 py-1.5 text-left text-meta text-permission">
             {notListeningText[listening]}

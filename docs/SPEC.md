@@ -108,4 +108,4 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 
 ## Out of scope for the first version
 
-Sessions on another machine, agents other than Claude Code, git worktrees made by HeyTerm, typing into outside sessions (the cross-session inbox would deliver text only as a message from another session), and phone control.
+Sessions on another machine, typing into sessions in the user's own terminal (one moves in with "open X here" instead), and phone control.
