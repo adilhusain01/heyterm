@@ -1,6 +1,8 @@
 // Actions on whole sessions: deliver text, start, resume, close, interrupt, trust, status, catch up.
 
 import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { promisify } from "node:util";
 import { ChangeSummary, type ChangeSummaryResult } from "../../shared/change-summary.ts";
 import { CatchUpDigest, type SessionDigest } from "../../shared/catch-up.ts";
@@ -57,7 +59,15 @@ export class SessionActions {
     const files = session.filesChangedInLastTask ?? [];
     if (files.length === 0) return ChangeSummary.describe(sessionName, files, undefined);
     const numstat = await runGit(session.projectPath, ["diff", "--numstat", "--relative", "HEAD", "--", ...files]);
-    return ChangeSummary.describe(sessionName, files, numstat === undefined ? undefined : ChangeSummary.parseNumstat(numstat));
+    if (numstat === undefined) return ChangeSummary.describe(sessionName, files, undefined);
+    const counts = ChangeSummary.parseNumstat(numstat);
+    // A new file git does not track yet is all added lines.
+    for (const file of files) {
+      if (counts.has(file)) continue;
+      const text = await readFile(path.join(session.projectPath, file), "utf8").catch(() => undefined);
+      if (text !== undefined && text.length < 1_000_000) counts.set(file, { added: text.split("\n").filter((line, index, lines) => line !== "" || index < lines.length - 1).length, removed: 0 });
+    }
+    return ChangeSummary.describe(sessionName, files, counts);
   }
 
   rename(sessionName: string, newName: string): string | undefined {

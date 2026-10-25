@@ -4,7 +4,8 @@ import { ChangeSummary } from "./change-summary.ts";
 describe("ChangeSummary.describe", () => {
   it("names up to three files and the lines that changed", () => {
     const summary = ChangeSummary.describe("api", ["src/checkout/totals.ts", "src/checkout/totals.test.ts"], new Map([["src/checkout/totals.ts", { added: 30, removed: 12 }], ["src/checkout/totals.test.ts", { added: 10, removed: 0 }]]));
-    expect(summary.spoken).toBe("api changed 2 files in its last task: totals.ts and totals.test.ts. 40 lines added, 12 removed.");
+    // Git counts against the last commit, which can include earlier tasks' work, so it says so.
+    expect(summary.spoken).toBe("api changed 2 files in its last task: totals.ts and totals.test.ts. Since the last commit, 40 lines added and 12 removed.");
     expect(summary.files).toEqual(["src/checkout/totals.ts", "src/checkout/totals.test.ts"]);
   });
 

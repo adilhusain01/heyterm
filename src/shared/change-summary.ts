@@ -42,7 +42,7 @@ function lineSentence(files: string[], lineCounts: Map<string, LineCounts> | und
   if (known.length === 0) return "";
   const added = known.reduce((total, counts) => total + counts.added, 0);
   const removed = known.reduce((total, counts) => total + counts.removed, 0);
-  return ` ${added} ${added === 1 ? "line" : "lines"} added, ${removed} removed.`;
+  return ` Since the last commit, ${added} ${added === 1 ? "line" : "lines"} added and ${removed} removed.`;
 }
 
 function mostCommonFolder(files: string[]): string {
