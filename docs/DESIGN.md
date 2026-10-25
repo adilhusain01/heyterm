@@ -50,6 +50,7 @@ Request parts live in `src/web/components/AttentionCard.tsx`: the `chat` card in
 
 ## Layout
 
+- Every surface floats: the sidebar, the terminals, the bar and the conversation sit 8px in from the page edges and from each other, each with the 12px outer radius, so the page reads as one set of panels on the canvas. On a phone the sidebar runs edge to edge above the terminals.
 - No top bar. The left sidebar holds the name, every session with its face, Recently closed, today's numbers, the sound mode and Setup.
 - It folds to a 60px rail of session faces. A waiting face keeps its wait under it, recently closed sessions sit faded below a rule and come back on a click, and every face and icon is named beside it on hover (`RailLabel`: the first after 300ms, its neighbours at once). The sound mode and Setup sit under a rule at the bottom, as in the open sidebar.
 - Centre: the terminals, in a grid whose columns follow the width (each at least 440px; past two rows the grid scrolls instead of shrinking). There is no toolbar above them. A pane's expand key shows that session alone and its shrink key brings the grid back; while one is shown alone, picking another in the sidebar switches to it. With a single session the key is not drawn, since there is nothing to switch between.

@@ -57,7 +57,7 @@ export function ConversationPanel() {
   if (collapsed) return null;
   const isEmpty = entries.length === 0 && untold.length === 0;
   return (
-    <aside aria-label="Conversation with HeyTerm" className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-panel lg:flex">
+    <aside aria-label="Conversation with HeyTerm" className="my-2 mr-2 hidden w-[380px] shrink-0 flex-col overflow-hidden rounded-outer border border-line bg-panel lg:flex">
       {/* The orb lives in the bar you talk into, so the header only says what the assistant is doing. */}
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line px-4">
         <div className="flex min-w-0 flex-col">

@@ -49,7 +49,7 @@ function SidebarPanel({ onOpenSetup, className = "flex" }: { onOpenSetup: () => 
   const [isPickerOpen, setPickerOpen] = useState(false);
 
   return (
-    <aside className={`${className} max-h-[45vh] min-h-0 w-full shrink-0 flex-col border-b border-line bg-panel md:max-h-none md:w-[280px] md:border-r md:border-b-0`}>
+    <aside className={`${className} max-h-[45vh] min-h-0 w-full shrink-0 flex-col border-b border-line bg-panel md:my-2 md:ml-2 md:max-h-none md:w-[280px] md:overflow-hidden md:rounded-outer md:border`}>
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
         <img src="/favicon.svg" alt="" width={22} height={22} className="shrink-0" />
         <span className="text-meta font-semibold tracking-tight text-ink">HeyTerm</span>
@@ -114,7 +114,7 @@ function SidebarRail({ onOpenSetup, className }: { onOpenSetup: () => void; clas
   const { queue, ordered } = useOrderedSessions();
   const headName = queue[0]?.sessionName;
   return (
-    <aside className={`${className} min-h-0 w-[60px] shrink-0 flex-col items-center border-r border-line bg-panel`}>
+    <aside className={`${className} min-h-0 w-[60px] shrink-0 flex-col items-center overflow-hidden rounded-outer border border-line bg-panel md:my-2 md:ml-2`}>
       <header className="flex h-12 shrink-0 items-center">
         <img src="/favicon.svg" alt="HeyTerm" width={24} height={24} />
       </header>
