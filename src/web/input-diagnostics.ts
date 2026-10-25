@@ -48,12 +48,16 @@ export function watchInput(barElement: () => HTMLInputElement | null, send: (rec
   const where = () => ({ target: focusedElementKind(barElement()), windowHasFocus: document.hasFocus(), at: Date.now() });
   const onEvent = (event: Event) => {
     const facts: EventFacts = { type: event.type };
-    if (event instanceof InputEvent) {
-      facts.inputType = event.inputType;
-      facts.data = event.data;
+    // Read by shape rather than by class: some environments (jsdom in tests) lack ClipboardEvent.
+    if ("inputType" in event) {
+      facts.inputType = (event as InputEvent).inputType;
+      facts.data = (event as InputEvent).data;
     }
-    if (event instanceof ClipboardEvent) facts.data = event.clipboardData?.getData("text/plain") ?? null;
-    if (event instanceof KeyboardEvent) Object.assign(facts, { key: event.key, metaKey: event.metaKey, ctrlKey: event.ctrlKey, altKey: event.altKey });
+    if ("clipboardData" in event) facts.data = (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? null;
+    if ("key" in event) {
+      const keyboard = event as KeyboardEvent;
+      Object.assign(facts, { key: keyboard.key, metaKey: keyboard.metaKey, ctrlKey: keyboard.ctrlKey, altKey: keyboard.altKey });
+    }
     batch.push(InputDiagnostics.describe(facts, where()));
   };
   const documentEvents = ["beforeinput", "input", "paste", "keydown", "compositionstart", "compositionend", "focusin"];
