@@ -11,13 +11,7 @@ export function Waits() {
     <Section>
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
         <SectionHeading title="Agents wait on you more than you notice.">
-          <p>
-            Run four or five agents and each one keeps stopping: it finished, it has a question, it wants to run a command. You are busy in another one, so it sits there.
-          </p>
-          <p>
-            On one developer's Mac over two weeks, sessions finished or stopped to ask something {measuredWaits} times while the developer was busy in another session.
-            Those waits added up to 55 hours of agents doing nothing.
-          </p>
+          <p>Over two weeks, one developer's agents sat waiting {measuredWaits} times while they were busy in another. That is 55 hours of agents doing nothing.</p>
         </SectionHeading>
         <figure className="flex flex-col gap-4">
           <div role="img" aria-label={`${measuredWaits} squares, one for each time a session waited`} className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-1.5">
@@ -49,7 +43,7 @@ export function HowItWorks() {
   return (
     <Section id="how">
       <SectionHeading title="How it works">
-        <p>Pick a step to see where your words go.</p>
+        <p>Pick a step.</p>
       </SectionHeading>
       <HowItWorksDiagram />
     </Section>
@@ -57,36 +51,32 @@ export function HowItWorks() {
 }
 
 const phrases: Array<{ said: string; does: string }> = [
-  { said: "start a session in portfolio and fix the phone menu", does: "Starts Claude Code there and gives it the task." },
-  { said: "peeker, run the tests again", does: "Sends your words to that session, after a short preview you can cancel." },
-  { said: "no, use pnpm instead", does: "Denies the permission and passes your reason on, so the agent changes course." },
-  { said: "the second one", does: "Answers a multiple-choice question, no arrow keys." },
-  { said: "catch me up", does: "Says what changed in every session since you last looked." },
-  { said: "trust it", does: "Trusts a new folder for the session asking." },
-  { said: "bring back peeker", does: "Resumes a closed session where its conversation left off." },
-  { said: "what did api change?", does: "Names the files its last task changed, with line counts." },
-  { said: "rename synqed to synqed auth", does: "Renames a session, so two in one project are easy to tell apart." },
-  { said: "open a terminal in synqed", does: "Opens your own shell there in a pane, which you type into and the assistant can run commands in." },
-  { said: "open synqed here", does: "Moves a Claude session from your own terminal into HeyTerm, conversation and all." },
-  { said: "be quiet", does: "Speaks only permissions and questions. Say \"mute\" for sounds only." },
+  { said: "start a session in portfolio", does: "Starts Claude Code there" },
+  { said: "peeker, run the tests again", does: "Goes straight to peeker" },
+  { said: "no, use pnpm instead", does: "Says no, with your reason" },
+  { said: "the second one", does: "Picks an answer" },
+  { said: "catch me up", does: "What happened while you were away" },
+  { said: "trust it", does: "Trusts a new folder" },
+  { said: "bring back peeker", does: "Reopens a closed session" },
+  { said: "what did api change?", does: "Lists the files it changed" },
+  { said: "rename synqed to synqed auth", does: "Renames a session" },
+  { said: "open a terminal in synqed", does: "Opens a plain terminal" },
+  { said: "open synqed here", does: "Moves a session into HeyTerm" },
+  { said: "be quiet", does: "Speaks only what needs you" },
 ];
 
 export function WhatYouSay() {
   return (
     <Section>
-      <SectionHeading title="Say it the way you would say it to a person.">
-        <p>Plain decisions and anything that names a session happen at once. Everything else goes to the assistant, which works out what you meant.</p>
-      </SectionHeading>
-      <dl className="mt-12 grid gap-x-10 gap-y-6 md:grid-cols-2">
+      <SectionHeading title="Say it like you would to a person." />
+      <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {phrases.map((phrase) => (
-          <div key={phrase.said} className="flex flex-col gap-2.5">
-            <dt>
-              <SaidLine>{phrase.said}</SaidLine>
-            </dt>
-            <dd className="pl-1 text-body text-ink-muted">{phrase.does}</dd>
-          </div>
+          <li key={phrase.said} className="flex flex-col gap-2.5 rounded-outer border border-line bg-panel p-4">
+            <SaidLine>{phrase.said}</SaidLine>
+            <span className="pl-1 text-meta text-ink-muted">{phrase.does}</span>
+          </li>
         ))}
-      </dl>
+      </ul>
     </Section>
   );
 }

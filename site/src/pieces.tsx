@@ -83,9 +83,10 @@ export function SectionHeading({ title, children }: { title: string; children?: 
   );
 }
 
+// Every section shares one width, so their left edges line up; text keeps its own reading width inside.
 export function Section({ id, children, className = "" }: { id?: string; children: ReactNode; className?: string }) {
   return (
-    <section id={id} className={`mx-auto w-full max-w-[1180px] px-4 py-16 sm:px-6 md:py-24 ${className}`}>
+    <section id={id} className={`mx-auto w-full max-w-[1280px] px-4 py-16 sm:px-6 md:py-24 ${className}`}>
       {children}
     </section>
   );

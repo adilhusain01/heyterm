@@ -4,18 +4,18 @@ import { CopyCommand, Section, SectionHeading } from "./pieces.tsx";
 import { links } from "./Top.tsx";
 
 const promises: Array<{ title: string; text: string }> = [
-  { title: "No gates of its own", text: "HeyTerm follows each agent's own permission mode. What the agent allows, runs; what the agent asks about comes to you." },
-  { title: "Only this computer", text: "It listens on 127.0.0.1 alone, and every page and hook needs a private token only your user can read." },
-  { title: "Other sites cannot drive it", text: "Requests from other origins, cross-site fetches and rebinding tricks are refused, and the page cannot be framed." },
-  { title: "Every decision on record", text: "Each approval or answer, by voice or by click, is written to a local log with the words that decided it." },
+  { title: "Your agents' rules", text: "Each agent's own permission settings stay in charge." },
+  { title: "Only this computer", text: "It listens on your computer alone." },
+  { title: "Websites can't drive it", text: "Requests from other sites are refused." },
+  { title: "Every answer on record", text: "Each approval is logged with the words that made it." },
 ];
 
 export function Safety() {
   return (
     <Section>
       <div className="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <SectionHeading title="It types into your terminals, so it answers only you.">
-          <p>HeyTerm runs on your computer, on the agent logins you already have. There is no account and no server of ours in the middle.</p>
+        <SectionHeading title="It answers only you.">
+          <p>It runs on your computer, on your own agent logins. No account, no server of ours.</p>
         </SectionHeading>
         <ul className="grid gap-x-8 gap-y-8 sm:grid-cols-2">
           {promises.map((promise) => (
@@ -35,7 +35,7 @@ export function GetStarted() {
     <Section id="start">
       <div className="flex flex-col gap-10 rounded-outer border border-line bg-panel p-6 sm:p-10">
         <SectionHeading title="Start in a minute.">
-          <p>You need Node.js 20 or newer and one coding agent you have signed in to once. Then:</p>
+          <p>You need Node.js 20 and one signed-in agent.</p>
         </SectionHeading>
         <ol className="flex flex-col gap-5">
           <li className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-5">
@@ -52,7 +52,7 @@ export function GetStarted() {
           </li>
         </ol>
         <p className="text-small text-ink-faint">
-          Use headphones, so HeyTerm's spoken lines never end up in your own dictation. To remove it, run <span className="font-mono text-ink-muted">npx heyterm uninstall</span>.
+          Wear headphones, so its voice stays out of your dictation.
         </p>
       </div>
     </Section>
@@ -61,7 +61,7 @@ export function GetStarted() {
 
 export function Footer() {
   return (
-    <footer className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 pt-6 pb-14 sm:px-6 md:flex-row md:items-center">
+    <footer className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 pt-6 pb-14 sm:px-6 md:flex-row md:items-center">
       <div className="flex items-center gap-2.5">
         <img src="/favicon.svg" alt="" width={22} height={22} />
         <span className="text-meta text-ink-muted">HeyTerm is free and open source under the MIT licence.</span>

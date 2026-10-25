@@ -17,6 +17,9 @@
     <link rel="canonical" href="https://heyterm.vercel.app/" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- The headline's font, fetched before it is needed: drawn first in a fallback font, the headline
+         wrapped differently and pushed the demo down when the font arrived (Lighthouse, 26 October 2026). -->
+    <link rel="preload" href="../node_modules/@fontsource-variable/martian-mono/files/martian-mono-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>

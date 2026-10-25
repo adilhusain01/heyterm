@@ -36,9 +36,9 @@ const agentLabels: Record<SessionName, string> = { api: "Claude Code", mobile: "
 const steps: Step[] = [
   {
     title: "Start them by voice",
-    text: "Say which agent and which project. HeyTerm opens it in its own terminal on your computer, with a face of its own.",
+    text: "Name the agent and the project. It opens in a terminal of its own.",
     said: "start a grok session in shop and run the tests",
-    heard: "Starting shop with Grok Build. It gets the task once it is ready.",
+    heard: "Starting shop with Grok Build.",
     part: "fast",
     beams: [
       { line: "you", reverse: false, delayMilliseconds: 0 },
@@ -48,9 +48,9 @@ const steps: Step[] = [
   },
   {
     title: "Talk to any of them",
-    text: "Name a session and your words go straight to it. Anything else goes to the assistant in the middle, which reads every session and answers you out loud.",
+    text: "Name a session to talk to it. Anything else goes to the assistant.",
     said: "what is everyone doing?",
-    heard: "api is refactoring the auth middleware, shop is running the tests, and mobile wants to install a package.",
+    heard: "api is refactoring login, shop is running tests, and mobile needs you.",
     part: "assistant",
     beams: [
       { line: "you", reverse: false, delayMilliseconds: 0 },
@@ -63,9 +63,9 @@ const steps: Step[] = [
   },
   {
     title: "Answer when one needs you",
-    text: "A permission, a question or a folder to trust is said out loud in plain words and shows up in the conversation. Answer there, or just say so.",
+    text: "Requests are said out loud. Just answer.",
     said: "approve",
-    heard: "mobile wants to run pnpm install expo-haptics. Approved, so it carries on.",
+    heard: "mobile wants to install a package. Approved.",
     part: "fast",
     beams: [
       { line: "mobile", reverse: true, delayMilliseconds: 0 },
@@ -158,7 +158,7 @@ function WideRouting({ step, play }: { step: Step; play: number }) {
       <text x={336} y={104} className="display fill-ink" fontSize={16}>
         HeyTerm
       </text>
-      <PartNode x={336} y={120} width={224} title="Fast path" detail="commands that name a session" lit={step.part === "fast"} />
+      <PartNode x={336} y={120} width={224} title="Fast path" detail="named commands, at once" lit={step.part === "fast"} />
       <PartNode x={336} y={224} width={224} title="Assistant" detail="Opus 5.5, your Claude login" lit={step.part === "assistant"} />
       {sessions.map((session) => (
         <SessionNode key={session.name} name={session.name} x={720} y={session.y} width={216} height={72} status={step.states[session.name]} layout="wide" />
@@ -187,7 +187,7 @@ function NarrowRouting({ step, play }: { step: Step; play: number }) {
       <text x={44} y={168} className="display fill-ink" fontSize={16}>
         HeyTerm
       </text>
-      <PartNode x={44} y={188} width={252} title="Fast path" detail="commands that name a session" lit={step.part === "fast"} height={68} />
+      <PartNode x={44} y={188} width={252} title="Fast path" detail="named commands, at once" lit={step.part === "fast"} height={68} />
       <PartNode x={44} y={272} width={252} title="Assistant" detail="Opus 5.5, your Claude login" lit={step.part === "assistant"} height={68} />
       {sessions.map((session) => (
         <SessionNode key={session.name} name={session.name} x={session.x} y={436} width={100} height={116} status={step.states[session.name]} layout="narrow" />

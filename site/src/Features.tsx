@@ -23,23 +23,19 @@ function Feature({ title, children, piece }: { title: string; children: ReactNod
 export function Features() {
   return (
     <Section>
-      <SectionHeading title="Everything in one place, nothing in your way." />
+      <SectionHeading title="Everything in one place." />
       <div className="mt-6">
         <Feature title="Requests arrive in the conversation" piece={<RequestPiece />}>
-          <p>When a session needs a permission, an answer or a folder trusted, it shows up as a message where you are already looking, with what it wants in plain words.</p>
-          <p>Answer with the buttons or out loud. Your answer appears as your own reply, and the request settles so the thread still reads.</p>
+          <p>A permission or a question shows up where you are already looking. Answer with a click, or out loud.</p>
         </Feature>
         <Feature title="Parallel sessions that never collide" piece={<WorktreePiece />}>
-          <p>Start a second session in a project that already has one, and it gets a git worktree and a branch of its own, so two agents never edit the same files. Its work waits on that branch for you to merge.</p>
-          <p>When a task ends you hear how many files it changed, and "what did api change?" names them, edits made through shell commands included.</p>
+          <p>A second session in the same project gets its own copy and branch, so two agents never edit the same files.</p>
         </Feature>
         <Feature title="Hear what matters, and nothing else" piece={<VoicePiece />}>
-          <p>On a Mac it speaks with the voice you chose in System Settings, Siri voices included. Elsewhere it uses your browser's voice.</p>
-          <p>Nothing is said over your own dictation, and lines wait their turn rather than talking over each other.</p>
+          <p>It speaks with your Mac's own voice, and never over your dictation.</p>
         </Feature>
         <Feature title="Every session has a face" piece={<StatePiece />}>
-          <p>Each session gets a face drawn from its name, so you find it at a glance in a crowded sidebar. A badge on the face says what it is doing.</p>
-          <p>Its state comes from the agent's own hooks, never from reading the screen. Pick a state to see what you hear and what you can say.</p>
+          <p>A badge on each face says what the session is doing. Pick a state to hear what it says.</p>
         </Feature>
       </div>
       <Extras />

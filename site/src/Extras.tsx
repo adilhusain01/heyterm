@@ -20,9 +20,9 @@ function Card({ title, span, piece, children }: { title: string; span: Span; pie
   return (
     <li className={`flex min-w-0 flex-col rounded-outer border border-line bg-panel p-1 ${spanClass[span]}`}>
       <div className="flex h-[156px] min-w-0 flex-col justify-center overflow-hidden rounded-inner bg-canvas px-4 py-3 shadow-tray">{piece}</div>
-      <div className="flex flex-col gap-1.5 px-4 pt-4 pb-5">
+      <div className="flex flex-col gap-1 px-5 pt-4 pb-5">
         <h4 className="text-title font-medium text-ink">{title}</h4>
-        <p className="text-body leading-relaxed text-ink-muted">{children}</p>
+        <p className="text-meta leading-relaxed text-ink-muted">{children}</p>
       </div>
     </li>
   );
@@ -32,60 +32,60 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-5">
       <h3 className="display text-[22px] leading-tight text-ink">{title}</h3>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">{children}</ul>
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">{children}</ul>
     </div>
   );
 }
 
 export function Extras() {
   return (
-    <div className="mt-6 flex flex-col gap-14 border-t border-line pt-14">
+    <div className="mt-6 flex flex-col gap-16 border-t border-line pt-16">
       <Group title="Every kind of session, side by side">
         <Card title="Your own terminals too" span="wide" piece={<OwnTerminalPiece />}>
-          Claude sessions you started yourself show up beside HeyTerm's, so their questions reach you too. Press Open here, or say "open api here", to move one in, conversation and all.
+          Claude sessions from your own terminal show up too. Open here moves one in.
         </Card>
         <Card title="A plain terminal too" span="wide" piece={<PlainTerminalPiece />}>
-          Say "open a terminal in synqed" for your own shell in a pane, no agent. Type into it yourself, or have the assistant run a command there and tell you what it printed.
+          Your own shell in a pane. You or the assistant can run commands in it.
         </Card>
         <Card title="Tell them apart" span="narrow" piece={<DetailsPiece />}>
-          Hover a session for its agent, folder and branch, and rename it by voice or with a click.
+          Hover for the details. Rename by voice or click.
         </Card>
         <Card title="Drop a screenshot on a session" span="narrow" piece={<DropPiece />}>
-          Drag an image onto a session's terminal, or paste one there, and the agent gets it attached.
+          Drop or paste an image onto any session.
         </Card>
         <Card title="Copy anything" span="narrow-last" piece={<CopyPiece />}>
-          Select any text, in the conversation or a terminal, and copy it with Cmd+C or Ctrl+C.
+          Select and copy, even in a terminal.
         </Card>
       </Group>
       <Group title="Nothing slips past you">
         <Card title="Never miss a request" span="wide" piece={<RequestInViewPiece />}>
-          The conversation follows new messages while you are at the end, and always brings a permission or question into view.
+          Requests always scroll into view.
         </Card>
         <Card title="See what it ran" span="wide" piece={<CommandOutputPiece />}>
-          Every command the assistant runs is a line you can open for the full command and its output. Try it.
+          Open any command it ran to see the output.
         </Card>
         <Card title="Catch me up" span="narrow" piece={<CatchUpPiece />}>
-          After a meeting, one sentence tells you what every session did while you were away.
+          One sentence on what happened while you were away.
         </Card>
         <Card title="It notices a quiet session" span="narrow" piece={<QuietPiece />}>
-          A session that says nothing for five minutes, or runs one command for ten, is named out loud.
+          Five quiet minutes, and it tells you.
         </Card>
         <Card title="It recovers by itself" span="narrow-last" piece={<RecoverPiece />}>
-          When your Mac sleeps or a connection drops, the page reconnects on its own and redraws every terminal.
+          Sleep the Mac. The page reconnects on its own.
         </Card>
       </Group>
       <Group title="Yours, and easy to leave">
         <Card title="Closing means closed" span="wide" piece={<BringBackPiece />}>
-          Stop HeyTerm and every session ends. Bring one back later and its conversation picks up where it left off.
+          Bring any session back where it left off.
         </Card>
         <Card title="Gruvbox, light or dark" span="wide" piece={<ThemePiece />}>
-          The same warm palette as this page, in either theme, with the terminals kept dark so agents stay readable.
+          Warm colors, in light or dark.
         </Card>
         <Card title="macOS, Linux and Windows" span="wide" piece={<PlatformsPiece />}>
-          One command on each, with the same terminals and the same voice controls.
+          One command on each.
         </Card>
         <Card title="Uninstall leaves nothing" span="wide" piece={<UninstallPiece />}>
-          heyterm uninstall takes its hooks back out of your agents' settings and moves its folder to the Trash.
+          One command removes everything it added.
         </Card>
       </Group>
     </div>
@@ -116,7 +116,7 @@ function OwnTerminalPiece() {
           {movedIn ? "Undo" : "Open here"}
         </button>
       </div>
-      <p className="text-small text-ink-faint">{movedIn ? "It closed in your terminal and goes on here, same conversation." : "Its questions already reach you here."}</p>
+      <p className="text-small text-ink-faint">{movedIn ? "Same conversation, now in HeyTerm." : "Its questions already reach you."}</p>
     </div>
   );
 }

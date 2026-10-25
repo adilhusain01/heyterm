@@ -74,7 +74,7 @@ export function WorktreePiece() {
         >
           {full ? "Start over" : "Start another session in api"}
         </button>
-        <span className="text-small text-ink-faint">A terminal stays in the folder: it edits nothing by itself.</span>
+        <span className="text-small text-ink-faint">Terminals stay in the folder.</span>
       </div>
     </div>
   );

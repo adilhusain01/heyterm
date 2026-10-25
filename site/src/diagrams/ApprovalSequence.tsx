@@ -19,20 +19,20 @@ interface Message {
 type Lane = "agent" | "heyterm" | "you";
 
 const opening: Message[] = [
-  { from: "agent", to: "heyterm", wide: "asks to run pnpm install expo-haptics", narrow: "asks to run", told: "mobile's agent wants to run a command. Its own permission hook asks HeyTerm, and HeyTerm holds the request open." },
-  { from: "heyterm", to: "you", wide: "says what it wants, and the risk", narrow: "says it", told: "HeyTerm says it in plain words: mobile wants to install a package. It never reads the command out." },
+  { from: "agent", to: "heyterm", wide: "asks to run pnpm install expo-haptics", narrow: "asks to run", told: "mobile wants to run a command. HeyTerm holds the request." },
+  { from: "heyterm", to: "you", wide: "says what it wants", narrow: "says it", told: "HeyTerm says it in plain words." },
 ];
 
 const endings: Record<Ending, Message[]> = {
   approve: [
-    { from: "you", to: "heyterm", wide: "\"approve\"", narrow: "\"approve\"", told: "You say approve, or press Approve in the conversation." },
-    { from: "heyterm", to: "agent", wide: "the hook answers: allowed", narrow: "allowed", told: "HeyTerm answers the hook, which is still waiting, so the agent runs the command." },
-    { from: "agent", to: "agent", wide: "runs it", narrow: "runs it", told: "mobile carries on. Nothing was typed into its terminal." },
+    { from: "you", to: "heyterm", wide: "\"approve\"", narrow: "\"approve\"", told: "You say approve, or click it." },
+    { from: "heyterm", to: "agent", wide: "allowed", narrow: "allowed", told: "The agent gets your yes." },
+    { from: "agent", to: "agent", wide: "runs it", narrow: "runs it", told: "mobile carries on." },
   ],
   deny: [
     { from: "you", to: "heyterm", wide: "\"no, add it as a dev dependency\"", narrow: "\"no, …\"", told: "You say no, and why." },
-    { from: "heyterm", to: "agent", wide: "denied, with your reason", narrow: "denied", told: "HeyTerm denies the request and passes your reason to the agent." },
-    { from: "agent", to: "agent", wide: "changes course", narrow: "changes course", told: "The agent reads the reason and tries again your way." },
+    { from: "heyterm", to: "agent", wide: "denied, with your reason", narrow: "denied", told: "The agent gets your no, and the reason." },
+    { from: "agent", to: "agent", wide: "changes course", narrow: "changes course", told: "It tries again your way." },
   ],
 };
 
@@ -63,8 +63,8 @@ export function ApprovalFlow() {
   const current = messages[Math.min(shown, messages.length) - 1]!;
   return (
     <Section id="approvals">
-      <SectionHeading title="When an agent asks, you answer by voice.">
-        <p>HeyTerm answers the agent's own permission request, so the agent's rules stay in charge and nothing is typed into its terminal.</p>
+      <SectionHeading title="Approve by voice.">
+        <p>HeyTerm answers the agent's own request. Its rules stay in charge.</p>
       </SectionHeading>
       <figure className="mt-10 flex flex-col gap-4 rounded-outer border border-line bg-panel p-3 sm:p-6">
         <div className="flex flex-wrap items-center gap-3 px-1">
