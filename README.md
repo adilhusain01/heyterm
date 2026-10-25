@@ -25,6 +25,7 @@ python3 scripts/measure-waits.py
 | "catch me up" / "what's synqed doing?" | says what changed since you last looked |
 | "trust it" | trusts a new folder for the session asking |
 | "go to whisker" / "stop synqed" / "close peeker" / "bring back peeker" | focus, interrupt, close and resume |
+| "open synqed here" | moves a Claude session from your own terminal into HeyTerm: it closes there and the same conversation goes on here (asks first if it is working); the pane's **Open here** does the same |
 | "rename synqed to synqed auth" | renames a session, open or closed, so two in one folder are easy to tell apart |
 | "what did api change?" | names the files api changed in its last task, with line counts |
 | "be quiet" / "mute" / "talk to me" | announcements for questions and permissions only, sounds only, or everything |
