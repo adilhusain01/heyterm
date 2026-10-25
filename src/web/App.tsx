@@ -47,13 +47,16 @@ export function App({ connection, announcer }: { connection: HeyTermConnection; 
         <Sidebar onOpenSetup={() => setSetupOpen(true)} />
         <div className="flex min-h-[55vh] min-w-0 flex-1 flex-col md:min-h-0">
           <div className="flex min-h-0 flex-1">
-            <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-              <CatchUpPanel />
-              {hasSnapshot && sessionCount === 0 ? <WelcomeState onOpenSetup={() => setSetupOpen(true)} /> : <TerminalGrid />}
-            </main>
+            {/* The bar belongs to the terminals: it sits under them, as wide as they are. */}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+                <CatchUpPanel />
+                {hasSnapshot && sessionCount === 0 ? <WelcomeState onOpenSetup={() => setSetupOpen(true)} /> : <TerminalGrid />}
+              </main>
+              <CommandBar />
+            </div>
             {!isPlayground && <ConversationPanel />}
           </div>
-          <CommandBar />
         </div>
       </div>
       {isSetupOpen && <SetupPanel onClose={closeSetup} />}

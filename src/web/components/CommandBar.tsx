@@ -76,8 +76,8 @@ export function CommandBar() {
   }, [announcer]);
 
   return (
-    <footer className="shrink-0 border-t border-line bg-panel px-2 pt-2 pb-2.5">
-      <div className="mx-auto flex max-w-[1100px] flex-col gap-1.5">
+    <footer className="shrink-0 px-2 pb-2">
+      <div className="flex flex-col gap-1.5">
         {/* Above the bar only when the conversation column is not showing, which is where requests live. */}
         <div className={isPlayground || conversationCollapsed ? "" : "lg:hidden"}>
           <DecisionDock />
