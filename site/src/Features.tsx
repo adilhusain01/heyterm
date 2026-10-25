@@ -96,7 +96,9 @@ function ParallelPiece() {
       <p className="ml-auto w-fit rounded-outer bg-raised px-3 py-2 text-body text-ink">start another session in api</p>
       <p className="flex items-start gap-2 text-small text-ink-muted">
         <span className="mt-1.5 size-1.5 shrink-0 rounded-mark bg-ink-faint" aria-hidden="true" />
-        Starting api-2 in a copy of the folder of its own, on branch <span className="font-mono text-ink">heyterm/api-2</span>.
+        <span>
+          Starting api-2 in a copy of the folder of its own, on branch <span className="font-mono whitespace-nowrap text-ink">heyterm/api-2</span>.
+        </span>
       </p>
       <p className="flex items-start gap-2 text-small text-ink-muted">
         <span className="mt-1.5 size-1.5 shrink-0 rounded-mark bg-ink-faint" aria-hidden="true" />
