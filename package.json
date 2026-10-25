@@ -1,6 +1,6 @@
 {
   "name": "heyterm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Run your coding agents by voice: Claude Code, Codex and Gemini CLI in one window, with an assistant that hears you and speaks up when a session needs you.",
   "scripts": {
     "test": "vitest run",
