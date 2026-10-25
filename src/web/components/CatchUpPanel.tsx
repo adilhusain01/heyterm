@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useCallsign } from "../app-context.tsx";
 import { useCallsignStore } from "../state/callsign-store.ts";
-import { CloseIcon } from "./icons.tsx";
+import { CloseIcon } from "../ui/icons.tsx";
 import { stateDisplay } from "./session-display.ts";
 
 export function CatchUpPanel() {

@@ -36,13 +36,17 @@ All live in `src/web/styles.css` under `@theme`, and every component takes its v
 | `FoldedText` | A command or path shown in a tray, folded to four lines with a key to open it. | Design taste, decluttering |
 | `Hint` | What to say out loud, in the faint ink, with the spoken words in quotes. | |
 | `Kbd` | A key cap for keyboard hints. | |
+| `SessionAvatar` | Each session's own face, a pattern drawn from its name in ink tones only, with its state as a small coloured badge (the one place colour appears). | boring-avatars, bauhaus variant |
+| `HelpTip` | A "?" beside a heading that opens a short card explaining it, drawn above everything and kept on screen. Headings stay one word or two. | |
+| `Markdown` | What agents write, rendered from Markdown with no raw HTML, so nothing an agent writes can run in the page. | react-markdown |
+| `icons` | Lucide icons fetched with better-icons from Iconify and kept as source; 1.75px stroke. | Lucide via better-icons |
 
 ## Layout
 
-- Top bar: the name, then today's numbers in trays, then the sound mode and Setup as keys.
-- Left rail: the one thing that needs you most as a plain sheet led by its state glyph (no coloured stripes or tinted warnings), then every session as a row with its state mark, then new session and recently closed.
-- Centre: the terminals.
-- Right: the conversation with the assistant, its orb and status line at the top.
+- No top bar. The left sidebar holds the name, what needs you most, every session with its face, Recently closed, today's numbers, the sound mode and Setup. It folds to a 60px rail of session faces with the sound mode and Setup at the bottom.
+- Centre: the terminals, in a grid whose columns follow the width (each at least 440px; past two rows the grid scrolls instead of shrinking), or one at a time with tabs to switch. A pane's expand key switches to one at a time.
+- Right: the conversation with the assistant, its orb and status line at the top. It folds away; a key in the terminal toolbar brings it back.
 - Bottom: the bar you talk into, with the orb at its left showing whether it hears you.
+- Explanations live behind "?" cards, not in paragraphs under headings.
 
-Below 1024px wide the conversation column folds into the line above the bar, and below 768px everything is one column.
+Below 1024px wide the conversation folds into the line above the bar; below 768px everything is one column and the sidebar takes at most 45% of the height.

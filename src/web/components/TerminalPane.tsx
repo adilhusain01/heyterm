@@ -8,8 +8,8 @@ import { useEffect, useRef } from "react";
 import { useCallsign } from "../app-context.tsx";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
-import { CloseIcon, ExpandIcon, KeyboardIcon } from "./icons.tsx";
-import { StateMark } from "../ui/StateMark.tsx";
+import { CloseIcon, ExpandIcon, KeyboardIcon, ShrinkIcon } from "../ui/icons.tsx";
+import { SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
 import type { SessionView } from "../../shared/types.ts";
 
@@ -90,9 +90,9 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   const borderClass = isTyping ? "border-ink/60" : isFocused ? "border-line-strong" : "border-line";
 
   return (
-    <section ref={paneRef} className={`flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-outer border bg-tray transition-colors duration-200 ${borderClass} ${display.ringClass}`}>
+    <section ref={paneRef} className={`flex h-full min-h-[280px] w-full min-w-0 flex-col overflow-hidden rounded-outer border bg-tray transition-colors duration-200 ${borderClass}`}>
       <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
-        <StateMark state={session.state} />
+        <SessionAvatar name={session.name} state={session.state} size={20} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
         <span className={`text-[12.5px] ${display.textClass}`}>{display.label}</span>
         {isWaitingOnUser(session.state) && <span className="font-mono text-[12.5px] text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
@@ -103,7 +103,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
             </span>
           )}
           <PaneButton label={isExpanded ? "Show all sessions" : "Show only this session"} onClick={onToggleExpanded}>
-            <ExpandIcon size={14} />
+            {isExpanded ? <ShrinkIcon size={14} /> : <ExpandIcon size={14} />}
           </PaneButton>
           <PaneButton label={`Close ${session.name}`} onClick={() => perform({ type: "close", session: session.name, confirmed: false })}>
             <CloseIcon size={14} />

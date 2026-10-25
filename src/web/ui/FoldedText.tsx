@@ -9,12 +9,15 @@ export function FoldedText({ text, lines = 4, mono = true }: { text: string; lin
   const isLong = lineCount > lines || text.length > lines * 48;
   return (
     <Tray className="flex flex-col">
-      <pre
-        className={`overflow-hidden px-2.5 py-2 whitespace-pre-wrap break-words text-ink ${mono ? "font-mono text-[12.5px] leading-relaxed" : "font-sans text-meta"}`}
-        style={isOpen || !isLong ? undefined : { display: "-webkit-box", WebkitLineClamp: lines, WebkitBoxOrient: "vertical" }}
-      >
-        {text}
-      </pre>
+      {/* The padding sits outside the clamped element, so no part of a hidden line shows through. */}
+      <div className="px-2.5 py-2">
+        <pre
+          className={`overflow-hidden whitespace-pre-wrap break-words text-ink ${mono ? "font-mono text-[12.5px] leading-relaxed" : "font-sans text-meta"}`}
+          style={isOpen || !isLong ? undefined : { display: "-webkit-box", WebkitLineClamp: lines, WebkitBoxOrient: "vertical" }}
+        >
+          {text}
+        </pre>
+      </div>
       {isLong && (
         <button type="button" onClick={() => setOpen(!isOpen)} className="cursor-pointer border-t border-line px-2.5 py-1 text-left text-meta text-ink-muted hover:text-ink">
           {isOpen ? "Show less" : `Show all ${lineCount > 1 ? `${lineCount} lines` : ""}`.trim()}

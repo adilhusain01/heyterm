@@ -5,10 +5,14 @@ import { useEffect, useRef } from "react";
 import { useCallsignStore } from "../state/callsign-store.ts";
 import { orbStatusText, useOrbState } from "../state/use-orb-state.ts";
 import { AssistantOrb } from "../ui/AssistantOrb.tsx";
+import { PanelRightCloseIcon } from "../ui/icons.tsx";
+import { Markdown } from "../ui/Markdown.tsx";
 import type { ConversationEntry } from "../../shared/protocol.ts";
 
 export function ConversationPanel() {
   const entries = useCallsignStore((state) => state.conversation);
+  const collapsed = useCallsignStore((state) => state.layout.conversationCollapsed);
+  const changeLayout = useCallsignStore((state) => state.changeLayout);
   const orbState = useOrbState();
   const listRef = useRef<HTMLOListElement>(null);
   const currentStep = orbState === "thinking" ? latestStepSinceYouSpoke(entries) : undefined;
@@ -22,8 +26,9 @@ export function ConversationPanel() {
     if (nearBottom) list.scrollTop = list.scrollHeight;
   }, [entries]);
 
+  if (collapsed) return null;
   return (
-    <aside aria-label="Conversation with Callsign" className="hidden w-[400px] shrink-0 flex-col border-l border-line bg-panel lg:flex">
+    <aside aria-label="Conversation with Callsign" className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-panel lg:flex">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4">
         <AssistantOrb state={orbState} size={28} />
         <div className="flex min-w-0 flex-col">
@@ -32,6 +37,15 @@ export function ConversationPanel() {
             {status}
           </span>
         </div>
+        <button
+          type="button"
+          aria-label="Fold the conversation"
+          title="Fold the conversation"
+          onClick={() => changeLayout({ conversationCollapsed: true })}
+          className="press ml-auto flex size-8 cursor-pointer items-center justify-center rounded-inner text-ink-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+        >
+          <PanelRightCloseIcon size={16} />
+        </button>
       </header>
       {entries.length === 0 ? (
         <EmptyConversation />
@@ -53,7 +67,7 @@ function EntryRow({ entry }: { entry: ConversationEntry }) {
     case "user":
       return <div className="ml-8 rounded-inner border border-line bg-tray px-3 py-2 text-body text-ink shadow-tray">{entry.text}</div>;
     case "assistant":
-      return <p className="whitespace-pre-wrap break-words text-body text-ink">{entry.text}</p>;
+      return <Markdown text={entry.text} className="text-body text-ink" />;
     case "tool":
       return (
         <p className="flex items-baseline gap-2 font-mono text-[12.5px] text-ink-faint" title={entry.text}>

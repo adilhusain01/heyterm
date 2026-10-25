@@ -6,10 +6,9 @@ import { CallsignProvider } from "./app-context.tsx";
 import { CatchUpPanel } from "./components/CatchUpPanel.tsx";
 import { CommandBar } from "./components/CommandBar.tsx";
 import { ConversationPanel } from "./components/ConversationPanel.tsx";
-import { SessionRail } from "./components/SessionRail.tsx";
+import { Sidebar } from "./components/Sidebar.tsx";
 import { SetupPanel } from "./components/SetupPanel.tsx";
 import { TerminalGrid } from "./components/TerminalGrid.tsx";
-import { TopBar } from "./components/TopBar.tsx";
 import { WelcomeState } from "./components/WelcomeState.tsx";
 import { isPlayground } from "./playground/is-playground.ts";
 import { useCallsignStore } from "./state/callsign-store.ts";
@@ -42,17 +41,18 @@ export function App({ connection, announcer }: { connection: CallsignConnection;
 
   return (
     <CallsignProvider connection={connection} announcer={announcer}>
-      <div className="flex h-full flex-col">
-        <TopBar onOpenSetup={() => setSetupOpen(true)} />
-        <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-          <SessionRail />
-          <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-            <CatchUpPanel />
-            {hasSnapshot && sessionCount === 0 ? <WelcomeState onOpenSetup={() => setSetupOpen(true)} /> : <TerminalGrid />}
-          </main>
-          {!isPlayground && <ConversationPanel />}
+      <div className="flex h-full flex-col md:flex-row">
+        <Sidebar onOpenSetup={() => setSetupOpen(true)} />
+        <div className="flex min-h-[55vh] min-w-0 flex-1 flex-col md:min-h-0">
+          <div className="flex min-h-0 flex-1">
+            <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+              <CatchUpPanel />
+              {hasSnapshot && sessionCount === 0 ? <WelcomeState onOpenSetup={() => setSetupOpen(true)} /> : <TerminalGrid />}
+            </main>
+            {!isPlayground && <ConversationPanel />}
+          </div>
+          <CommandBar />
         </div>
-        <CommandBar />
       </div>
       {isSetupOpen && <SetupPanel onClose={closeSetup} />}
       <Toaster theme="dark" position="bottom-right" offset={{ bottom: 96, right: 16 }} toastOptions={{ style: { borderRadius: 6 } }} />

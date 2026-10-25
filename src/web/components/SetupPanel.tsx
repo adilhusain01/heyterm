@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { useCallsign } from "../app-context.tsx";
 import { isPlayground } from "../playground/is-playground.ts";
 import { useCallsignStore } from "../state/callsign-store.ts";
+import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
 import { Key } from "../ui/Key.tsx";
 import { VoiceChoice } from "../voice/voice-choice.ts";
-import { CloseIcon } from "./icons.tsx";
+import { CloseIcon } from "../ui/icons.tsx";
 import type { SetupStatus } from "../../shared/protocol.ts";
 
 export function SetupPanel({ onClose }: { onClose: () => void }) {
@@ -64,7 +65,15 @@ function InstallSteps() {
 function SetupSections({ setup }: { setup: SetupStatus }) {
   return (
     <>
-      <Section title="Coding agents">
+      <Section
+        title="Coding agents"
+        help={
+          <>
+            <span>The agents Callsign can run. Install any of them; the assistant in the middle needs Claude Code.</span>
+            <span>Say <SayThis>start a codex session in api</SayThis> to pick one by voice.</span>
+          </>
+        }
+      >
         {setup.agents.map((agent) => {
           const outdatedClaude = agent.kind === "claude" && agent.version && !setup.claudeVersionIsTested;
           const fix = !agent.version ? agent.installHint : outdatedClaude ? `Callsign was checked against ${setup.testedClaudeVersion}. Run claude update.` : undefined;
@@ -76,10 +85,17 @@ function SetupSections({ setup }: { setup: SetupStatus }) {
       <ProjectFoldersSection setup={setup} />
       <ExistingSessionsSection connected={setup.existingSessionsConnected} />
       <RunningSection keepRunning={setup.keepRunningWithoutPage} />
-      <Section title="The assistant">
-        <p className="text-meta leading-relaxed text-ink-muted">
-          Approvals, answers and commands that name a session happen on this computer at once. Everything else goes to the assistant, <span className="font-mono text-ink">{setup.routerModel}</span>,{" "}
-          {setup.routerSource === "api" ? "through your Anthropic API key." : "through your own Claude Code login, so there is no key to set up."} It does what your Claude Code permission mode allows, and asks you out loud whenever Claude Code would ask.
+      <Section
+        title="The assistant"
+        help={
+          <>
+            <span>Approvals, answers and commands that name a session happen at once. Everything else goes to the assistant, which reads sessions, sends them work and runs commands.</span>
+            <span>It does what your Claude Code permission mode allows, and asks you out loud whenever Claude Code would ask.</span>
+          </>
+        }
+      >
+        <p className="text-meta text-ink-muted">
+          <span className="font-mono text-ink">{setup.routerModel}</span> on {setup.routerSource === "api" ? "your API key" : "your Claude Code login"}
         </p>
       </Section>
     </>
@@ -94,10 +110,16 @@ function VoiceSection() {
   const voice = VoiceChoice.effective({ preference, macVoiceAvailable });
   const [notificationPermission, setNotificationPermission] = useState(() => ("Notification" in window ? Notification.permission : "denied"));
   return (
-    <Section title="Voice">
-      <p className="text-meta leading-relaxed text-ink-muted">
-        Callsign reads whatever your dictation tool types into the bar at the bottom. With Wispr Flow, hold Fn and speak. macOS Dictation and plain typing work too.
-      </p>
+    <Section
+      title="Voice"
+      help={
+        <>
+          <span>Callsign reads whatever your dictation tool types into the bar at the bottom. With Wispr Flow, hold Fn and speak; macOS Dictation and typing work too.</span>
+          <span>Mac voice speaks with the voice set in System Settings, Accessibility, Spoken Content, Siri voices included. Browsers cannot use those.</span>
+          <span>Use headphones, so spoken alerts never end up in your dictation.</span>
+        </>
+      }
+    >
       {macVoiceAvailable && (
         <div className="flex flex-col gap-1.5">
           <div role="radiogroup" aria-label="Speaking voice" className="flex gap-1">
@@ -108,7 +130,6 @@ function VoiceSection() {
               Browser voice
             </ChoiceButton>
           </div>
-          <p className="text-[12.5px] text-ink-faint">Mac voice uses the voice set in System Settings, Accessibility, Spoken Content. Siri voices work there and nowhere else.</p>
         </div>
       )}
       <div className="flex gap-1">
@@ -125,7 +146,6 @@ function VoiceSection() {
           <PanelButton onClick={() => void Notification.requestPermission().then(setNotificationPermission)}>Allow notifications</PanelButton>
         )}
       </div>
-      <p className="text-[12.5px] text-ink-faint">Use headphones, so the spoken alerts never end up in your own dictation.</p>
     </Section>
   );
 }
@@ -135,8 +155,18 @@ function ProjectFoldersSection({ setup }: { setup: SetupStatus }) {
   const [text, setText] = useState(setup.projectRoots.join("\n"));
   useEffect(() => setText(setup.projectRoots.join("\n")), [setup.projectRoots]);
   return (
-    <Section title="Project folders">
-      <p className="text-meta text-ink-muted">Folders that hold your git repositories, one per line. {setup.projectCount} {setup.projectCount === 1 ? "project" : "projects"} found.</p>
+    <Section
+      title="Project folders"
+      help={
+        <>
+          <span>Folders that hold your git repositories, one per line. Callsign looks three levels down for projects to name by voice.</span>
+          <span>The assistant can still start a session in any folder you name: <SayThis>open a session in ~/Downloads</SayThis>.</span>
+        </>
+      }
+    >
+      <p className="text-meta text-ink-muted">
+        {setup.projectCount} {setup.projectCount === 1 ? "project" : "projects"} found
+      </p>
       <textarea
         value={text}
         onChange={(event) => setText(event.target.value)}
@@ -154,14 +184,20 @@ function ProjectFoldersSection({ setup }: { setup: SetupStatus }) {
 function ExistingSessionsSection({ connected }: { connected: boolean }) {
   const { connection } = useCallsign();
   return (
-    <Section title="Claude sessions you start yourself">
-      <p className="text-meta leading-relaxed text-ink-muted">
-        {connected
-          ? "On. Claude sessions from any terminal show up here; Callsign answers their permissions and questions and tells you when they finish. It can't type into them. Its hooks are in ~/.claude/settings.json only while Callsign runs."
-          : "Turn on to see the Claude sessions you start in your own terminals too. While Callsign runs, its hooks sit in ~/.claude/settings.json (backed up first); they come out when it stops or when you turn this off."}
-      </p>
-      <div>
-        <PanelButton onClick={() => connection.send({ type: "connect_existing_sessions", connected: !connected })}>{connected ? "Turn off" : "Show my own sessions"}</PanelButton>
+    <Section
+      title="Your own Claude sessions"
+      help={
+        <>
+          <span>Claude sessions you start in your own terminals show up too. Callsign answers their permissions and questions and tells you when they finish, but cannot type into them.</span>
+          <span>While Callsign runs, its hooks sit in ~/.claude/settings.json (backed up first). They come out when it stops or when you turn this off.</span>
+        </>
+      }
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-meta text-ink-muted">{connected ? "Shown" : "Hidden"}</span>
+        <span className="ml-auto">
+          <PanelButton onClick={() => connection.send({ type: "connect_existing_sessions", connected: !connected })}>{connected ? "Hide them" : "Show them"}</PanelButton>
+        </span>
       </div>
     </Section>
   );
@@ -170,12 +206,16 @@ function ExistingSessionsSection({ connected }: { connected: boolean }) {
 function RunningSection({ keepRunning }: { keepRunning: boolean }) {
   const { connection } = useCallsign();
   return (
-    <Section title="Closing Callsign">
-      <p className="text-meta leading-relaxed text-ink-muted">
-        {keepRunning
-          ? "Callsign keeps running when you close this page. Stop it with Quit, or callsign stop in a terminal."
-          : "Closing the last Callsign page closes Callsign and every session in it after 15 seconds. Sessions come back from Recently closed."}
-      </p>
+    <Section
+      title="Closing Callsign"
+      help={
+        <>
+          <span>By default, closing the last Callsign page closes Callsign and every session in it after 15 seconds, so a reload never does. Sessions come back from Recently closed.</span>
+          <span>You can also stop it with callsign stop in a terminal, and remove it with callsign uninstall.</span>
+        </>
+      }
+    >
+      <p className="text-meta text-ink-muted">{keepRunning ? "Keeps running when the page closes" : "Closes with the page"}</p>
       <div className="flex gap-1">
         <PanelButton onClick={() => connection.send({ type: "set_keep_running", keepRunning: !keepRunning })}>{keepRunning ? "Close with the page" : "Keep running without the page"}</PanelButton>
         <PanelButton onClick={() => connection.send({ type: "quit" })}>Quit Callsign</PanelButton>
@@ -184,10 +224,13 @@ function RunningSection({ keepRunning }: { keepRunning: boolean }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, help, children }: { title: string; help?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-2 rounded-outer border border-line bg-raised p-3">
-      <h3 className="text-meta font-medium text-ink">{title}</h3>
+    <section className="flex flex-col gap-2.5 rounded-outer border border-line bg-raised p-3">
+      <div className="flex items-center gap-1">
+        <h3 className="text-meta font-medium text-ink">{title}</h3>
+        {help && <HelpTip title={title}>{help}</HelpTip>}
+      </div>
       {children}
     </section>
   );
