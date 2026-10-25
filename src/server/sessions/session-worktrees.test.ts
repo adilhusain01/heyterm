@@ -9,6 +9,8 @@ function repository(): string {
   const folder = mkdtempSync(path.join(os.tmpdir(), "heyterm-repo-"));
   const git = (...args: string[]) => execFileSync("git", ["-C", folder, ...args]);
   git("init", "-q");
+  // Git on Windows may turn line endings into CRLF on checkout; these tests compare file contents.
+  git("config", "core.autocrlf", "false");
   writeFileSync(path.join(folder, "notes.txt"), "hi\n");
   git("add", ".");
   git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "start");

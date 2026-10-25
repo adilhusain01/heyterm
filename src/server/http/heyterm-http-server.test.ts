@@ -10,6 +10,7 @@ import type { EventHub } from "./event-hub.ts";
 import type { TerminalBridge } from "./terminal-bridge.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
 
+// Ports stay below 49152: Windows reserves ranges above it, and a test there can fail to listen.
 describe("HeyTermHttpServer", () => {
   it("makes the browser check the page on every load, so an updated HeyTerm shows at once, while hashed assets are kept", async () => {
     const webDirectory = mkdtempSync(path.join(tmpdir(), "heyterm-web-"));
@@ -34,7 +35,7 @@ describe("HeyTermHttpServer", () => {
     const webDirectory = mkdtempSync(path.join(tmpdir(), "heyterm-web-"));
     mkdirSync(path.join(webDirectory, "assets"));
     writeFileSync(path.join(webDirectory, "index.html"), "<!doctype html><title>HeyTerm</title>");
-    const port = 49_000 + Math.floor(Math.random() * 1_000);
+    const port = 43_000 + Math.floor(Math.random() * 1_000);
     const server = new HeyTermHttpServer(port, webDirectory, new RequestGuard(port, "token"), {} as SessionRegistry, {} as EventHub, {} as TerminalBridge, new PairingTickets("token"));
     await server.listen();
     writeFileSync(path.join(webDirectory, "assets", "index-new.js"), "void 1;");
@@ -76,7 +77,7 @@ describe("HeyTermHttpServer", () => {
   });
 
   it("trades a fresh pairing ticket for the token once, and only issues tickets to token holders", async () => {
-    const port = 49_000 + Math.floor(Math.random() * 1_000);
+    const port = 44_000 + Math.floor(Math.random() * 1_000);
     const tickets = new PairingTickets("token");
     const server = new HeyTermHttpServer(port, "/no/web", new RequestGuard(port, "token"), {} as SessionRegistry, {} as EventHub, {} as TerminalBridge, tickets);
     await server.listen();
