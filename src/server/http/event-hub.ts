@@ -14,8 +14,10 @@ const snapshotThrottleMilliseconds = 50;
 
 export class EventHub {
   private readonly sockets = new Set<WebSocket>();
+  // Pages that said they were closing, as opposed to ones whose connection dropped.
+  private readonly pagesClosingOnPurpose = new WeakSet<WebSocket>();
   // How many HeyTerm pages are open, so closing the last one can close HeyTerm.
-  onPageCountChange: (count: number) => void = () => undefined;
+  onPageCountChange: (count: number, lastPageLeftOnPurpose: boolean) => void = () => undefined;
   onQuitRequest: () => void = () => undefined;
   inputLog: InputLog | undefined;
   private snapshotTimer: NodeJS.Timeout | undefined;
@@ -42,14 +44,14 @@ export class EventHub {
 
   connect(socket: WebSocket): void {
     this.sockets.add(socket);
-    this.onPageCountChange(this.sockets.size);
+    this.onPageCountChange(this.sockets.size, false);
     socket.send(JSON.stringify(this.snapshot()));
     socket.send(JSON.stringify({ type: "conversation", entries: this.assistant.conversation() } satisfies ServerMessage));
     this.sendSetup().catch(() => undefined);
     socket.on("message", (raw) => void this.receive(raw.toString(), socket));
     socket.on("close", () => {
       this.sockets.delete(socket);
-      this.onPageCountChange(this.sockets.size);
+      this.onPageCountChange(this.sockets.size, this.pagesClosingOnPurpose.has(socket));
     });
   }
 
@@ -61,6 +63,8 @@ export class EventHub {
       return;
     }
     try {
+      if (message.type === "ping" && socket.readyState === socket.OPEN) socket.send(JSON.stringify({ type: "pong" } satisfies ServerMessage));
+      if (message.type === "page_closing") this.pagesClosingOnPurpose.add(socket);
       if (message.type === "utterance") await this.executor.handleUtterance(String(message.text), message.source === "voice" ? "voice" : "keyboard");
       if (message.type === "action") await this.executor.performClick(message.action);
       if (message.type === "focus") this.executor.setFocus(String(message.session));

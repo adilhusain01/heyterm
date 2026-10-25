@@ -14,6 +14,7 @@ import { createAssistant } from "./conductor/create-assistant.ts";
 import { AssistantMemory } from "./conductor/assistant-memory.ts";
 import { loadConfig } from "./config.ts";
 import { PageBuild } from "../shared/page-build.ts";
+import { PagePresence } from "./http/page-presence.ts";
 import { AttachmentRules } from "./attachments/attachment-rules.ts";
 import { acceptsText } from "./router/fast-path-router.ts";
 import { ExistingSessionConnector } from "./hooks/existing-session-connector.ts";
@@ -44,7 +45,8 @@ import { MacVoice } from "./voice/mac-voice.ts";
 
 const execFileAsync = promisify(execFile);
 
-// A reload or a moment offline is not closing HeyTerm; this long with no page open is.
+// A reload is not closing HeyTerm; this long after the last page closed on purpose is. A page that
+// only lost its connection never stops it (page-presence.ts).
 const closedPageGraceMilliseconds = 15_000;
 
 export interface RunningHeyTerm {
@@ -70,6 +72,11 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
     agentHookFiles
       .repairIfRemoved()
       .then((repaired) => repaired && console.log("Put HeyTerm's Grok and Cursor hooks back; something had removed them."))
+      .catch(() => undefined);
+    void userConfig
+      .load()
+      .then(async (choices) => choices.showOwnTerminalSessions === true && (await connector.repairIfRemoved()))
+      .then((repaired) => repaired && console.log("Put HeyTerm's hooks back in your Claude settings; something had removed them."))
       .catch(() => undefined);
   }, 30_000);
   await stopSessionsFromOlderVersion(config.tmuxSocketName);
@@ -139,16 +146,17 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   const stopAndExit = (reason: string) => void stop(reason).then(() => process.exit(0));
 
   let pageWasOpen = false;
-  hub.onPageCountChange = (count) => {
+  hub.onPageCountChange = (count, lastPageLeftOnPurpose) => {
     clearTimeout(closedPageTimer);
     if (count > 0) {
       pageWasOpen = true;
       return;
     }
-    if (!pageWasOpen) return;
+    if (pageWasOpen && !lastPageLeftOnPurpose) console.log("The page lost its connection. HeyTerm keeps running and the page reconnects by itself.");
     closedPageTimer = setTimeout(() => {
       void userConfig.load().then((choices) => {
-        if (!choices.keepRunningWithoutPage) stopAndExit("the last HeyTerm page was closed");
+        const facts = { openPageCount: count, pageWasOpen, lastPageLeftOnPurpose, keepRunningWithoutPage: choices.keepRunningWithoutPage === true };
+        if (PagePresence.shouldStopSoon(facts)) stopAndExit("the last HeyTerm page was closed");
       });
     }, closedPageGraceMilliseconds);
   };

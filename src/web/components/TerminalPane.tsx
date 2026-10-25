@@ -83,7 +83,9 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
     terminalRef.current = terminal;
     const channel = connection.openTerminal(session.name, terminal.cols, terminal.rows);
     channel.onData((data) => terminal.write(data));
-    channel.onClose(() => terminal.write("\r\n\x1b[2mDisconnected from this session.\x1b[0m\r\n"));
+    channel.onClose(() => terminal.write("\r\n\x1b[2mThis session is no longer running.\x1b[0m\r\n"));
+    channel.onConnectionLost?.(() => terminal.write("\r\n\x1b[2mLost the connection to HeyTerm. Reconnecting...\x1b[0m\r\n"));
+    channel.onRedraw?.(() => terminal.reset());
     // onData also carries the terminal's automatic replies to tmux; only onKey is a person typing.
     const input = terminal.onData((data) => channel.write(data));
     let lastKeystrokeAt = 0;

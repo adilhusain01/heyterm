@@ -63,6 +63,25 @@ describe("HeyTermHttpServer", () => {
     await server.close();
   });
 
+  // A page that went away without closing its socket (a frozen tab, a browser that slept) must not
+  // hold a terminal's output in memory forever, or count as an open page.
+  it("drops a socket that stops answering pings, and keeps one that answers", async () => {
+    const port = 45_000 + Math.floor(Math.random() * 1_000);
+    const hub = { connect: () => undefined } as unknown as EventHub;
+    const server = new HeyTermHttpServer(port, "/no/web", new RequestGuard(port, "token"), {} as SessionRegistry, hub, {} as TerminalBridge, new PairingTickets("token"), { heartbeatMilliseconds: 100 });
+    await server.listen();
+    const silent = new WebSocket(`ws://127.0.0.1:${port}/ws?token=token`, { autoPong: false });
+    const answering = new WebSocket(`ws://127.0.0.1:${port}/ws?token=token`);
+    const silentClosed = new Promise<void>((resolve) => silent.on("close", () => resolve()));
+    let answeringClosed = false;
+    answering.on("close", () => (answeringClosed = true));
+    await silentClosed;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(answeringClosed).toBe(false);
+    answering.close();
+    await server.close();
+  });
+
   it("sends headers that stop other sites framing the page, loading outside scripts or reading the referrer", async () => {
     const port = 48_000 + Math.floor(Math.random() * 1_000);
     const server = new HeyTermHttpServer(port, "/no/web", new RequestGuard(port, "token"), {} as SessionRegistry, {} as EventHub, {} as TerminalBridge, new PairingTickets("token"));

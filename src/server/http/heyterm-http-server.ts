@@ -3,7 +3,7 @@
 import { existsSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import sirv from "sirv";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, type WebSocket } from "ws";
 import { AttachmentRules } from "../attachments/attachment-rules.ts";
 import { forwardedHookEvents } from "../hooks/hook-installer.ts";
 import type { EventHub } from "./event-hub.ts";
@@ -16,6 +16,8 @@ import type { HookEventName } from "../../shared/types.ts";
 const largestHookBodyBytes = 2 * 1024 * 1024;
 // A page's messages are words and clicks; nothing it sends is this large.
 const largestSocketMessageBytes = 256 * 1024;
+// Browsers answer pings on their own; a socket that misses one went away without closing.
+const defaultHeartbeatMilliseconds = 30_000;
 
 export class HeyTermHttpServer {
   private readonly server = createServer((request, response) => void this.handle(request, response));
@@ -25,6 +27,8 @@ export class HeyTermHttpServer {
   // Saves an image for a session and gives it to that session; main.ts sets it.
   onAttachment: (sessionName: string, bytes: Buffer, contentType: string) => Promise<{ ok: boolean; text: string }> = async () => ({ ok: false, text: "Attachments are not set up." });
   private readonly serveWeb: ((request: IncomingMessage, response: ServerResponse) => void) | undefined;
+  private readonly socketsThatAnswered = new WeakSet<WebSocket>();
+  private readonly heartbeatTimer: NodeJS.Timeout;
 
   constructor(
     private readonly port: number,
@@ -34,6 +38,7 @@ export class HeyTermHttpServer {
     private readonly hub: EventHub,
     private readonly terminals: TerminalBridge,
     private readonly tickets: PairingTickets,
+    options: { heartbeatMilliseconds?: number } = {},
   ) {
     // dev reads files from disk on every request instead of listing them once at start, so an update
     // while HeyTerm runs serves the new page, which then asks for a restart, rather than a blank page.
@@ -45,6 +50,8 @@ export class HeyTermHttpServer {
         // A bad frame (too large, malformed) makes ws close that one socket with a reason. Without a
         // listener, the same error would end the whole server.
         webSocket.on("error", () => undefined);
+        this.socketsThatAnswered.add(webSocket);
+        webSocket.on("pong", () => this.socketsThatAnswered.add(webSocket));
         if (url.pathname === "/ws") return this.hub.connect(webSocket);
         if (url.pathname === "/pty") {
           const columns = Number(url.searchParams.get("columns"));
@@ -54,9 +61,24 @@ export class HeyTermHttpServer {
         webSocket.close(4404, "unknown path");
       });
     });
+    this.heartbeatTimer = setInterval(() => this.dropSocketsThatStoppedAnswering(), options.heartbeatMilliseconds ?? defaultHeartbeatMilliseconds);
+    this.heartbeatTimer.unref();
+  }
+
+  // Ending such a socket detaches its pane from the terminal, so output stops piling up for it.
+  private dropSocketsThatStoppedAnswering(): void {
+    for (const client of this.sockets.clients) {
+      if (!this.socketsThatAnswered.has(client)) {
+        client.terminate();
+        continue;
+      }
+      this.socketsThatAnswered.delete(client);
+      client.ping();
+    }
   }
 
   close(): Promise<void> {
+    clearInterval(this.heartbeatTimer);
     for (const client of this.sockets.clients) client.terminate();
     this.server.closeAllConnections();
     return new Promise((resolve) => this.server.close(() => resolve()));

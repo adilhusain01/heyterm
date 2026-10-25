@@ -82,7 +82,7 @@ To see the Claude sessions you start in your own terminals as well, open Setup a
 | `heyterm stop`, Ctrl+C, Quit in Setup, or closing the last HeyTerm page | stops it and every session in it; they wait under Recently closed, and Bring back resumes the conversation |
 | `heyterm uninstall` | stops it, takes its hooks out of your Claude settings and moves `~/.heyterm` to the Trash; then `npm uninstall -g heyterm` removes the command |
 
-Closing the page stops HeyTerm after 15 seconds, so a reload never does. Setup has **Keep running without the page** if you want it to stay up.
+Closing the page stops HeyTerm after 15 seconds, so a reload never does. A page that only lost its connection (the Mac slept, the browser dropped it, the tab sat in the background) never stops it: the page reconnects by itself and redraws every terminal from HeyTerm's copy of the screen, and after 5 seconds without a connection it says so. Setup has **Keep running without the page** if you want it to stay up.
 
 ## How it works
 

@@ -31,6 +31,13 @@ export class ExistingSessionConnector {
     await this.writeSettings(UserSettingsHooks.withHeyTerm(settings, this.scriptPath));
   }
 
+  // Called only while the user wants their own sessions shown. True when the hooks had gone.
+  async repairIfRemoved(): Promise<boolean> {
+    if (await this.isConnected()) return false;
+    await this.connect();
+    return true;
+  }
+
   async disconnect(): Promise<void> {
     const settings = await this.readSettings();
     await this.writeSettings(UserSettingsHooks.withoutHeyTerm(settings));

@@ -13,7 +13,12 @@ export interface ConnectionHandlers {
 
 export interface TerminalChannel {
   onData: (listener: (data: string) => void) => void;
+  // The session ended or is gone; nothing more will come.
   onClose: (listener: () => void) => void;
+  // The connection dropped and is being tried again. Backends that cannot drop leave these out.
+  onConnectionLost?: (listener: () => void) => void;
+  // The connection is back and the whole screen follows: clear the old copy first.
+  onRedraw?: (listener: () => void) => void;
   write: (data: string) => void;
   resize: (columns: number, rows: number) => void;
   close: () => void;

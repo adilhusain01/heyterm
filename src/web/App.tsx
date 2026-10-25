@@ -1,7 +1,8 @@
 // The window: top bar, the rail of what needs you, the terminals, and the command bar.
 
+import { ConnectionHealth } from "./transport/connection-health.ts";
 import { checkPageBuild } from "./transport/page-build-check.ts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Toaster, toast } from "sonner";
 import { HeyTermProvider } from "./app-context.tsx";
 import { CatchUpPanel } from "./components/CatchUpPanel.tsx";
@@ -29,6 +30,7 @@ export function App({ connection, announcer }: { connection: HeyTermConnection; 
 
   const theme = useAppliedTheme();
   useServerMessages(connection, announcer);
+  useOutageNotice();
   useChosenVoice(connection, announcer);
   const setSpeaking = useHeyTermStore((state) => state.setSpeaking);
   useEffect(() => {
@@ -105,6 +107,36 @@ function useServerMessages(connection: HeyTermConnection, announcer: Announcer) 
       },
     });
   }, [connection, announcer, applyServerMessage, setConnectionStatus]);
+}
+
+// Says plainly when HeyTerm cannot be reached, and when it is back, instead of leaving a stale page
+// that looks fine. A blip shorter than the notice delay says nothing.
+const outageToastId = "heyterm-outage";
+function useOutageNotice() {
+  const status = useHeyTermStore((state) => state.connectionStatus);
+  const outageStartedAtRef = useRef<number | undefined>(undefined);
+  const noticeShownRef = useRef(false);
+  useEffect(() => {
+    if (status === "needs_token") return;
+    if (status === "open") {
+      outageStartedAtRef.current = undefined;
+      if (noticeShownRef.current) toast.success("Connected to HeyTerm again. Everything on the page is current.", { id: outageToastId, duration: 4_000 });
+      noticeShownRef.current = false;
+      return;
+    }
+    // "closed" and "connecting" alternate during one outage; it started at the first of them.
+    const outageStartedAt = (outageStartedAtRef.current ??= Date.now());
+    const show = () => {
+      const notice = ConnectionHealth.outageNotice(Date.now() - outageStartedAt);
+      if (!notice) return;
+      noticeShownRef.current = true;
+      const text = notice === "reconnecting" ? "Lost the connection to HeyTerm. Reconnecting..." : "HeyTerm is not answering. If it stopped, run heyterm in a terminal; this page reconnects by itself.";
+      toast.warning(text, { id: outageToastId, duration: Infinity });
+    };
+    show();
+    const timer = window.setInterval(show, 1_000);
+    return () => window.clearInterval(timer);
+  }, [status]);
 }
 
 // Points the announcer at the Mac's voice or the browser's, following Setup.

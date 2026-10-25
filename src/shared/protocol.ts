@@ -112,7 +112,9 @@ export type ServerMessage =
   // A line the assistant says out loud.
   | { type: "say"; text: string }
   // The Mac finished saying a line this page asked for.
-  | { type: "speech_done"; id: number };
+  | { type: "speech_done"; id: number }
+  // The answer to a page's ping, so it knows its connection is still alive.
+  | { type: "pong" };
 
 export type InputSource = "voice" | "keyboard";
 
@@ -129,4 +131,8 @@ export type ClientMessage =
   // Stop HeyTerm and every session in it.
   | { type: "quit" }
   | { type: "speak"; text: string; id: number }
-  | { type: "stop_speaking" };
+  | { type: "stop_speaking" }
+  // Asks for a pong; a page sends it when its connection may have died silently.
+  | { type: "ping" }
+  // Sent as the page closes, so a dropped connection is never taken for closing HeyTerm.
+  | { type: "page_closing" };
