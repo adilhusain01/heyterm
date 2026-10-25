@@ -9,7 +9,9 @@
     "build": "vite build && esbuild src/server/cli.ts --bundle --platform=node --format=esm --packages=external --target=node20 --outfile=dist/server/cli.js",
     "start": "tsx src/server/serve.ts",
     "build:playground": "vite build --mode playground --outDir ../../dist/playground",
-    "notices": "node scripts/notices.mjs"
+    "notices": "node scripts/notices.mjs",
+    "prepublishOnly": "npm run build && npm test",
+    "deploy:playground": "npm run build:playground && cd dist/playground && vercel deploy --prod --yes --project heyterm"
   },
   "license": "MIT",
   "type": "module",

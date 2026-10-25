@@ -47,15 +47,23 @@ function InstallSteps() {
     <>
       <Section title="This is the playground">
         <p className="text-meta leading-relaxed text-ink-muted">
-          The three agents here are simulated, so you can try HeyTerm without installing anything. Speak with Wispr Flow (hold Fn) or type into the bar at the bottom. Try "catch me
-          up", "approve", "after", or "api, run the tests".
+          The three agents here are simulated, so you can try HeyTerm without installing anything. Speak with Wispr Flow (hold Fn) or type into the bar. Try <SayThis>catch me up</SayThis>,{" "}
+          <SayThis>approve</SayThis> or <SayThis>api, run the tests</SayThis>.
         </p>
       </Section>
-      <Section title="Run it on your own sessions">
-        <p className="text-meta text-ink-muted">You need macOS or Linux, Node.js 20+, tmux and Claude Code.</p>
-        <pre className="overflow-x-auto rounded-inner border border-line bg-tray px-2.5 py-2 font-mono shadow-tray text-[12.5px] leading-relaxed text-ink">
-          {["brew install tmux", "npx heyterm doctor", "npx heyterm"].join("\n")}
-        </pre>
+      <Section
+        title="Run it on your own sessions"
+        help={
+          <>
+            <span>Works on macOS, Linux and Windows with Node.js 20 or newer.</span>
+            <span>Install at least one agent: Claude Code, Codex (npm install -g @openai/codex) or Gemini CLI (npm install -g @google/gemini-cli). The assistant uses your Claude login.</span>
+          </>
+        }
+      >
+        <pre className="overflow-x-auto rounded-inner border border-line bg-tray px-2.5 py-2 font-mono text-[12.5px] leading-relaxed text-ink shadow-tray">{["npx heyterm doctor", "npx heyterm"].join("\n")}</pre>
+        <a href="https://github.com/adilhusain01/heyterm" target="_blank" rel="noopener noreferrer" className="text-meta text-ink-muted underline decoration-line-strong underline-offset-2 hover:text-ink">
+          Source and docs on GitHub
+        </a>
       </Section>
       <VoiceSection />
     </>
