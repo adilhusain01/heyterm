@@ -68,8 +68,15 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
             .join("\n");
         });
       }),
-      tool("send_to_session", "Give a session its next prompt, as if the developer typed it.", { name: z.string(), text: z.string() }, ({ name, text }) =>
-        withSession(name, (session) => ownSessionOnly(session, async () => (await sessionActions.deliver(name, text)).text)),
+      tool("send_to_session", "Give a session its next prompt, as if the developer typed it. In a terminal session (agent shell) the text runs as a command, and the reply has its output once it finishes, or the screen so far after 15 seconds.", { name: z.string(), text: z.string() }, ({ name, text }) =>
+        withSession(name, (session) =>
+          ownSessionOnly(session, async () => {
+            if (session.agent !== "shell") return (await sessionActions.deliver(name, text)).text;
+            const { finished, screen } = await launcher.runInTerminal(name, text);
+            const lastLines = screen.split("\n").filter((line) => line.trim()).slice(-screenLinesShown).join("\n");
+            return `${finished ? "The command finished." : "The command is still running."} Screen:\n<session_text>${lastLines}</session_text>`;
+          }),
+        ),
       ),
       tool(
         "answer_question",
@@ -95,11 +102,11 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
       ),
       tool(
         "start_session",
-        "Start a new coding agent session in a folder, with its first task if there is one. The folder is a project name from list_projects or any folder path on this Mac, such as ~/Documents/Projects. The agent is Claude Code unless the developer asks for Codex, Gemini, Grok (Grok Build) or Cursor.",
+        "Start a new coding agent session in a folder, with its first task if there is one. The folder is a project name from list_projects or any folder path on this Mac, such as ~/Documents/Projects. The agent is Claude Code unless the developer asks for Codex, Gemini, Grok (Grok Build) or Cursor. Agent shell is a plain terminal, the developer's login shell with no agent: use it when they ask to open a terminal or a shell; its task, if any, is a shell command to run.",
         {
           project: z.string().describe("A project name, or a folder path"),
           task: z.string().optional(),
-          agent: z.enum(["claude", "codex", "gemini", "grok", "cursor"]).optional(),
+          agent: z.enum(["claude", "codex", "gemini", "grok", "cursor", "shell"]).optional(),
         },
         async ({ project, task, agent }) =>
           reply((await sessionActions.perform({ type: "spawn", project, ...(task ? { task } : {}), ...(agent ? { agent } : {}) }, (sessionName) => executor.setFocus(sessionName))).text),
@@ -108,8 +115,8 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
         withSession(name, (session) =>
           ownSessionOnly(session, async () => {
             if (!confirmed) {
-              if (session.state === "working") return `${name} is still working. Ask the developer, then call again with confirmed.`;
-              if (await sessionActions.hasUncommittedChanges(name)) return `${name} has uncommitted changes. Ask the developer, then call again with confirmed.`;
+              const warning = await sessionActions.closeWarning(name);
+              if (warning) return `${name} ${warning}. Ask the developer, then call again with confirmed.`;
             }
             return (await sessionActions.close(name)).text;
           }),

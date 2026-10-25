@@ -31,3 +31,15 @@ describe("WorktreePlan.branchName", () => {
     expect(WorktreePlan.branchName("api-2", ["heyterm/api-2"])).toBe("heyterm/api-2-2");
   });
 });
+
+describe("WorktreePlan.needsOwnWorktree for terminals", () => {
+  // A terminal opened in a project is for working in that folder, beside its agent.
+  it("opens a terminal in the folder itself, even when an agent works there", () => {
+    expect(WorktreePlan.needsOwnWorktree("/p/api", [open("/p/api")], "shell")).toBe(false);
+  });
+
+  // A shell edits nothing by itself, so it does not push an agent into a worktree.
+  it("does not count an open terminal as an agent using the folder", () => {
+    expect(WorktreePlan.needsOwnWorktree("/p/api", [{ ...open("/p/api", "idle"), agent: "shell" }])).toBe(false);
+  });
+});

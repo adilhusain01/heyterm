@@ -106,6 +106,16 @@ export class SessionActions {
     return this.launcher.hasUncommittedChanges(sessionName);
   }
 
+  // Why closing should be asked about first, if at all. A terminal's folder changes are not the
+  // terminal's own work, so for one only a command still running counts.
+  async closeWarning(sessionName: string): Promise<string | undefined> {
+    const session = this.registry.get(sessionName);
+    if (!session) return undefined;
+    if (session.agent === "shell") return this.launcher.isCommandRunning(sessionName) ? "is still running a command" : undefined;
+    if (session.state === "working") return "is still working";
+    return (await this.hasUncommittedChanges(sessionName)) ? "has uncommitted changes" : undefined;
+  }
+
   catchUp(sessionName: string | undefined): SessionDigest[] {
     const sessions = sessionName ? this.registry.list().filter((session) => session.name === sessionName) : this.registry.list();
     const digests = sessionName ? sessions.map((session) => CatchUpDigest.forSession(session)) : CatchUpDigest.forAll(sessions);
@@ -127,6 +137,7 @@ export class SessionActions {
       return { text: error instanceof Error ? error.message : String(error), tone: "warning", speak: true };
     }
     focus(session.name);
+    if (session.agent === "shell") return { text: `Opened a terminal in ${project.name}, called ${session.name}.${action.task ? " It runs your command now." : ""}`, tone: "success", speak: false };
     const taskNote = action.task ? " It gets the task once it is ready." : "";
     if (session.worktree) {
       return { text: `Starting ${session.name} in a copy of the folder of its own, on a new branch, so it and the other session there cannot change each other's files. It starts from the last commit.${taskNote}`, tone: "success", speak: true };

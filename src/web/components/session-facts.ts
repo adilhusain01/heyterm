@@ -19,7 +19,7 @@ export interface SessionFactRow {
   isCode?: boolean;
 }
 
-const agentNames: Record<AgentKind, string> = { claude: "Claude Code", codex: "Codex", gemini: "Gemini CLI", grok: "Grok Build", cursor: "Cursor" };
+const agentNames: Record<AgentKind, string> = { claude: "Claude Code", codex: "Codex", gemini: "Gemini CLI", grok: "Grok Build", cursor: "Cursor", shell: "None, a plain terminal" };
 
 export class SessionFacts {
   static rows(session: SessionFactsInput, now: number): SessionFactRow[] {

@@ -15,7 +15,7 @@ import { avatarRadius, SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { Tray } from "../ui/Surfaces.tsx";
 import { RenameField, RowActionButton, RowActions, SessionDetailsCard } from "./SessionDetails.tsx";
 import { SessionIdentity } from "./session-identity.ts";
-import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
+import { agentTag, isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
 import type { ClosedSessionView } from "../../shared/protocol.ts";
 import type { AgentKind, AnnouncementMode, SessionView } from "../../shared/types.ts";
 
@@ -159,7 +159,7 @@ function RailSession({ session, isHead }: { session: SessionView; isHead: boolea
     <>
       <span className="flex items-center gap-1.5">
         <span className="font-mono text-ink">{session.name}</span>
-        {session.agent !== "claude" && <span className="text-small text-ink-faint">{session.agent}</span>}
+        {agentTag(session.agent) && <span className="text-small text-ink-faint">{agentTag(session.agent)}</span>}
         {session.origin === "external" && <span className="text-small text-ink-faint">own terminal</span>}
       </span>
       <span className="flex items-center gap-1.5 text-small">
@@ -239,7 +239,7 @@ function SessionRow({ session }: { session: SessionView }) {
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="flex items-center gap-1.5">
               <span className="truncate font-mono text-meta text-ink">{session.name}</span>
-              {session.agent !== "claude" && <span className="shrink-0 text-small text-ink-faint">{session.agent}</span>}
+              {agentTag(session.agent) && <span className="shrink-0 text-small text-ink-faint">{agentTag(session.agent)}</span>}
               {session.origin === "external" && <span className="shrink-0 text-small text-ink-faint">own terminal</span>}
             </span>
             <span className="flex items-center gap-1.5 text-small">
@@ -311,15 +311,14 @@ function NewSessionPicker({ onDone }: { onDone: () => void }) {
   const shown = projects.filter((project) => project.includes(filter.toLowerCase())).slice(0, 10);
   return (
     <Tray className="enter-rise mb-1 flex flex-col gap-1 p-1">
-      {installedAgents.length > 1 && (
-        <Segmented
-          label="Agent"
-          stretch
-          value={agent}
-          onChange={setAgent}
-          options={installedAgents.map((installed) => ({ value: installed.kind, label: installed.label.replace(" CLI", "").replace(" Code", "") }))}
-        />
-      )}
+      {/* A plain terminal needs nothing installed, so there is always a choice to make here. */}
+      <Segmented
+        label="Agent"
+        stretch
+        value={agent}
+        onChange={setAgent}
+        options={[...installedAgents.map((installed) => ({ value: installed.kind, label: installed.label.replace(" CLI", "").replace(" Code", "") })), { value: "shell" as AgentKind, label: "Terminal" }]}
+      />
       <input
         autoFocus
         value={filter}

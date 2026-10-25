@@ -27,6 +27,8 @@ export interface NewTerminalSession {
   program: string;
   args: string[] | string;
   environment: Record<string, string>;
+  // Variables HeyTerm has that this program must not get.
+  leaveOut?: string[];
 }
 
 // A page showing one terminal.
@@ -62,6 +64,7 @@ export class TerminalHost extends EventEmitter<{ exit: [string] }> {
   createSession(session: NewTerminalSession): void {
     if (this.terminals.has(session.name)) throw new Error(`A terminal called ${session.name} is already running.`);
     const environment: Record<string, string> = { ...withoutInheritedMarkers(process.env), TERM: "xterm-256color", ...session.environment };
+    for (const name of session.leaveOut ?? []) delete environment[name];
     const child = pty.spawn(session.program, session.args, {
       name: "xterm-256color",
       cols: defaultColumns,
@@ -111,6 +114,14 @@ export class TerminalHost extends EventEmitter<{ exit: [string] }> {
 
   pressKeys(name: string, keys: string[]): void {
     this.terminals.get(name)?.process.write(TerminalInput.keys(keys));
+  }
+
+  // The program in front in the terminal ("zsh", or "npm" while a command runs). Windows does not
+  // say, so there it is unknown.
+  foregroundProgram(name: string): string | undefined {
+    const hosted = this.terminals.get(name);
+    if (!hosted || process.platform === "win32") return undefined;
+    return hosted.process.process;
   }
 
   // The visible screen as plain text. Async so callers wait for output still being parsed.

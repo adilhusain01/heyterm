@@ -11,7 +11,8 @@ export type SessionState =
   | "failed"
   | "stopped";
 
-export type AgentKind = "claude" | "codex" | "gemini" | "grok" | "cursor";
+// "shell" is a plain terminal: the developer's login shell, with no agent and no hooks.
+export type AgentKind = "claude" | "codex" | "gemini" | "grok" | "cursor" | "shell";
 
 export type RiskLevel = "low" | "high";
 

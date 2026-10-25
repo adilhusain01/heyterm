@@ -52,4 +52,20 @@ describe("AgentAdapters", () => {
   it("knows which agents need an id chosen before they start", () => {
     expect(AgentAdapters.all().filter((adapter) => adapter.choosesSessionIdAtLaunch).map((adapter) => adapter.kind)).toEqual(["grok"]);
   });
+
+  // Asked on 26 October 2026: "open a terminal" opened the Terminal app, as HeyTerm had no plain shell.
+  it("starts a terminal as the developer's own login shell, with no agent and no hooks", () => {
+    const launch = AgentAdapters.get("shell").newSession(context);
+    if (process.platform === "win32") expect(launch.args).toEqual([]);
+    else expect(launch).toEqual({ program: process.env.SHELL || "/bin/zsh", args: ["-l"] });
+  });
+
+  it("brings a closed terminal back as a fresh shell, since a shell keeps no conversation", () => {
+    expect(AgentAdapters.get("shell").resume({ agentSessionId: "abc", conversationSaved: true }, context)).toEqual(AgentAdapters.get("shell").newSession(context));
+  });
+
+  it("knows the terminal as a kind of session but lists only coding agents in setup", () => {
+    expect(AgentAdapters.isKnown("shell")).toBe(true);
+    expect(AgentAdapters.all().map((adapter) => adapter.kind)).not.toContain("shell");
+  });
 });

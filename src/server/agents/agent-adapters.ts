@@ -100,19 +100,35 @@ const cursor: AgentAdapter = {
   resume: (point) => ({ program: "cursor-agent", args: point.agentSessionId && point.conversationSaved ? ["--resume", point.agentSessionId] : [] }),
 };
 
-const adapters: AgentAdapter[] = [claude, codex, gemini, grok, cursor];
+// The developer's own login shell, as their terminal app would start it. Windows has no login flag.
+const loginShellProgram = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : process.env.SHELL || "/bin/zsh";
+const loginShellLaunch = (): AgentLaunch => ({ program: loginShellProgram, args: process.platform === "win32" ? [] : ["-l"] });
+
+const shell: AgentAdapter = {
+  kind: "shell",
+  label: "Terminal",
+  program: loginShellProgram,
+  installHint: `HeyTerm could not find your shell, ${loginShellProgram}.`,
+  newSession: loginShellLaunch,
+  // A shell keeps no conversation, so bringing one back starts a new one in the same folder.
+  resume: loginShellLaunch,
+};
+
+const codingAgents: AgentAdapter[] = [claude, codex, gemini, grok, cursor];
+const everyKind: AgentAdapter[] = [...codingAgents, shell];
 
 export class AgentAdapters {
   static get(kind: AgentKind): AgentAdapter {
-    return adapters.find((adapter) => adapter.kind === kind) ?? claude;
+    return everyKind.find((adapter) => adapter.kind === kind) ?? claude;
   }
 
+  // The coding agents, for setup and the doctor; the plain terminal needs nothing installed.
   static all(): AgentAdapter[] {
-    return adapters;
+    return codingAgents;
   }
 
   static isKnown(kind: string): kind is AgentKind {
-    return adapters.some((adapter) => adapter.kind === kind);
+    return everyKind.some((adapter) => adapter.kind === kind);
   }
 }
 

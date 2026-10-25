@@ -70,6 +70,24 @@ posixOnly("TerminalHost", () => {
     }
   });
 
+  it("leaves out the variables a session asks it to, even when HeyTerm has them", async () => {
+    process.env.TERM_SESSION_ID = "85968E5F";
+    try {
+      const host = makeHost();
+      host.createSession({ name: "plain", workingDirectory: "/tmp", program: "/bin/sh", args: ["-c", 'echo "tab=[${TERM_SESSION_ID}]"; sleep 5'], environment: {}, leaveOut: ["TERM_SESSION_ID"] });
+      await waitFor(async () => (await host.captureScreen("plain")).includes("tab=[]"));
+    } finally {
+      delete process.env.TERM_SESSION_ID;
+    }
+  });
+
+  // How HeyTerm knows a command still runs in a plain terminal, which sends no hooks.
+  it("names the program in front in the terminal", async () => {
+    const host = makeHost();
+    host.createSession({ name: "front", workingDirectory: "/tmp", program: "/bin/sh", args: ["-c", "sleep 5"], environment: {} });
+    await waitFor(() => host.foregroundProgram("front") === "sleep");
+  });
+
   it("reports when a program ends by itself and forgets the session", async () => {
     const host = makeHost();
     const ended: string[] = [];

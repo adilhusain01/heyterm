@@ -3,11 +3,14 @@
 // session uses works in a worktree of its own. Pure.
 
 import path from "node:path";
-import type { SessionView } from "../../shared/types.ts";
+import type { AgentKind, SessionView } from "../../shared/types.ts";
 
 export class WorktreePlan {
-  static needsOwnWorktree(projectPath: string, openSessions: Array<Pick<SessionView, "projectPath" | "state">>): boolean {
-    return openSessions.some((session) => session.state !== "stopped" && foldersOverlap(session.projectPath, projectPath));
+  // A terminal works in the folder itself, and an open terminal does not count as using one: a shell
+  // edits nothing unless the developer runs something in it.
+  static needsOwnWorktree(projectPath: string, openSessions: Array<Pick<SessionView, "projectPath" | "state"> & { agent?: AgentKind }>, newSessionAgent: AgentKind = "claude"): boolean {
+    if (newSessionAgent === "shell") return false;
+    return openSessions.some((session) => session.agent !== "shell" && session.state !== "stopped" && foldersOverlap(session.projectPath, projectPath));
   }
 
   static branchName(sessionName: string, existingBranches: string[]): string {

@@ -55,4 +55,15 @@ describe("ConductorTurnText", () => {
     for (const ability of ["install", "WebSearch", "screencapture", "write", "MCP", "session_changes", "rename_session"]) expect(conductorSystemPrompt).toContain(ability);
     expect(conductorSystemPrompt).not.toContain("for quick look-ups");
   });
+
+  // Asked on 26 October 2026: "open a terminal" made the assistant open the Terminal app.
+  it("tells the assistant to open a terminal as a HeyTerm session, never the Terminal app", () => {
+    expect(conductorSystemPrompt).toContain('agent "shell"');
+    expect(conductorSystemPrompt).toContain("never open the Terminal app");
+  });
+
+  it("marks a terminal session, so the assistant knows what it sends there runs as a command", () => {
+    const text = ConductorTurnText.forUtterance("what is running", { sessions: [{ ...session, name: "portfolio-terminal", agent: "shell", state: "idle" }], projectNames: [], recentlyClosedNames: [] });
+    expect(text).toContain("a plain terminal");
+  });
 });

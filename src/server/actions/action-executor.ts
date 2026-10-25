@@ -200,7 +200,7 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
     if (!session) return this.tell({ text: `There is no session called ${sessionName}.`, tone: "warning", speak: true });
     if (session.origin === "external") return this.tell({ text: `${sessionName} runs in your own terminal. Close it there.`, tone: "info", speak: true });
     if (!confirmed) {
-      const reason = session.state === "working" ? "is still working" : (await this.sessionActions.hasUncommittedChanges(sessionName)) ? "has uncommitted changes" : undefined;
+      const reason = await this.sessionActions.closeWarning(sessionName);
       if (reason) {
         this.controls.awaitConfirmation(`close ${sessionName}`, () => this.close(sessionName, true));
         return this.tell({ text: `${sessionName} ${reason}. Say confirm to close it.`, tone: "warning", speak: true });

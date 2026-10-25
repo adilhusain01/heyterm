@@ -6,6 +6,7 @@ import { execFile } from "node:child_process";
 import { access, stat } from "node:fs/promises";
 import { promisify } from "node:util";
 import { ScreenReader } from "./screen-reader.ts";
+import { ShellRules } from "./shell-rules.ts";
 import { ClaudeConversationFile } from "./claude-conversation-file.ts";
 import { ClaudeSessionRecords } from "./claude-session-watcher.ts";
 import { ConversationOwner } from "./conversation-owner.ts";
@@ -26,6 +27,11 @@ export type DeliveryResult = "submitted" | "queued" | "failed";
 const promptConfirmationMilliseconds = 2_500;
 // Pasted text needs a moment to settle in the agent's input before return is pressed.
 const pasteSettleMilliseconds = 150;
+// A command the assistant runs in a terminal: how long until its program shows, how often to look
+// whether it is done, and how long to wait at most before reading the screen anyway.
+const commandStartMilliseconds = 300;
+const commandPollMilliseconds = 200;
+const terminalCommandWaitMilliseconds = 15_000;
 
 interface LauncherPaths {
   claudeSettingsPath: string;
@@ -50,9 +56,10 @@ export class SessionLauncher {
 
   async start(projectPath: string, projectName: string, task?: string, agent: AgentKind = "claude"): Promise<SessionView> {
     await this.ensureInstalled(agent);
-    const name = this.uniqueName(projectName);
-    // A second session in a folder another open session uses works in a git worktree of its own.
-    const sharesAFolder = WorktreePlan.needsOwnWorktree(projectPath, this.registry.list());
+    const isTerminal = agent === "shell";
+    const name = this.uniqueName(isTerminal ? ShellRules.sessionName(projectName) : projectName);
+    // A second agent in a folder another open session uses works in a git worktree of its own.
+    const sharesAFolder = WorktreePlan.needsOwnWorktree(projectPath, this.registry.list(), agent);
     const made = sharesAFolder && this.worktrees ? await this.worktrees.create(projectPath, name) : undefined;
     const now = Date.now();
     const session: SessionView = {
@@ -61,7 +68,8 @@ export class SessionLauncher {
       ...(made ? { worktree: { repoPath: made.repoPath, worktreePath: made.worktreePath, branch: made.branch, baseCommit: made.baseCommit } } : {}),
       projectName,
       agent,
-      state: "starting",
+      // A shell sends no hooks to say it is up; it takes typing as soon as it starts.
+      state: isTerminal ? "idle" : "starting",
       stateSince: now,
       createdAt: now,
       lastSeenAt: now,
@@ -83,7 +91,8 @@ export class SessionLauncher {
     }
     const conversationFile = closed.agent === "claude" && closed.agentSessionId ? await ClaudeConversationFile.find(closed.agentSessionId, closed.transcriptPath) : undefined;
     const conversationFolder = conversationFile ? await ClaudeConversationFile.lastFolder(conversationFile) : undefined;
-    const reopened = ConversationOwner.reopenedHere(closed, Date.now());
+    const reopenedHere = ConversationOwner.reopenedHere(closed, Date.now());
+    const reopened: SessionView = closed.agent === "shell" ? { ...reopenedHere, state: "idle" } : reopenedHere;
     const session = conversationFile && conversationFolder && (await isFolder(conversationFolder)) ? ConversationOwner.inItsConversationsFolder(reopened, conversationFolder, conversationFile) : reopened;
     // Left behind with nothing in it, the worktree goes; with changes or commits it stays.
     if (closed.worktree && !session.worktree) void this.removeWorktreeIfUnused(closed.worktree).catch(() => undefined);
@@ -159,6 +168,13 @@ export class SessionLauncher {
   async deliverText(name: string, text: string): Promise<DeliveryResult> {
     const session = this.registry.get(name);
     if (!session || !this.host.hasSession(name)) return "failed";
+    // A shell sends no prompt hook to confirm with; one return runs the command.
+    if (session.agent === "shell") {
+      this.host.pasteText(name, text);
+      await delay(pasteSettleMilliseconds);
+      this.host.pressKeys(name, ["Enter"]);
+      return "submitted";
+    }
     // A working agent queues the text and submits it after its current step.
     const isWorking = session.state === "working";
     this.host.pasteText(name, text);
@@ -171,6 +187,23 @@ export class SessionLauncher {
     const secondConfirmation = this.registry.waitForPromptSubmitted(name, promptConfirmationMilliseconds);
     this.host.pressKeys(name, ["Enter"]);
     return (await secondConfirmation) ? "submitted" : "failed";
+  }
+
+  isCommandRunning(name: string): boolean {
+    const session = this.registry.get(name);
+    return session?.agent === "shell" && ShellRules.isCommandRunning(this.host.foregroundProgram(name), AgentAdapters.get("shell").program);
+  }
+
+  // For the assistant: runs a command in a terminal session and waits, up to a limit, for the shell
+  // to come back, so what it reads is the command's output and not the moment after return.
+  async runInTerminal(name: string, command: string, longestWaitMilliseconds = terminalCommandWaitMilliseconds): Promise<{ finished: boolean; screen: string }> {
+    if ((await this.deliverText(name, command)) === "failed") return { finished: false, screen: "" };
+    await delay(commandStartMilliseconds);
+    const startedAt = Date.now();
+    while (this.isCommandRunning(name) && Date.now() - startedAt < longestWaitMilliseconds) await delay(commandPollMilliseconds);
+    const finished = !this.isCommandRunning(name);
+    await delay(commandStartMilliseconds);
+    return { finished, screen: await this.host.captureScreen(name) };
   }
 
   async hasUncommittedChanges(name: string): Promise<boolean> {
@@ -198,7 +231,11 @@ export class SessionLauncher {
   private launch(session: SessionView, agentLaunch: { program: string; args: string[] }): void {
     const { file, args } = LaunchCommand.forPlatform(agentLaunch.program, agentLaunch.args);
     try {
-      this.host.createSession({ name: session.name, workingDirectory: session.projectPath, program: file, args, environment: { HEYTERM_SESSION: session.name } });
+      // Without HEYTERM_SESSION in a terminal, an agent started inside it reports as a session of the
+      // developer's own, instead of under the terminal's name, which sends no hooks.
+      const environment: Record<string, string> = session.agent === "shell" ? {} : { HEYTERM_SESSION: session.name };
+      const leaveOut = session.agent === "shell" ? ShellRules.variablesLeftOut : [];
+      this.host.createSession({ name: session.name, workingDirectory: session.projectPath, program: file, args, environment, leaveOut });
     } catch (error) {
       this.registry.remove(session.name);
       throw error;

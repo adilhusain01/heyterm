@@ -200,6 +200,22 @@ describe("other agents and closed sessions", () => {
     expect(router.route("start a session in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio" });
   });
 
+  // Asked on 26 October 2026: "open a terminal" opened the Terminal app; it means a plain shell here.
+  it("opens a plain terminal when the developer asks for a terminal or a shell", () => {
+    expect(router.route("open a terminal in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio", agent: "shell" });
+    expect(router.route("start a shell in peeker", makeContext())).toEqual({ type: "spawn", project: "peeker", agent: "shell" });
+    expect(router.route("open a new terminal for portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio", agent: "shell" });
+  });
+
+  // Words after the folder are a request, not a command a shell can run; the assistant turns them into one.
+  it("leaves a terminal with something to do in it to the assistant", () => {
+    expect(router.route("open a terminal in portfolio and run the tests", makeContext())).toBeUndefined();
+  });
+
+  it("still starts the named agent when a terminal is asked for with one", () => {
+    expect(router.route("open a codex terminal in portfolio", makeContext())).toEqual({ type: "spawn", project: "portfolio", agent: "codex" });
+  });
+
   it("brings back a recently closed session at once, without asking the assistant", () => {
     expect(router.route("bring back ultron", makeContext({ recentlyClosedNames: ["ultron"] }))).toEqual({ type: "resume", session: "ultron" });
   });

@@ -40,4 +40,8 @@ describe("SessionFacts.rows", () => {
     const rows = SessionFacts.rows({ agent: "claude", projectPath: "/data/worktrees/api-api-2", worktree: { repoPath: "/p/api", worktreePath: "/data/worktrees/api-api-2", branch: "heyterm/api-2", baseCommit: "abc" } }, now);
     expect(rows).toContainEqual({ label: "Branch", value: "heyterm/api-2, in a worktree of /p/api", isCode: true });
   });
+
+  it("says a terminal runs no agent", () => {
+    expect(SessionFacts.rows({ agent: "shell" }, now)).toEqual([{ label: "Agent", value: "None, a plain terminal" }]);
+  });
 });

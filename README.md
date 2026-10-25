@@ -19,6 +19,7 @@ python3 scripts/measure-waits.py
 | You say | HeyTerm does |
 | --- | --- |
 | "start a session in portfolio and fix the phone menu" | starts Claude Code in that project and gives it the task |
+| "open a terminal in synqed" | opens a plain terminal there: your login shell, no agent, called `synqed-terminal`; **+** in the sidebar has a Terminal choice too |
 | "peeker, run the tests again" / "tell bookboy to use Neon" | sends your words to that session, after a 1.5 second preview you can cancel |
 | "approve" / "no, use pnpm instead" | answers the permission at the top of the queue; a "no" passes your reason to Claude |
 | "Neon" / "the second one" | answers a multiple-choice question, with no arrow keys |
@@ -37,7 +38,7 @@ HeyTerm speaks with your Mac's own voice (whatever is set in System Settings, Ac
 ## What you see
 
 - **Sessions on the left**, each with its own face and its state, waits counted while it needs you. Hover a row for its agent, folder, branch, times and session id; rename any session from its row, and take closed ones off the list. The sidebar folds to a rail of faces that are named when you hover.
-- **Terminals in the middle**, in a grid or one at a time.
+- **Terminals in the middle**, in a grid or one at a time. Besides agent sessions, a plain terminal runs your login shell in a folder of your choice: type into it like any terminal, and the assistant can run commands there and read their output ("open a terminal", "in synqed-terminal, run the tests and tell me what failed"). It opens in the folder itself, never a worktree, and closing one asks first only while a command runs.
 - **The conversation on the right.** When a session needs you, its request arrives as a message there, with buttons and the words to say. Answer by voice or click; your answer shows up as your own message under it. Fold the column away and the most urgent request sits in one slim row above the bar you talk into.
 - **What each task changed.** A finished session says how many files it changed; "what did api change?" names them. A session that goes quiet for five minutes (or runs one command for ten) is named too.
 - **See what the assistant ran.** Each command it runs is a line in the conversation; click it for the full command and its output, and click again to close it.

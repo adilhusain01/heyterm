@@ -1,6 +1,6 @@
 // How each session state looks and reads, from one table so every view agrees.
 
-import type { AttentionKind, SessionState, SessionView } from "../../shared/types.ts";
+import type { AgentKind, AttentionKind, SessionState, SessionView } from "../../shared/types.ts";
 
 interface StateDisplay {
   label: string;
@@ -24,6 +24,12 @@ export const stateDisplay: Record<SessionState, StateDisplay> = {
 };
 
 const waitingStates: SessionState[] = ["needs_permission", "asked", "needs_trust", "done", "failed"];
+
+// The word beside a session's name saying what runs in it. Claude Code is the default and goes unsaid.
+export function agentTag(agent: AgentKind): string | undefined {
+  if (agent === "claude") return undefined;
+  return agent === "shell" ? "terminal" : agent;
+}
 
 export function isWaitingOnUser(state: SessionState): boolean {
   return waitingStates.includes(state);
