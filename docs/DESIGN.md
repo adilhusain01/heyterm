@@ -36,7 +36,7 @@ All live in `src/web/styles.css` under `@theme`, and every component takes its v
 | `FoldedText` | A command or path shown in a tray, folded to four lines with a key to open it. | Design taste, decluttering |
 | `Hint` | What to say out loud, in the faint ink, with the spoken words in quotes. | |
 | `Kbd` | A key cap for keyboard hints. | |
-| `SessionAvatar` | Each session's own face: its initials (P, DS, W2) on a soft colour of its own, muted so the saturated state badge still stands out. | |
+| `SessionAvatar` | Each session's own face: a DiceBear Adventurer drawn from its name, on a pastel tile coloured from the same name, with the state as a badge. The style is CC BY 4.0 by Lisa Wischofsky, credited in THIRD_PARTY_NOTICES.md. | [DiceBear](https://www.dicebear.com/styles/adventurer/) |
 | `HelpTip` | A "?" beside a heading that opens a short card explaining it, drawn above everything and kept on screen. Headings stay one word or two. | |
 | `Markdown` | What agents write, rendered from Markdown with no raw HTML, so nothing an agent writes can run in the page. | react-markdown |
 | `icons` | Lucide icons fetched with better-icons from Iconify and kept as source; 1.75px stroke. | Lucide via better-icons |
