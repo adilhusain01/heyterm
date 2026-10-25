@@ -1,7 +1,7 @@
 {
   "name": "heyterm",
   "version": "0.1.0",
-  "description": "Run your coding agents by voice: one window for all your Claude Code sessions, with a voice layer that routes what you say and tells you when a session needs you.",
+  "description": "Run your coding agents by voice: Claude Code, Codex and Gemini CLI in one window, with an assistant that hears you and speaks up when a session needs you.",
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
@@ -15,7 +15,6 @@
   },
   "license": "MIT",
   "type": "module",
-  "private": "true",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.310",
     "@lydell/node-pty": "^1.2.0-beta.15",
@@ -68,5 +67,24 @@
     "THIRD_PARTY_NOTICES.md",
     "SECURITY.md",
     "assets"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adilhusain01/heyterm.git"
+  },
+  "homepage": "https://github.com/adilhusain01/heyterm#readme",
+  "bugs": {
+    "url": "https://github.com/adilhusain01/heyterm/issues"
+  },
+  "author": "Adil Husain",
+  "keywords": [
+    "voice",
+    "claude-code",
+    "codex",
+    "gemini-cli",
+    "coding-agents",
+    "terminal",
+    "dictation",
+    "wispr-flow"
   ]
 }
