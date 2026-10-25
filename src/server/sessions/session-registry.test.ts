@@ -71,6 +71,17 @@ describe("SessionRegistry.rename", () => {
     expect(registry.get("synqed")).toBeUndefined();
   });
 
+  it("keeps the face a session had before it was renamed, open or closed, however often", () => {
+    const registry = makeRegistry();
+    registry.add(session("synqed", { agent: "claude" }));
+    registry.rename("synqed", "synqed-auth");
+    registry.rename("synqed-auth", "login");
+    expect(registry.get("login")?.faceSeed).toBe("synqed");
+    registry.remove("login");
+    registry.rename("login", "login-old");
+    expect(registry.recentlyClosedSessions()[0]?.faceSeed).toBe("synqed");
+  });
+
   it("renames a closed session, so it comes back under the new name", () => {
     const registry = makeRegistry();
     registry.add(session("mine", { agent: "claude" }));

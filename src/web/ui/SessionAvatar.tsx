@@ -4,6 +4,7 @@
 
 import { Avatar, Style } from "@dicebear/core";
 import adventurer from "@dicebear/styles/adventurer.json" with { type: "json" };
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { AvatarTile } from "./AvatarTile.tsx";
 import type { SessionState } from "../../shared/types.ts";
 
@@ -22,6 +23,8 @@ export function faceFor(name: string): string {
   return face;
 }
 
+// A renamed session keeps the face of its first name, wherever only its current name is known.
 export function SessionAvatar({ name, state, size = 28 }: { name: string; state?: SessionState; size?: number }) {
-  return <AvatarTile name={name} face={faceFor(name)} state={state} size={size} />;
+  const faceSeed = useHeyTermStore((store) => store.sessions.find((session) => session.name === name)?.faceSeed ?? store.recentlyClosed.find((closed) => closed.name === name)?.faceSeed);
+  return <AvatarTile name={name} face={faceFor(faceSeed ?? name)} state={state} size={size} />;
 }

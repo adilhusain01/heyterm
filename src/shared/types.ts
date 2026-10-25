@@ -77,6 +77,8 @@ export interface SessionView {
   // A dialog HeyTerm was holding when it restarted: it is on screen in the terminal, and typed text would land in it.
   blockedByTerminalDialog?: boolean;
   agentSessionId?: string;
+  // The name the session's face is drawn from: its first name, so a rename keeps the face.
+  faceSeed?: string;
   // What a needs_trust session asks to trust: its folder, or (Codex) hooks it has not seen before.
   trustSubject?: "folder" | "hooks";
   // Where Claude saves this session's conversation; the file exists only once a message was sent.

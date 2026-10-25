@@ -40,6 +40,7 @@ export interface ClosedSessionView {
   projectPath?: string;
   origin?: SessionOrigin;
   agentSessionId?: string;
+  faceSeed?: string;
   createdAt?: number;
   closedAt?: number;
 }

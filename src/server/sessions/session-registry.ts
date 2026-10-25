@@ -128,7 +128,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     if (problem) return problem;
     if (live) {
       this.sessions.delete(currentName);
-      this.sessions.set(newName, { ...live, name: newName });
+      this.sessions.set(newName, { ...live, name: newName, faceSeed: live.faceSeed ?? currentName });
       // A session HeyTerm started reports under its launch name for as long as it runs.
       this.launchNames.set(currentName, newName);
       for (const [launchName, renamedTo] of this.launchNames) if (renamedTo === currentName) this.launchNames.set(launchName, newName);
@@ -139,7 +139,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
         this.promptWaiters.set(newName, waiters);
       }
     } else {
-      this.recentlyClosed = this.recentlyClosed.map((closed, index) => (index === closedIndex ? { ...closed, name: newName } : closed));
+      this.recentlyClosed = this.recentlyClosed.map((closed, index) => (index === closedIndex ? { ...closed, name: newName, faceSeed: closed.faceSeed ?? currentName } : closed));
     }
     this.announceChange();
     return undefined;

@@ -122,6 +122,7 @@ export class EventHub {
         projectPath: session.projectPath,
         ...(session.origin ? { origin: session.origin } : {}),
         ...(session.agentSessionId ? { agentSessionId: session.agentSessionId } : {}),
+        ...(session.faceSeed ? { faceSeed: session.faceSeed } : {}),
         createdAt: session.createdAt,
         closedAt: session.stateSince,
       })),
