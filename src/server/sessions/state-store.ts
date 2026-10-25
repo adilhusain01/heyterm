@@ -35,9 +35,18 @@ export class StateStore {
   }
 
   // Written to a temporary file first, so a crash never leaves half a file.
-  async save(state: SavedState): Promise<void> {
+  // Saves run one at a time: on Windows a rename onto a file another rename is replacing fails.
+  save(state: SavedState): Promise<void> {
+    const next = this.saving.then(() => this.write(state));
+    // A failed save must not stop the ones after it.
+    this.saving = next.catch(() => undefined);
+    return next;
+  }
+
+  private saving: Promise<void> = Promise.resolve();
+
+  private async write(state: SavedState): Promise<void> {
     await mkdir(path.dirname(this.filePath), { recursive: true });
-    // A name of its own per save, so overlapping saves never write into the same temporary file.
     const temporaryPath = `${this.filePath}.${process.pid}.${randomUUID()}.tmp`;
     await writeFile(temporaryPath, JSON.stringify(state), { mode: 0o600 });
     await rename(temporaryPath, this.filePath);

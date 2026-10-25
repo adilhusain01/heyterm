@@ -174,7 +174,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     }, 40);
     this.saveTimer ??= setTimeout(() => {
       this.saveTimer = undefined;
-      void this.store.save({ sessions: this.list(), recentlyClosed: this.recentlyClosed });
+      this.store.save({ sessions: this.list(), recentlyClosed: this.recentlyClosed }).catch(() => undefined);
     }, 500);
   }
 }
