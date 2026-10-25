@@ -1,5 +1,6 @@
 // Sessions saved to ~/.heyterm/state.json, so a restart of HeyTerm finds them again.
 
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { SessionView } from "../../shared/types.ts";
@@ -36,7 +37,8 @@ export class StateStore {
   // Written to a temporary file first, so a crash never leaves half a file.
   async save(state: SavedState): Promise<void> {
     await mkdir(path.dirname(this.filePath), { recursive: true });
-    const temporaryPath = `${this.filePath}.${process.pid}.tmp`;
+    // A name of its own per save, so overlapping saves never write into the same temporary file.
+    const temporaryPath = `${this.filePath}.${process.pid}.${randomUUID()}.tmp`;
     await writeFile(temporaryPath, JSON.stringify(state), { mode: 0o600 });
     await rename(temporaryPath, this.filePath);
   }

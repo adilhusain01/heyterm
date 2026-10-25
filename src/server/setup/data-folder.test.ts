@@ -28,3 +28,13 @@ describe("DataFolder.moveFromOldName", () => {
     await expect(stat(path.join(home, ".heyterm"))).rejects.toThrow();
   });
 });
+
+describe("DataFolder.ensurePrivate", () => {
+  it.skipIf(process.platform === "win32")("makes the folder readable by its owner alone, even when it already existed open", async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), "heyterm-private-"));
+    const folder = path.join(home, ".heyterm");
+    await mkdir(folder, { mode: 0o755 });
+    await DataFolder.ensurePrivate(folder);
+    expect((await stat(folder)).mode & 0o777).toBe(0o700);
+  });
+});

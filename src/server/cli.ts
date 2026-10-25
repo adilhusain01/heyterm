@@ -49,7 +49,7 @@ async function runCli(args: string[]): Promise<void> {
   if (!(await runDoctor({ quietWhenHealthy: true }))) process.exit(1);
   try {
     const running = await startHeyTerm();
-    if (open) openInBrowser(`${running.url}/#token=${running.token}`);
+    if (open) openInBrowser(`${running.url}/#ticket=${running.issueTicket()}`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);
@@ -109,8 +109,13 @@ async function isRunning(): Promise<boolean> {
   return body.app === "heyterm" || body.app === "callsign";
 }
 
+// The running copy hands out a one-time ticket to whoever holds the token; the token stays out of the address.
 async function pageUrl(): Promise<string> {
   const token = await readToken();
+  const response = token ? await fetch(`${baseUrl()}/ticket`, { method: "POST", headers: { "X-HeyTerm-Token": token } }).catch(() => undefined) : undefined;
+  const body = response?.ok ? ((await response.json().catch(() => ({}))) as { ticket?: string }) : {};
+  if (body.ticket) return `${baseUrl()}/#ticket=${body.ticket}`;
+  // A copy started before tickets existed still takes the token in the address.
   return token ? `${baseUrl()}/#token=${token}` : baseUrl();
 }
 

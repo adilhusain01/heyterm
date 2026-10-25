@@ -45,7 +45,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const terminal = new Terminal({ fontFamily: '"Geist Mono", ui-monospace, monospace', fontSize: 12, lineHeight: 1.2, theme: terminalTheme, cursorBlink: false, allowProposedApi: true });
+    const terminal = new Terminal({ fontFamily: '"Geist Mono Variable", ui-monospace, monospace', fontSize: 12, lineHeight: 1.2, theme: terminalTheme, cursorBlink: false, allowProposedApi: true });
     const fit = new FitAddon();
     terminal.loadAddon(fit);
     terminal.open(container);

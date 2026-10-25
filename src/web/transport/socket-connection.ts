@@ -1,6 +1,6 @@
 // The real backend: WebSockets to the HeyTerm server on this Mac, reconnecting when it restarts.
 
-import { pageToken } from "./page-token.ts";
+import { ensurePageToken, pageToken } from "./page-token.ts";
 import type { HeyTermConnection, ConnectionHandlers, TerminalChannel } from "./connection.ts";
 import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
 
@@ -14,8 +14,9 @@ export class SocketConnection implements HeyTermConnection {
     let stopped = false;
     let attempt = 0;
     let retryTimer: number | undefined;
-    const open = () => {
-      if (!pageToken()) return handlers.onStatus("needs_token");
+    const open = async () => {
+      if (!(await ensurePageToken())) return handlers.onStatus("needs_token");
+      if (stopped) return;
       handlers.onStatus("connecting");
       const socket = new WebSocket(socketUrl("/ws"));
       this.socket = socket;
@@ -29,10 +30,10 @@ export class SocketConnection implements HeyTermConnection {
         handlers.onStatus("closed");
         if (stopped) return;
         attempt += 1;
-        retryTimer = window.setTimeout(open, Math.min(longestReconnectDelayMilliseconds, 250 * 2 ** attempt));
+        retryTimer = window.setTimeout(() => void open(), Math.min(longestReconnectDelayMilliseconds, 250 * 2 ** attempt));
       };
     };
-    open();
+    void open();
     return () => {
       stopped = true;
       window.clearTimeout(retryTimer);

@@ -2,8 +2,8 @@
 
 /* One set of tokens. Panels sit in (no shadow); only pressable things cast one. */
 @theme {
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", monospace;
 
   /* Surfaces: a tray sits in, a key stands out. See docs/DESIGN.md. */
   --color-canvas: #0a0c0f;

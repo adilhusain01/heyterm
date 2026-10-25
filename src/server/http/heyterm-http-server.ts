@@ -6,6 +6,7 @@ import sirv from "sirv";
 import { WebSocketServer } from "ws";
 import { forwardedHookEvents } from "../hooks/hook-installer.ts";
 import type { EventHub } from "./event-hub.ts";
+import type { PairingTickets } from "./pairing-tickets.ts";
 import type { RequestGuard } from "./request-guard.ts";
 import type { TerminalBridge } from "./terminal-bridge.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
@@ -29,6 +30,7 @@ export class HeyTermHttpServer {
     private readonly registry: SessionRegistry,
     private readonly hub: EventHub,
     private readonly terminals: TerminalBridge,
+    private readonly tickets: PairingTickets,
   ) {
     this.serveWeb = existsSync(webDirectory) ? sirv(webDirectory, { single: true }) : undefined;
     this.server.on("upgrade", (request, socket, head) => {
@@ -64,8 +66,20 @@ export class HeyTermHttpServer {
   }
 
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    for (const [name, value] of Object.entries(securityHeaders(this.port))) response.setHeader(name, value);
     if (!this.guard.isFromThisMac(request)) return respond(response, 403, "HeyTerm only answers requests from this Mac.");
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
+    // The heyterm command gets a ticket with the token, and the page trades it for the token.
+    if (url.pathname === "/ticket" && request.method === "POST") {
+      if (!this.guard.hasToken(request)) return respond(response, 401, "");
+      return respond(response, 200, JSON.stringify({ ticket: this.tickets.issue() }), "application/json");
+    }
+    if (url.pathname === "/pair" && request.method === "POST") {
+      const body = await readBody(request, 4_096).catch(() => "");
+      const ticket = (safeJson(body) as { ticket?: unknown } | undefined)?.ticket;
+      const token = typeof ticket === "string" ? this.tickets.redeem(ticket) : undefined;
+      return token ? respond(response, 200, JSON.stringify({ token }), "application/json") : respond(response, 401, "");
+    }
     if (url.pathname.startsWith("/hooks/") && request.method === "POST") return this.handleHook(request, response, url);
     // Says it is HeyTerm, so a second "heyterm" can tell it is already running.
     if (url.pathname === "/health") return respond(response, 200, JSON.stringify({ ok: true, app: "heyterm" }), "application/json");
@@ -94,6 +108,37 @@ export class HeyTermHttpServer {
       ? await this.registry.applyExternalHookEvent(eventName, payload, Date.now())
       : await this.registry.applyHookEvent({ name: eventName, sessionName, payload, receivedAt: Date.now() });
     respond(response, 200, answer, "application/json");
+  }
+}
+
+// No framing by other sites (clickjacking), no scripts or connections but HeyTerm's own, no referrer.
+function securityHeaders(port: number): Record<string, string> {
+  const ownSockets = `ws://127.0.0.1:${port} ws://localhost:${port}`;
+  return {
+    "Content-Security-Policy": [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data:",
+      "img-src 'self' data:",
+      `connect-src 'self' ${ownSockets}`,
+      "object-src 'none'",
+      "base-uri 'none'",
+      "form-action 'none'",
+      "frame-ancestors 'none'",
+    ].join("; "),
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cross-Origin-Opener-Policy": "same-origin",
+  };
+}
+
+function safeJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
   }
 }
 

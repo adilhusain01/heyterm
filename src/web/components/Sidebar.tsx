@@ -44,6 +44,7 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
   return (
     <aside className="flex max-h-[45vh] min-h-0 w-full shrink-0 flex-col border-b border-line bg-panel md:max-h-none md:w-[280px] md:border-r md:border-b-0">
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
+        <img src="/favicon.svg" alt="" width={22} height={22} className="shrink-0" />
         <span className="text-meta font-semibold tracking-tight text-ink">HeyTerm</span>
         <ConnectionMark />
         {isPlayground && <span className="rounded-mark border border-line px-1.5 text-[12px] text-ink-muted">Playground</span>}
@@ -110,6 +111,7 @@ function SidebarRail({ onOpenSetup }: { onOpenSetup: () => void }) {
   const headName = queue[0]?.sessionName;
   return (
     <aside className="flex min-h-0 w-[60px] shrink-0 flex-col items-center gap-1 border-r border-line bg-panel py-2">
+      <img src="/favicon.svg" alt="HeyTerm" width={26} height={26} className="mb-1" />
       <RailButton label="Open the sidebar" onClick={() => changeLayout({ sidebarCollapsed: false })}>
         <PanelLeftOpenIcon size={16} />
       </RailButton>

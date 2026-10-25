@@ -19,3 +19,13 @@ describe("StateStore.load", () => {
     expect((await new StateStore(folder).load()).sessions[0]?.agent).toBe("claude");
   });
 });
+
+describe("StateStore.save", () => {
+  it("keeps a whole file when many saves overlap", async () => {
+    const folder = await mkdtemp(path.join(os.tmpdir(), "heyterm-state-"));
+    const store = new StateStore(folder);
+    await Promise.all(Array.from({ length: 40 }, (_, index) => store.save({ sessions: [], recentlyClosed: [{ name: `s${index}` } as never] })));
+    const saved = await store.load();
+    expect(saved.recentlyClosed).toHaveLength(1);
+  });
+});

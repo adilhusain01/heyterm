@@ -1,6 +1,8 @@
+<p align="center"><img src="assets/logo-mark.svg" width="96" height="96" alt="HeyTerm"></p>
+
 # HeyTerm
 
-Run your coding agents by voice. HeyTerm is one window for all your Claude Code sessions, with a voice layer in the middle: you talk through Wispr Flow (or any dictation tool), HeyTerm works out which session you mean and does it, and it tells you when a session needs you. Five agents at once, no keyboard, no trackpad.
+Run your coding agents by voice. HeyTerm is one window for all your Claude Code, Codex and Gemini CLI sessions, with an assistant in the middle: you talk through Wispr Flow (or any dictation tool), it works out which session you mean and does it, and it tells you when a session needs you. Five agents at once, no keyboard, no trackpad.
 
 ## Why
 

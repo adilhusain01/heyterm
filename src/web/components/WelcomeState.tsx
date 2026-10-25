@@ -13,7 +13,7 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
         <div className="flex flex-col gap-2">
           <h1 className="text-[22px] font-medium tracking-tight text-ink">Run your coding agents by voice</h1>
           <p className="text-[14px] leading-relaxed text-ink-muted">
-            Start several Claude Code sessions, then talk. HeyTerm sends your words to the right one, tells you when one needs you, and lets you approve or answer without
+            Start several Claude Code, Codex or Gemini sessions, then talk. HeyTerm sends your words to the right one, tells you when one needs you, and lets you approve or answer without
             touching the keyboard.
           </p>
         </div>
@@ -49,7 +49,7 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
         <p className="text-[12.5px] text-ink-faint">
           Already have Claude running in other terminals?{" "}
           <button type="button" onClick={onOpenSetup} className="cursor-pointer text-ink-muted underline underline-offset-2">
-            Connect those sessions
+            Show those sessions
           </button>{" "}
           in Setup.
         </p>

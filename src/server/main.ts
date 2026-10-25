@@ -15,6 +15,7 @@ import { HeldHookRequests } from "./hooks/held-hook-requests.ts";
 import { HookInstaller } from "./hooks/hook-installer.ts";
 import { HeyTermHttpServer } from "./http/heyterm-http-server.ts";
 import { EventHub } from "./http/event-hub.ts";
+import { PairingTickets } from "./http/pairing-tickets.ts";
 import { RequestGuard } from "./http/request-guard.ts";
 import { TerminalBridge } from "./http/terminal-bridge.ts";
 import { ProjectCatalog } from "./projects/project-catalog.ts";
@@ -24,6 +25,7 @@ import { SessionLauncher } from "./sessions/session-launcher.ts";
 import { SessionRegistry } from "./sessions/session-registry.ts";
 import { StateStore } from "./sessions/state-store.ts";
 import { TrustDialogWatcher } from "./sessions/trust-dialog-watcher.ts";
+import { DataFolder } from "./setup/data-folder.ts";
 import { SetupService } from "./setup/setup-service.ts";
 import { InputLog } from "./setup/input-log.ts";
 import { UserConfig } from "./setup/user-config.ts";
@@ -37,12 +39,14 @@ const closedPageGraceMilliseconds = 15_000;
 
 export interface RunningHeyTerm {
   url: string;
-  token: string;
+  // A one-time ticket for opening the page; the token itself never goes into an address.
+  issueTicket(): string;
   stop(reason: string): Promise<void>;
 }
 
 export async function startHeyTerm(): Promise<RunningHeyTerm> {
   const config = await loadConfig();
+  await DataFolder.ensurePrivate(config.dataDirectory);
   const userConfig = new UserConfig(config.dataDirectory);
   const savedChoices = await userConfig.load();
   const hooks = await new HookInstaller(config.dataDirectory, config.port).install();
@@ -81,7 +85,8 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant);
   hub.inputLog = new InputLog(config.dataDirectory);
   const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin);
-  const server = new HeyTermHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host));
+  const tickets = new PairingTickets(hooks.token);
+  const server = new HeyTermHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host), tickets);
   await server.listen();
 
   let closedPageTimer: NodeJS.Timeout | undefined;
@@ -126,7 +131,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   console.log(`Projects from: ${config.projectRoots.join(", ") || "no project folders found"}`);
   console.log(`Assistant: ${config.routerModel} on ${process.env.ANTHROPIC_API_KEY ? "your Anthropic API key" : "your Claude Code login"}`);
   console.log("Stop it with Ctrl+C, heyterm stop, or Quit in the page.");
-  return { url, token: hooks.token, stop };
+  return { url, issueTicket: () => tickets.issue(), stop };
 }
 
 // Versions before the move to HeyTerm's own terminals ran sessions in tmux. Those sessions are

@@ -8,7 +8,8 @@
     "dev": "node scripts/dev.mjs",
     "build": "vite build && esbuild src/server/cli.ts --bundle --platform=node --format=esm --packages=external --target=node20 --outfile=dist/server/cli.js",
     "start": "tsx src/server/serve.ts",
-    "build:playground": "vite build --mode playground --outDir ../../dist/playground"
+    "build:playground": "vite build --mode playground --outDir ../../dist/playground",
+    "notices": "node scripts/notices.mjs"
   },
   "license": "UNLICENSED",
   "type": "module",
@@ -18,13 +19,13 @@
     "@lydell/node-pty": "^1.2.0-beta.15",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/headless": "^6.0.0",
-    "boring-avatars": "^2.0.4",
-    "react-markdown": "^10.1.0",
     "sirv": "^3.0.2",
     "ws": "^8.22.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
@@ -34,10 +35,12 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-webgl": "^0.19.0",
     "@xterm/xterm": "^6.0.0",
+    "boring-avatars": "^2.0.4",
     "esbuild": "^0.28.2",
     "jsdom": "^30.1.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
     "sonner": "^2.0.8",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
@@ -58,6 +61,10 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist/server",
+    "dist/web",
+    "THIRD_PARTY_NOTICES.md",
+    "SECURITY.md",
+    "assets"
   ]
 }
