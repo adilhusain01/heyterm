@@ -14,8 +14,11 @@ const largestOutputBytes = 8 * 1024 * 1024;
 export class TurnChangeTracker implements TurnChangeTracking {
   private readonly snapshotsAtTaskStart = new Map<string, Promise<FolderSnapshot | undefined>>();
 
-  taskStarted(session: SessionView): void {
-    this.snapshotsAtTaskStart.set(TurnChangeTracker.key(session), TurnChangeTracker.take(session.projectPath));
+  // Resolves once the snapshot is taken; the registry does not wait for it.
+  taskStarted(session: SessionView): Promise<void> {
+    const snapshot = TurnChangeTracker.take(session.projectPath);
+    this.snapshotsAtTaskStart.set(TurnChangeTracker.key(session), snapshot);
+    return snapshot.then(() => undefined);
   }
 
   async filesChangedByTask(session: SessionView): Promise<string[]> {

@@ -25,8 +25,7 @@ describe("TurnChangeTracker, in a real repository", () => {
   it("finds shell edits, new files and commits made during the task, and not files left as they were", async () => {
     const folder = repository();
     const tracker = new TurnChangeTracker();
-    tracker.taskStarted(sessionIn(folder));
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await tracker.taskStarted(sessionIn(folder));
     appendFileSync(path.join(folder, "notes.txt"), "bye\n");
     writeFileSync(path.join(folder, "todo.md"), "ship it\n");
     expect((await tracker.filesChangedByTask(sessionIn(folder))).sort()).toEqual(["notes.txt", "todo.md"]);
@@ -37,8 +36,7 @@ describe("TurnChangeTracker, in a real repository", () => {
     mkdirSync(path.join(folder, "web"));
     const project = path.join(folder, "web");
     const tracker = new TurnChangeTracker();
-    tracker.taskStarted(sessionIn(project));
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await tracker.taskStarted(sessionIn(project));
     writeFileSync(path.join(project, "page.tsx"), "x\n");
     writeFileSync(path.join(folder, "outside.txt"), "y\n");
     expect(await tracker.filesChangedByTask(sessionIn(project))).toEqual(["page.tsx"]);

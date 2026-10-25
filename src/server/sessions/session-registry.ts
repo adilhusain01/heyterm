@@ -16,7 +16,7 @@ import type { HookEvent, HookEventName, SessionView } from "../../shared/types.t
 
 // What the registry needs from TurnChangeTracker (turn-change-tracker.ts).
 export interface TurnChangeTracking {
-  taskStarted(session: SessionView): void;
+  taskStarted(session: SessionView): void | Promise<void>;
   filesChangedByTask(session: SessionView): Promise<string[]>;
 }
 
@@ -119,7 +119,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     const sessionName = this.currentName(event.sessionName);
     const before = this.sessions.get(sessionName);
     if (!before) return "";
-    if (event.name === "UserPromptSubmit") this.turnChangeTracker?.taskStarted(before);
+    if (event.name === "UserPromptSubmit") void this.turnChangeTracker?.taskStarted(before);
     // Before the session shows as done, so the finished line already counts every changed file.
     const changedByTask = event.name === "Stop" && this.turnChangeTracker ? await this.turnChangeTracker.filesChangedByTask(before).catch(() => []) : [];
     const requestId = event.name === "PermissionRequest" ? randomUUID() : undefined;
