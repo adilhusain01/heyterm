@@ -1,12 +1,12 @@
-// The real backend: WebSockets to the Callsign server on this Mac, reconnecting when it restarts.
+// The real backend: WebSockets to the HeyTerm server on this Mac, reconnecting when it restarts.
 
 import { pageToken } from "./page-token.ts";
-import type { CallsignConnection, ConnectionHandlers, TerminalChannel } from "./connection.ts";
+import type { HeyTermConnection, ConnectionHandlers, TerminalChannel } from "./connection.ts";
 import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
 
 const longestReconnectDelayMilliseconds = 5_000;
 
-export class SocketConnection implements CallsignConnection {
+export class SocketConnection implements HeyTermConnection {
   private socket: WebSocket | undefined;
   private readonly unsent: string[] = [];
 

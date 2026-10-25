@@ -2,7 +2,7 @@
 // happened in the sessions, newest at the bottom.
 
 import { useEffect, useRef } from "react";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { orbStatusText, useOrbState } from "../state/use-orb-state.ts";
 import { AssistantOrb } from "../ui/AssistantOrb.tsx";
 import { PanelRightCloseIcon } from "../ui/icons.tsx";
@@ -10,9 +10,9 @@ import { Markdown } from "../ui/Markdown.tsx";
 import type { ConversationEntry } from "../../shared/protocol.ts";
 
 export function ConversationPanel() {
-  const entries = useCallsignStore((state) => state.conversation);
-  const collapsed = useCallsignStore((state) => state.layout.conversationCollapsed);
-  const changeLayout = useCallsignStore((state) => state.changeLayout);
+  const entries = useHeyTermStore((state) => state.conversation);
+  const collapsed = useHeyTermStore((state) => state.layout.conversationCollapsed);
+  const changeLayout = useHeyTermStore((state) => state.changeLayout);
   const orbState = useOrbState();
   const listRef = useRef<HTMLOListElement>(null);
   const currentStep = orbState === "thinking" ? latestStepSinceYouSpoke(entries) : undefined;
@@ -28,11 +28,11 @@ export function ConversationPanel() {
 
   if (collapsed) return null;
   return (
-    <aside aria-label="Conversation with Callsign" className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-panel lg:flex">
+    <aside aria-label="Conversation with HeyTerm" className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-panel lg:flex">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4">
         <AssistantOrb state={orbState} size={28} />
         <div className="flex min-w-0 flex-col">
-          <span className="text-meta font-medium text-ink">Callsign</span>
+          <span className="text-meta font-medium text-ink">HeyTerm</span>
           <span key={status} className="status-swap truncate text-[12.5px] text-ink-faint" aria-live="polite">
             {status}
           </span>
@@ -88,7 +88,7 @@ function EntryRow({ entry }: { entry: ConversationEntry }) {
 }
 
 function EmptyConversation() {
-  const examples = ["What is everyone doing?", "Start a session in portfolio and fix the header", "What changed in callsign today?"];
+  const examples = ["What is everyone doing?", "Start a session in portfolio and fix the header", "What changed in heyterm today?"];
   return (
     <div className="flex flex-col gap-3 px-4 py-5">
       <p className="text-body text-ink">Talk to me about your sessions, or tell me what to do. I run commands on this Mac too.</p>

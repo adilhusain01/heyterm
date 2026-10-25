@@ -9,7 +9,7 @@ interface SavedTally {
   pointer: number;
 }
 
-const storageKey = "callsign.handsOff";
+const storageKey = "heyterm.handsOff";
 
 export class HandsOffTally {
   constructor(

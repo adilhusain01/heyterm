@@ -1,4 +1,4 @@
-// ~/.callsign/input-log.jsonl: how text reached the page, kinds and lengths only, the last lines kept.
+// ~/.heyterm/input-log.jsonl: how text reached the page, kinds and lengths only, the last lines kept.
 
 import { appendFile, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";

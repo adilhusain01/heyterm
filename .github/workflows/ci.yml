@@ -26,6 +26,6 @@ jobs:
         shell: bash
         run: |
           npm pack
-          npm install -g ./callsign-cli-*.tgz
+          npm install -g ./heyterm-*.tgz
       - name: Start, stop and uninstall
         run: node scripts/smoke.mjs

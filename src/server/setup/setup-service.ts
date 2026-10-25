@@ -14,7 +14,7 @@ import type { SetupStatus } from "../../shared/protocol.ts";
 
 const execFileAsync = promisify(execFile);
 
-// Every hook Callsign relies on was checked against this release on 24 October 2026.
+// Every hook HeyTerm relies on was checked against this release on 24 October 2026.
 export const testedClaudeVersion = "2.1.310";
 
 export class SetupService {

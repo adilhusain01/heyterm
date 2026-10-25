@@ -1,4 +1,4 @@
-// Writes the hook forwarder and the Claude Code settings file that Callsign starts every session with.
+// Writes the hook forwarder and the Claude Code settings file that HeyTerm starts every session with.
 
 import { randomBytes } from "node:crypto";
 import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -18,12 +18,12 @@ export const forwardedHookEvents: HookEventName[] = [
   "SessionEnd",
 ];
 
-// Claude Code waits up to 600 seconds for a hook; Callsign answers or lets go before that.
+// Claude Code waits up to 600 seconds for a hook; HeyTerm answers or lets go before that.
 export const permissionHookTimeoutSeconds = permissionWaitSeconds;
 
 export interface InstalledHooks {
   settingsPath: string;
-  // The forwarder every hook runs, for Callsign's sessions and the user's own.
+  // The forwarder every hook runs, for HeyTerm's sessions and the user's own.
   forwardScriptPath: string;
   token: string;
 }

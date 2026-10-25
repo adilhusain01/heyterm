@@ -1,4 +1,4 @@
-// A short, sayable name for a session the user started outside Callsign.
+// A short, sayable name for a session the user started outside HeyTerm.
 
 import path from "node:path";
 

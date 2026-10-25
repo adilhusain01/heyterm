@@ -38,7 +38,7 @@ const codexTrustDialogScreen = `
  enter continue · esc quit
 `;
 
-// Captured from Codex 0.164.0 on 25 October 2026, the first time Callsign's hooks ran.
+// Captured from Codex 0.164.0 on 25 October 2026, the first time HeyTerm's hooks ran.
 const codexHookReviewScreen = `
  Hooks need review
  7 hooks are new or changed.

@@ -1,4 +1,4 @@
-// Moves a folder to the system's Trash, so nothing Callsign removes is gone for good.
+// Moves a folder to the system's Trash, so nothing HeyTerm removes is gone for good.
 
 import { execFile } from "node:child_process";
 import { mkdir, rename, stat, writeFile } from "node:fs/promises";

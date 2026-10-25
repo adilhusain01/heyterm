@@ -178,7 +178,7 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
   }
 
   private async approve(sessionName: string, requestId: string, confirmed: boolean, decidedBy: string): Promise<void> {
-    // The agent asked, so the developer's yes is enough: Callsign adds no gate of its own.
+    // The agent asked, so the developer's yes is enough: HeyTerm adds no gate of its own.
     this.tell(await this.decisions.approve(sessionName, requestId, { decidedBy }));
   }
 
@@ -250,7 +250,7 @@ const modeFeedback: Record<AnnouncementMode, string> = {
 };
 
 function outsideSessionReason(sessionName: string): string {
-  return `${sessionName} runs in your own terminal, so Callsign can't type into it. Approvals, answers and alerts still work here.`;
+  return `${sessionName} runs in your own terminal, so HeyTerm can't type into it. Approvals, answers and alerts still work here.`;
 }
 
 function blockedReason(sessionName: string, state: string): string {

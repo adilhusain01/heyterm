@@ -33,7 +33,7 @@ export class Announcer {
   private nextMacLineId = 1;
   private readonly macLinesWaiting = new Map<number, () => void>();
   private readonly queue: SpeechQueue;
-  // Tells the page when Callsign starts and stops talking, for the assistant orb.
+  // Tells the page when HeyTerm starts and stops talking, for the assistant orb.
   onSpeakingChange: (speaking: boolean) => void = () => undefined;
 
   constructor() {

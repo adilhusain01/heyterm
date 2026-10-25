@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { messageVoiceHint } from "./session-display.ts";
 
 describe("messageVoiceHint", () => {
-  it("offers a spoken reply to a question from a session Callsign runs", () => {
+  it("offers a spoken reply to a question from a session HeyTerm runs", () => {
     expect(messageVoiceHint({ name: "portfolio" }, "question")).toBe("Answer out loud, or say portfolio and your reply");
   });
 
-  it("sends a question from the user's own terminal back there, because Callsign cannot type into it", () => {
+  it("sends a question from the user's own terminal back there, because HeyTerm cannot type into it", () => {
     expect(messageVoiceHint({ name: "whisker", origin: "external" }, "question")).toBe("Reply in your own terminal");
   });
 

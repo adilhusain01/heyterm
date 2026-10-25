@@ -1,4 +1,4 @@
-// The assistant as the rest of Callsign sees it: it hears what the user said, tells the user what
+// The assistant as the rest of HeyTerm sees it: it hears what the user said, tells the user what
 // happened in the sessions, and keeps the conversation the UI shows.
 
 import { EventEmitter } from "node:events";
@@ -48,7 +48,7 @@ export class Assistant extends EventEmitter<AssistantEvents> {
     this.emit("say", text);
   }
 
-  // Something Callsign did at once, without the assistant, still belongs in the conversation.
+  // Something HeyTerm did at once, without the assistant, still belongs in the conversation.
   recordInstant(utterance: string): void {
     this.record("user", utterance);
   }

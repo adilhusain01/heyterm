@@ -2,8 +2,8 @@
 // Panes keep a usable size however many sessions run: past two rows the grid scrolls.
 
 import { useEffect, useRef, useState } from "react";
-import { useCallsign } from "../app-context.tsx";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTerm } from "../app-context.tsx";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { FocusIcon, GridIcon, PanelRightOpenIcon } from "../ui/icons.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { ExternalSessionPane } from "./ExternalSessionPane.tsx";
@@ -18,9 +18,9 @@ const scrollingRowHeight = 420;
 const gap = 8;
 
 export function TerminalGrid() {
-  const sessions = useCallsignStore((state) => state.sessions);
-  const arrangement = useCallsignStore((state) => state.layout.arrangement);
-  const focusedSession = useCallsignStore((state) => state.focusedSession);
+  const sessions = useHeyTermStore((state) => state.sessions);
+  const arrangement = useHeyTermStore((state) => state.layout.arrangement);
+  const focusedSession = useHeyTermStore((state) => state.focusedSession);
   const focused = sessions.find((session) => session.name === focusedSession) ?? sessions[0];
   const showFocus = arrangement === "focus" && focused !== undefined;
 
@@ -63,9 +63,9 @@ function AutoGrid({ sessions }: { sessions: SessionView[] }) {
 }
 
 function SessionPane({ session }: { session: SessionView }) {
-  const arrangement = useCallsignStore((state) => state.layout.arrangement);
-  const changeLayout = useCallsignStore((state) => state.changeLayout);
-  const { perform } = useCallsign();
+  const arrangement = useHeyTermStore((state) => state.layout.arrangement);
+  const changeLayout = useHeyTermStore((state) => state.changeLayout);
+  const { perform } = useHeyTerm();
   if (session.origin === "external") return <ExternalSessionPane session={session} />;
   return (
     <TerminalPane
@@ -81,10 +81,10 @@ function SessionPane({ session }: { session: SessionView }) {
 }
 
 function GridToolbar({ sessions, focused }: { sessions: SessionView[]; focused: SessionView | undefined }) {
-  const { perform } = useCallsign();
-  const arrangement = useCallsignStore((state) => state.layout.arrangement);
-  const conversationCollapsed = useCallsignStore((state) => state.layout.conversationCollapsed);
-  const changeLayout = useCallsignStore((state) => state.changeLayout);
+  const { perform } = useHeyTerm();
+  const arrangement = useHeyTermStore((state) => state.layout.arrangement);
+  const conversationCollapsed = useHeyTermStore((state) => state.layout.conversationCollapsed);
+  const changeLayout = useHeyTermStore((state) => state.changeLayout);
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 px-2">
       <div role="radiogroup" aria-label="Arrangement" className="flex rounded-inner border border-line bg-tray p-0.5 shadow-tray">

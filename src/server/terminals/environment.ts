@@ -1,4 +1,4 @@
-// The environment Callsign hands to the programs it starts.
+// The environment HeyTerm hands to the programs it starts.
 
 // Set by a running Claude Code for the programs it starts (seen in Claude Code 2.1.310). A session
 // that inherits them believes it is a sub-agent and, among other things, saves no transcript.
@@ -15,8 +15,8 @@ const inheritedMarkers = new Set([
   "CLAUDE_CODE_SSE_PORT",
   "CLAUDE_EFFORT",
   "CLAUDE_PID",
-  "CALLSIGN_ROUTER",
-  "CALLSIGN_SESSION",
+  "HEYTERM_ROUTER",
+  "HEYTERM_SESSION",
 ]);
 
 export function withoutInheritedMarkers(environment: NodeJS.ProcessEnv): Record<string, string> {

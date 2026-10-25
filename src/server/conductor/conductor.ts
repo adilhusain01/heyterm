@@ -51,13 +51,13 @@ export class Conductor extends EventEmitter<ConductorEvents> {
     });
   }
 
-  // Callsign is stopping: end the assistant's process and fail anything still waiting.
+  // HeyTerm is stopping: end the assistant's process and fail anything still waiting.
   close(): void {
     const session = this.session;
     this.session = undefined;
     session?.close();
-    this.finishTurn(undefined, new Error("Callsign is stopping."));
-    for (let turn = this.turns.next(); turn; turn = this.turns.next()) turn.reject(new Error("Callsign is stopping."));
+    this.finishTurn(undefined, new Error("HeyTerm is stopping."));
+    for (let turn = this.turns.next(); turn; turn = this.turns.next()) turn.reject(new Error("HeyTerm is stopping."));
   }
 
   private startNextTurn(): void {
@@ -114,20 +114,21 @@ export class Conductor extends EventEmitter<ConductorEvents> {
         settingSources: ["user"],
         persistSession: false,
         tools: { type: "preset", preset: "claude_code" },
-        mcpServers: { callsign: this.options.tools },
+        mcpServers: { heyterm: this.options.tools },
         // The mode the developer's own Claude Code sessions run in (their plan's default), so the
-        // assistant asks exactly when Claude Code would. Callsign's own tools only act on sessions.
+        // assistant asks exactly when Claude Code would.
         permissionMode: "auto",
-        allowedTools: ["mcp__callsign"],
         hooks: { PreToolUse: [{ hooks: [this.options.beforeTool], timeout: 120 }] },
         // The assistant asks the developer in words, not with an on-screen question.
         disallowedTools: ["AskUserQuestion"],
+        // HeyTerm's own tools only act on sessions, so they never need the developer's OK. They are
+        // allowed here rather than in allowedTools, which would bypass this callback with a warning.
         canUseTool: async (toolName, input) =>
-          (await this.options.askDeveloper(toolName, input))
+          toolName.startsWith("mcp__heyterm__") || (await this.options.askDeveloper(toolName, input))
             ? { behavior: "allow", updatedInput: input }
             : { behavior: "deny", message: "The developer said no, or did not answer. Do not try another way; tell them it was not done." },
-        // CALLSIGN_ROUTER keeps the user's connected-session hooks from treating this as a session of theirs.
-        env: { ...withoutInheritedMarkers(process.env), CALLSIGN_ROUTER: "1" },
+        // HEYTERM_ROUTER keeps the user's connected-session hooks from treating this as a session of theirs.
+        env: { ...withoutInheritedMarkers(process.env), HEYTERM_ROUTER: "1" },
       },
     });
     void this.readSession(this.session);
@@ -162,7 +163,7 @@ export class Conductor extends EventEmitter<ConductorEvents> {
 
 function describeToolUse(toolName: string, input: unknown): string {
   const fields = (input ?? {}) as Record<string, unknown>;
-  const shortName = toolName.replace(/^mcp__callsign__/, "");
+  const shortName = toolName.replace(/^mcp__heyterm__/, "");
   if (toolName === "Bash") return `run ${String(fields.command ?? "")}`;
   if (toolName === "Read") return `read ${String(fields.file_path ?? "")}`;
   const firstValue = Object.values(fields).find((value) => typeof value === "string") as string | undefined;

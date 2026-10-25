@@ -1,4 +1,4 @@
-// The coding agents Callsign can run, and how each one is started, resumed and wired to Callsign's
+// The coding agents HeyTerm can run, and how each one is started, resumed and wired to HeyTerm's
 // hooks for that one session, without changing the user's own configuration.
 
 import type { AgentKind } from "../../shared/types.ts";
@@ -11,7 +11,7 @@ export interface AgentLaunch {
 export interface AgentLaunchContext {
   sessionName: string;
   claudeSettingsPath: string;
-  // The command that forwards one hook event to Callsign.
+  // The command that forwards one hook event to HeyTerm.
   hookCommand: (eventName: string) => string;
 }
 
@@ -30,7 +30,7 @@ export interface AgentAdapter {
   resume(point: ResumePoint, context: AgentLaunchContext): AgentLaunch;
 }
 
-// The agent waits this long for an answer to a permission; Callsign answers or lets go first.
+// The agent waits this long for an answer to a permission; HeyTerm answers or lets go first.
 const permissionHookSeconds = 595;
 const codexHookEvents = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop", "SessionEnd"];
 
@@ -47,7 +47,7 @@ const claude: AgentAdapter = {
 };
 
 // Codex reads hooks from config; -c overrides apply to this run only. Codex asks the user to trust
-// a new hook once (by its hash), so Callsign's hooks are trusted once and stay trusted.
+// a new hook once (by its hash), so HeyTerm's hooks are trusted once and stay trusted.
 const codex: AgentAdapter = {
   kind: "codex",
   label: "Codex",

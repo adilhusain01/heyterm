@@ -1,11 +1,11 @@
 // What a new user sees before any session exists: what to say, and projects to click instead.
 
-import { useCallsign } from "../app-context.tsx";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTerm } from "../app-context.tsx";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 
 export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
-  const { perform } = useCallsign();
-  const projects = useCallsignStore((state) => state.projects);
+  const { perform } = useHeyTerm();
+  const projects = useHeyTermStore((state) => state.projects);
   const exampleProject = projects[0] ?? "your-project";
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-6">
@@ -13,7 +13,7 @@ export function WelcomeState({ onOpenSetup }: { onOpenSetup: () => void }) {
         <div className="flex flex-col gap-2">
           <h1 className="text-[22px] font-medium tracking-tight text-ink">Run your coding agents by voice</h1>
           <p className="text-[14px] leading-relaxed text-ink-muted">
-            Start several Claude Code sessions, then talk. Callsign sends your words to the right one, tells you when one needs you, and lets you approve or answer without
+            Start several Claude Code sessions, then talk. HeyTerm sends your words to the right one, tells you when one needs you, and lets you approve or answer without
             touching the keyboard.
           </p>
         </div>

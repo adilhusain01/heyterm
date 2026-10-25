@@ -3,9 +3,9 @@
 
 import { useMemo, useState } from "react";
 import { AttentionQueue } from "../../shared/attention.ts";
-import { useCallsign } from "../app-context.tsx";
+import { useHeyTerm } from "../app-context.tsx";
 import { isPlayground } from "../playground/is-playground.ts";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
 import { BringBackIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon, SettingsIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../ui/icons.tsx";
@@ -19,12 +19,12 @@ const nextMode: Record<AnnouncementMode, AnnouncementMode> = { speak: "quiet", q
 const modeLabel: Record<AnnouncementMode, string> = { speak: "Speaking", quiet: "Quiet", mute: "Muted" };
 
 export function Sidebar({ onOpenSetup }: { onOpenSetup: () => void }) {
-  const collapsed = useCallsignStore((state) => state.layout.sidebarCollapsed);
+  const collapsed = useHeyTermStore((state) => state.layout.sidebarCollapsed);
   return collapsed ? <SidebarRail onOpenSetup={onOpenSetup} /> : <SidebarPanel onOpenSetup={onOpenSetup} />;
 }
 
 function useOrderedSessions() {
-  const sessions = useCallsignStore((state) => state.sessions);
+  const sessions = useHeyTermStore((state) => state.sessions);
   return useMemo(() => {
     const queue = AttentionQueue.build(sessions);
     const ordered = [...sessions].sort((left, right) => attentionRank(queue, left) - attentionRank(queue, right) || left.createdAt - right.createdAt);
@@ -33,9 +33,9 @@ function useOrderedSessions() {
 }
 
 function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
-  const sessions = useCallsignStore((state) => state.sessions);
-  const recentlyClosed = useCallsignStore((state) => state.recentlyClosed);
-  const changeLayout = useCallsignStore((state) => state.changeLayout);
+  const sessions = useHeyTermStore((state) => state.sessions);
+  const recentlyClosed = useHeyTermStore((state) => state.recentlyClosed);
+  const changeLayout = useHeyTermStore((state) => state.changeLayout);
   const { queue, ordered } = useOrderedSessions();
   const head = queue[0];
   const headSession = head ? sessions.find((session) => session.name === head.sessionName) : undefined;
@@ -44,7 +44,7 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
   return (
     <aside className="flex max-h-[45vh] min-h-0 w-full shrink-0 flex-col border-b border-line bg-panel md:max-h-none md:w-[280px] md:border-r md:border-b-0">
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
-        <span className="font-mono text-meta font-medium tracking-tight text-ink">callsign</span>
+        <span className="text-meta font-semibold tracking-tight text-ink">HeyTerm</span>
         <ConnectionMark />
         {isPlayground && <span className="rounded-mark border border-line px-1.5 text-[12px] text-ink-muted">Playground</span>}
         <RailButton label="Fold the sidebar" onClick={() => changeLayout({ sidebarCollapsed: true })} className="ml-auto hidden md:flex">
@@ -60,7 +60,7 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
             title="Sessions"
             help={
               <>
-                <span>Every coding agent running in Callsign, and Claude sessions from your own terminals if Setup shows them. The ones that need you come first.</span>
+                <span>Every coding agent running in HeyTerm, and Claude sessions from your own terminals if Setup shows them. The ones that need you come first.</span>
                 <span>Name one to talk to it: <SayThis>portfolio, run the tests</SayThis>, or <SayThis>start a codex session in api</SayThis>.</span>
               </>
             }
@@ -83,7 +83,7 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
               title="Recently closed"
               help={
                 <>
-                  <span>Sessions that ended, or that were running when Callsign stopped. Bringing one back resumes its conversation where it left off.</span>
+                  <span>Sessions that ended, or that were running when HeyTerm stopped. Bringing one back resumes its conversation where it left off.</span>
                   <span>
                     Say <SayThis>bring back ultron</SayThis> or click it.
                   </span>
@@ -103,9 +103,9 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
 }
 
 function SidebarRail({ onOpenSetup }: { onOpenSetup: () => void }) {
-  const { perform } = useCallsign();
-  const changeLayout = useCallsignStore((state) => state.changeLayout);
-  const focusedSession = useCallsignStore((state) => state.focusedSession);
+  const { perform } = useHeyTerm();
+  const changeLayout = useHeyTermStore((state) => state.changeLayout);
+  const focusedSession = useHeyTermStore((state) => state.focusedSession);
   const { queue, ordered } = useOrderedSessions();
   const headName = queue[0]?.sessionName;
   return (
@@ -140,8 +140,8 @@ function SidebarRail({ onOpenSetup }: { onOpenSetup: () => void }) {
 }
 
 function SessionRow({ session }: { session: SessionView }) {
-  const { perform } = useCallsign();
-  const focusedSession = useCallsignStore((state) => state.focusedSession);
+  const { perform } = useHeyTerm();
+  const focusedSession = useHeyTermStore((state) => state.focusedSession);
   const now = useServerNow();
   const display = stateDisplay[session.state];
   const isFocused = focusedSession === session.name;
@@ -170,7 +170,7 @@ function SessionRow({ session }: { session: SessionView }) {
 }
 
 function ClosedRow({ name }: { name: string }) {
-  const { perform } = useCallsign();
+  const { perform } = useHeyTerm();
   return (
     <button type="button" onClick={() => perform({ type: "resume", session: name })} className="group flex cursor-pointer items-center gap-2.5 rounded-inner px-2 py-1.5 text-left transition-colors duration-150 hover:bg-raised">
       <span className="opacity-50 transition-opacity duration-150 group-hover:opacity-100">
@@ -183,10 +183,10 @@ function ClosedRow({ name }: { name: string }) {
 }
 
 function NewSessionPicker({ onDone }: { onDone: () => void }) {
-  const { perform } = useCallsign();
-  const projects = useCallsignStore((state) => state.projects);
+  const { perform } = useHeyTerm();
+  const projects = useHeyTermStore((state) => state.projects);
   // Selected whole and filtered here: a selector returning a new array each time re-renders forever.
-  const agents = useCallsignStore((state) => state.setup?.agents);
+  const agents = useHeyTermStore((state) => state.setup?.agents);
   const installedAgents = useMemo(() => (agents ?? []).filter((agent) => agent.version), [agents]);
   const [filter, setFilter] = useState("");
   const [agent, setAgent] = useState<AgentKind>("claude");
@@ -237,8 +237,8 @@ function NewSessionPicker({ onDone }: { onDone: () => void }) {
 }
 
 function SidebarFooter({ onOpenSetup }: { onOpenSetup: () => void }) {
-  const sessions = useCallsignStore((state) => state.sessions);
-  const handsOff = useCallsignStore((state) => state.handsOff);
+  const sessions = useHeyTermStore((state) => state.sessions);
+  const handsOff = useHeyTermStore((state) => state.handsOff);
   const now = useServerNow();
   const waitedToday = sessions.reduce((total, session) => total + session.waitedMillisecondsToday + (isWaitingOnUser(session.state) ? now - session.stateSince : 0), 0);
   const voiceShare = handsOff.voiceShare;
@@ -272,8 +272,8 @@ function SidebarFooter({ onOpenSetup }: { onOpenSetup: () => void }) {
 }
 
 function ModeButton({ compact = false }: { compact?: boolean }) {
-  const { perform } = useCallsign();
-  const mode = useCallsignStore((state) => state.control.mode);
+  const { perform } = useHeyTerm();
+  const mode = useHeyTermStore((state) => state.control.mode);
   const ModeIcon = mode === "speak" ? SpeakerIcon : mode === "quiet" ? SpeakerQuietIcon : SpeakerMutedIcon;
   const title = "Speaking says everything, Quiet only permissions and questions, Muted plays sounds only. Or say: be quiet, mute, talk to me.";
   if (compact) {
@@ -315,9 +315,9 @@ function RailButton({ label, onClick, children, className = "" }: { label: strin
 }
 
 function ConnectionMark() {
-  const status = useCallsignStore((state) => state.connectionStatus);
+  const status = useHeyTermStore((state) => state.connectionStatus);
   if (status === "open") return null;
-  const text = status === "needs_token" ? "Open it with the callsign command" : status === "connecting" ? "Connecting" : "Reconnecting";
+  const text = status === "needs_token" ? "Open it with the heyterm command" : status === "connecting" ? "Connecting" : "Reconnecting";
   return <span className="truncate rounded-mark bg-permission/15 px-1.5 py-0.5 text-[12px] text-permission">{text}</span>;
 }
 

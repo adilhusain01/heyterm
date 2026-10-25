@@ -57,9 +57,9 @@ export interface ActivityEntry {
   at: number;
 }
 
-// "callsign": started by Callsign in its tmux, so Callsign can type into it.
+// "heyterm": started by HeyTerm in its tmux, so HeyTerm can type into it.
 // "external": started by the user in their own terminal and reported by the opt-in hooks.
-export type SessionOrigin = "callsign" | "external";
+export type SessionOrigin = "heyterm" | "external";
 
 export interface SessionView {
   name: string;
@@ -74,7 +74,7 @@ export interface SessionView {
   lastPrompt?: string;
   lastMessage?: string;
   pending?: PendingRequest;
-  // A dialog Callsign was holding when it restarted: it is on screen in the terminal, and typed text would land in it.
+  // A dialog HeyTerm was holding when it restarted: it is on screen in the terminal, and typed text would land in it.
   blockedByTerminalDialog?: boolean;
   agentSessionId?: string;
   // What a needs_trust session asks to trust: its folder, or (Codex) hooks it has not seen before.

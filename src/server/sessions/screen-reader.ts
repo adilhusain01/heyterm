@@ -1,7 +1,7 @@
 // Reads an agent's screen for the one dialog no hook reports: trusting a new folder.
 
 // Claude Code says "Yes, I trust this folder"; Codex says "Trust and continue" for a folder and
-// "Trust all and continue" for hooks it has not seen before (Callsign's, the first time).
+// "Trust all and continue" for hooks it has not seen before (HeyTerm's, the first time).
 const trustOptionText = /Yes, I trust this folder|\bTrust (?:all )?and continue\b/;
 const hookReviewText = /Hooks need review/;
 

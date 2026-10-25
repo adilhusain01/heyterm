@@ -1,4 +1,4 @@
-// What was typed after `callsign`.
+// What was typed after `heyterm`.
 
 export interface ParsedArguments {
   command: string | undefined;

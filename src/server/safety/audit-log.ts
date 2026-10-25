@@ -1,4 +1,4 @@
-// Every decision made for an agent, by voice or click, one JSON line each in ~/.callsign/audit.jsonl.
+// Every decision made for an agent, by voice or click, one JSON line each in ~/.heyterm/audit.jsonl.
 
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";

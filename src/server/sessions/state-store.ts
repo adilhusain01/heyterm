@@ -1,4 +1,4 @@
-// Sessions saved to ~/.callsign/state.json, so a restart of Callsign finds them again.
+// Sessions saved to ~/.heyterm/state.json, so a restart of HeyTerm finds them again.
 
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";

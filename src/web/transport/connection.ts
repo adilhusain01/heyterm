@@ -3,7 +3,7 @@
 
 import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
 
-// "needs_token": the page was opened without the secret the callsign command gives it.
+// "needs_token": the page was opened without the secret the heyterm command gives it.
 export type ConnectionStatus = "connecting" | "open" | "closed" | "needs_token";
 
 export interface ConnectionHandlers {
@@ -19,7 +19,7 @@ export interface TerminalChannel {
   close: () => void;
 }
 
-export interface CallsignConnection {
+export interface HeyTermConnection {
   // Returns a function that disconnects.
   connect: (handlers: ConnectionHandlers) => () => void;
   send: (message: ClientMessage) => void;

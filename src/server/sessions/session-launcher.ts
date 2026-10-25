@@ -1,5 +1,5 @@
-// Starts, resumes, closes and types into agent sessions, each running in one of Callsign's own
-// terminals. When Callsign stops, its sessions stop too, and come back from "Recently closed".
+// Starts, resumes, closes and types into agent sessions, each running in one of HeyTerm's own
+// terminals. When HeyTerm stops, its sessions stop too, and come back from "Recently closed".
 
 import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
@@ -16,7 +16,7 @@ const execFileAsync = promisify(execFile);
 
 export type DeliveryResult = "submitted" | "queued" | "failed";
 
-// How long a session gets to report a submitted prompt before Callsign presses return again.
+// How long a session gets to report a submitted prompt before HeyTerm presses return again.
 const promptConfirmationMilliseconds = 2_500;
 // Pasted text needs a moment to settle in the agent's input before return is pressed.
 const pasteSettleMilliseconds = 150;
@@ -131,7 +131,7 @@ export class SessionLauncher {
     }
   }
 
-  // Callsign is stopping: every session ends and waits under "Recently closed" for next time.
+  // HeyTerm is stopping: every session ends and waits under "Recently closed" for next time.
   shutdown(): void {
     for (const session of this.registry.list()) if (session.origin !== "external") this.registry.remove(session.name);
     this.host.shutdown();
@@ -140,7 +140,7 @@ export class SessionLauncher {
   private launch(session: SessionView, agentLaunch: { program: string; args: string[] }): void {
     const { file, args } = LaunchCommand.forPlatform(agentLaunch.program, agentLaunch.args);
     try {
-      this.host.createSession({ name: session.name, workingDirectory: session.projectPath, program: file, args, environment: { CALLSIGN_SESSION: session.name } });
+      this.host.createSession({ name: session.name, workingDirectory: session.projectPath, program: file, args, environment: { HEYTERM_SESSION: session.name } });
     } catch (error) {
       this.registry.remove(session.name);
       throw error;

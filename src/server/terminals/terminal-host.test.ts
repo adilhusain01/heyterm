@@ -51,11 +51,11 @@ posixOnly("TerminalHost", () => {
 
   it("passes the session's environment to the program", async () => {
     const host = makeHost();
-    host.createSession({ name: "three", workingDirectory: "/tmp", program: "/bin/sh", args: ["-c", 'echo "name=$CALLSIGN_SESSION"; sleep 5'], environment: { CALLSIGN_SESSION: "three" } });
+    host.createSession({ name: "three", workingDirectory: "/tmp", program: "/bin/sh", args: ["-c", 'echo "name=$HEYTERM_SESSION"; sleep 5'], environment: { HEYTERM_SESSION: "three" } });
     await waitFor(async () => (await host.captureScreen("three")).includes("name=three"));
   });
 
-  it("starts programs without Claude Code's own markers, even when Callsign runs inside Claude Code", async () => {
+  it("starts programs without Claude Code's own markers, even when HeyTerm runs inside Claude Code", async () => {
     process.env.CLAUDE_CODE_CHILD_SESSION = "1";
     process.env.CLAUDECODE = "1";
     process.env.CLAUDE_CODE_USE_BEDROCK = "1";

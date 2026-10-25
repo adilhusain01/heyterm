@@ -1,4 +1,4 @@
-// `callsign uninstall`: takes out everything Callsign put on this computer. Its hooks leave the
+// `heyterm uninstall`: takes out everything HeyTerm put on this computer. Its hooks leave the
 // user's Claude settings (everything else in the file stays), and its own folder goes to the Trash.
 
 import { readFile, rename, writeFile } from "node:fs/promises";
@@ -41,8 +41,8 @@ export class Uninstaller {
       return false;
     }
     if (!UserSettingsHooks.isConnected(settings)) return false;
-    const temporaryPath = `${this.options.claudeSettingsPath}.callsign.tmp`;
-    await writeFile(temporaryPath, `${JSON.stringify(UserSettingsHooks.withoutCallsign(settings), null, 2)}\n`);
+    const temporaryPath = `${this.options.claudeSettingsPath}.heyterm.tmp`;
+    await writeFile(temporaryPath, `${JSON.stringify(UserSettingsHooks.withoutHeyTerm(settings), null, 2)}\n`);
     await rename(temporaryPath, this.options.claudeSettingsPath);
     return true;
   }

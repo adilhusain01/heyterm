@@ -1,4 +1,4 @@
-// The user's choices from the Setup screen, in ~/.callsign/config.json. Environment variables win over it.
+// The user's choices from the Setup screen, in ~/.heyterm/config.json. Environment variables win over it.
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -6,10 +6,10 @@ import path from "node:path";
 export interface UserConfigValues {
   projectRoots?: string[];
   routerModel?: string;
-  // Whether sessions started in the user's own terminals show up. Callsign adds its hooks to their
+  // Whether sessions started in the user's own terminals show up. HeyTerm adds its hooks to their
   // Claude settings while it runs and takes them out when it stops.
   showOwnTerminalSessions?: boolean;
-  // Keep running after the last Callsign page is closed. Off by default: closing Callsign closes it.
+  // Keep running after the last HeyTerm page is closed. Off by default: closing HeyTerm closes it.
   keepRunningWithoutPage?: boolean;
 }
 

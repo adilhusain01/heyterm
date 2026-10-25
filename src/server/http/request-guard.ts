@@ -1,4 +1,4 @@
-// Callsign types into terminals, so only this Mac's own pages and hooks may talk to it.
+// HeyTerm types into terminals, so only this Mac's own pages and hooks may talk to it.
 
 import { timingSafeEqual } from "node:crypto";
 import type { IncomingMessage } from "node:http";
@@ -26,12 +26,12 @@ export class RequestGuard {
     return fetchSite !== "cross-site";
   }
 
-  // The secret in ~/.callsign/token (readable by this user only). Hooks send it as a header; the page,
+  // The secret in ~/.heyterm/token (readable by this user only). Hooks send it as a header; the page,
   // which cannot set headers on a WebSocket, sends it in the address. Another user on the same
   // computer can reach 127.0.0.1 but cannot read the token, so cannot type into these terminals.
   hasToken(request: IncomingMessage): boolean {
     const fromAddress = new URL(request.url ?? "/", "http://127.0.0.1").searchParams.get("token");
-    const presented = Buffer.from(String(request.headers["x-callsign-token"] ?? fromAddress ?? ""));
+    const presented = Buffer.from(String(request.headers["x-heyterm-token"] ?? fromAddress ?? ""));
     const expected = Buffer.from(this.token);
     return presented.length === expected.length && timingSafeEqual(presented, expected);
   }

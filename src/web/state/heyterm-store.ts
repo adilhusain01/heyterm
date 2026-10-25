@@ -10,7 +10,7 @@ import { VoiceChoice, type Voice } from "../voice/voice-choice.ts";
 import type { Listening } from "../listening-state.ts";
 import { loadLayoutPreferences, saveLayoutPreferences, type LayoutPreferences } from "./layout-preferences.ts";
 
-interface CallsignState {
+interface HeyTermState {
   connectionStatus: ConnectionStatus;
   hasSnapshot: boolean;
   sessions: SessionView[];
@@ -25,7 +25,7 @@ interface CallsignState {
   catchUp: SessionDigest[] | undefined;
   setup: SetupStatus | undefined;
   conversation: ConversationEntry[];
-  // Callsign is talking right now.
+  // HeyTerm is talking right now.
   speaking: boolean;
   // Whether dictation would reach the bar, and whether words are in it now.
   listening: Listening;
@@ -46,7 +46,7 @@ interface CallsignState {
   changeLayout: (change: Partial<LayoutPreferences>) => void;
 }
 
-export const useCallsignStore = create<CallsignState>((set) => ({
+export const useHeyTermStore = create<HeyTermState>((set) => ({
   connectionStatus: "connecting",
   hasSnapshot: false,
   sessions: [],

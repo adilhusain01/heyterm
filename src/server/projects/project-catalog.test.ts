@@ -6,7 +6,7 @@ import { ProjectCatalog } from "./project-catalog.ts";
 
 describe("ProjectCatalog.find", () => {
   it("finds any existing folder by its path, not only the projects it listed", async () => {
-    const folder = await mkdtemp(path.join(os.tmpdir(), "callsign-folder-"));
+    const folder = await mkdtemp(path.join(os.tmpdir(), "heyterm-folder-"));
     await mkdir(path.join(folder, "Projects"));
     const catalog = new ProjectCatalog([]);
     expect(await catalog.find(path.join(folder, "Projects"))).toEqual({ name: "projects", path: path.join(folder, "Projects") });

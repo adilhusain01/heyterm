@@ -31,7 +31,7 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
   const { executor, audit } = dependencies;
   let assistant: Assistant | undefined;
 
-  // The one rule Callsign adds: nothing touches a PrivateKeys folder (the developer's own standing rule).
+  // The one rule HeyTerm adds: nothing touches a PrivateKeys folder (the developer's own standing rule).
   const beforeTool: HookCallback = async (input) => {
     if (input.hook_event_name !== "PreToolUse") return {};
     if (!ConductorSafety.touchesPrivateKeys(input.tool_name, (input.tool_input ?? {}) as Record<string, unknown>)) return {};
@@ -39,7 +39,7 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
   };
 
   // Called only when Claude Code's own permission mode would ask the developer; then they are asked
-  // out loud. Whatever Claude Code allows by itself runs without a word from Callsign.
+  // out loud. Whatever Claude Code allows by itself runs without a word from HeyTerm.
   const askDeveloper = async (toolName: string, toolInput: Record<string, unknown>): Promise<boolean> => {
     const summary = PermissionRisk.assess({ toolName, toolInput, projectPath: dependencies.workingDirectory });
     const risk = summary.risk === "high" ? ` It ${summary.riskReasons[0]}.` : "";

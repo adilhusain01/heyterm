@@ -1,4 +1,4 @@
-// Messages between the Callsign server and the web UI over /ws.
+// Messages between the HeyTerm server and the web UI over /ws.
 
 import type { SessionDigest } from "./catch-up.ts";
 import type { AgentKind, AnnouncementMode, RouterAction, SessionView } from "./types.ts";
@@ -46,10 +46,10 @@ export interface AgentStatus {
 }
 
 export interface SetupStatus {
-  // Every coding agent Callsign can run, with its version when it is installed.
+  // Every coding agent HeyTerm can run, with its version when it is installed.
   agents: AgentStatus[];
   claudeVersion?: string;
-  // The Claude Code release Callsign was last checked against; older ones may lack a hook it needs.
+  // The Claude Code release HeyTerm was last checked against; older ones may lack a hook it needs.
   testedClaudeVersion: string;
   claudeVersionIsTested: boolean;
   nodeVersion: string;
@@ -105,7 +105,7 @@ export type ClientMessage =
   | { type: "set_keep_running"; keepRunning: boolean }
   // How text reached the page (kinds and lengths, never words), for when dictation seems lost.
   | { type: "input_diagnostics"; records: Array<Record<string, unknown>> }
-  // Stop Callsign and every session in it.
+  // Stop HeyTerm and every session in it.
   | { type: "quit" }
   | { type: "speak"; text: string; id: number }
   | { type: "stop_speaking" };

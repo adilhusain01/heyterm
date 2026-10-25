@@ -11,7 +11,7 @@ const actionsForTheAssistant: RouterAction["type"][] = ["catch_up", "status"];
 
 export class ConductorRouting {
   static handledInstantly(action: RouterAction, { confirmationWaiting }: { confirmationWaiting: boolean }): boolean {
-    // A confirm with nothing waiting in Callsign answers something the assistant asked.
+    // A confirm with nothing waiting in HeyTerm answers something the assistant asked.
     if (action.type === "confirm" && !confirmationWaiting) return false;
     return !actionsForTheAssistant.includes(action.type);
   }

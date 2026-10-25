@@ -2,9 +2,9 @@
 // Claude sessions are connected. Everything a new user needs on one screen.
 
 import { useEffect, useState } from "react";
-import { useCallsign } from "../app-context.tsx";
+import { useHeyTerm } from "../app-context.tsx";
 import { isPlayground } from "../playground/is-playground.ts";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
 import { Key } from "../ui/Key.tsx";
 import { VoiceChoice } from "../voice/voice-choice.ts";
@@ -12,8 +12,8 @@ import { CloseIcon } from "../ui/icons.tsx";
 import type { SetupStatus } from "../../shared/protocol.ts";
 
 export function SetupPanel({ onClose }: { onClose: () => void }) {
-  const { connection } = useCallsign();
-  const setup = useCallsignStore((state) => state.setup);
+  const { connection } = useHeyTerm();
+  const setup = useHeyTermStore((state) => state.setup);
 
   useEffect(() => {
     connection.send({ type: "setup_refresh" });
@@ -47,14 +47,14 @@ function InstallSteps() {
     <>
       <Section title="This is the playground">
         <p className="text-meta leading-relaxed text-ink-muted">
-          The three agents here are simulated, so you can try Callsign without installing anything. Speak with Wispr Flow (hold Fn) or type into the bar at the bottom. Try "catch me
+          The three agents here are simulated, so you can try HeyTerm without installing anything. Speak with Wispr Flow (hold Fn) or type into the bar at the bottom. Try "catch me
           up", "approve", "after", or "api, run the tests".
         </p>
       </Section>
       <Section title="Run it on your own sessions">
         <p className="text-meta text-ink-muted">You need macOS or Linux, Node.js 20+, tmux and Claude Code.</p>
         <pre className="overflow-x-auto rounded-inner border border-line bg-tray px-2.5 py-2 font-mono shadow-tray text-[12.5px] leading-relaxed text-ink">
-          {["brew install tmux", "npx callsign-cli doctor", "npx callsign-cli"].join("\n")}
+          {["brew install tmux", "npx heyterm doctor", "npx heyterm"].join("\n")}
         </pre>
       </Section>
       <VoiceSection />
@@ -69,14 +69,14 @@ function SetupSections({ setup }: { setup: SetupStatus }) {
         title="Coding agents"
         help={
           <>
-            <span>The agents Callsign can run. Install any of them; the assistant in the middle needs Claude Code.</span>
+            <span>The agents HeyTerm can run. Install any of them; the assistant in the middle needs Claude Code.</span>
             <span>Say <SayThis>start a codex session in api</SayThis> to pick one by voice.</span>
           </>
         }
       >
         {setup.agents.map((agent) => {
           const outdatedClaude = agent.kind === "claude" && agent.version && !setup.claudeVersionIsTested;
-          const fix = !agent.version ? agent.installHint : outdatedClaude ? `Callsign was checked against ${setup.testedClaudeVersion}. Run claude update.` : undefined;
+          const fix = !agent.version ? agent.installHint : outdatedClaude ? `HeyTerm was checked against ${setup.testedClaudeVersion}. Run claude update.` : undefined;
           return <CheckRow key={agent.kind} ok={Boolean(agent.version) && !outdatedClaude} label={agent.label} value={agent.version ?? "Not installed"} fix={fix} />;
         })}
         <CheckRow ok label="Node" value={setup.nodeVersion} />
@@ -103,10 +103,10 @@ function SetupSections({ setup }: { setup: SetupStatus }) {
 }
 
 function VoiceSection() {
-  const { announcer } = useCallsign();
-  const macVoiceAvailable = useCallsignStore((state) => state.setup?.macVoiceAvailable ?? false);
-  const preference = useCallsignStore((state) => state.voicePreference);
-  const setVoicePreference = useCallsignStore((state) => state.setVoicePreference);
+  const { announcer } = useHeyTerm();
+  const macVoiceAvailable = useHeyTermStore((state) => state.setup?.macVoiceAvailable ?? false);
+  const preference = useHeyTermStore((state) => state.voicePreference);
+  const setVoicePreference = useHeyTermStore((state) => state.setVoicePreference);
   const voice = VoiceChoice.effective({ preference, macVoiceAvailable });
   const [notificationPermission, setNotificationPermission] = useState(() => ("Notification" in window ? Notification.permission : "denied"));
   return (
@@ -114,7 +114,7 @@ function VoiceSection() {
       title="Voice"
       help={
         <>
-          <span>Callsign reads whatever your dictation tool types into the bar at the bottom. With Wispr Flow, hold Fn and speak; macOS Dictation and typing work too.</span>
+          <span>HeyTerm reads whatever your dictation tool types into the bar at the bottom. With Wispr Flow, hold Fn and speak; macOS Dictation and typing work too.</span>
           <span>Mac voice speaks with the voice set in System Settings, Accessibility, Spoken Content, Siri voices included. Browsers cannot use those.</span>
           <span>Use headphones, so spoken alerts never end up in your dictation.</span>
         </>
@@ -137,7 +137,7 @@ function VoiceSection() {
           onClick={() => {
             announcer.unlock();
             announcer.earcons.play("finished");
-            announcer.speakNow("Callsign can talk to you.");
+            announcer.speakNow("HeyTerm can talk to you.");
           }}
         >
           Test sound
@@ -151,7 +151,7 @@ function VoiceSection() {
 }
 
 function ProjectFoldersSection({ setup }: { setup: SetupStatus }) {
-  const { connection } = useCallsign();
+  const { connection } = useHeyTerm();
   const [text, setText] = useState(setup.projectRoots.join("\n"));
   useEffect(() => setText(setup.projectRoots.join("\n")), [setup.projectRoots]);
   return (
@@ -159,7 +159,7 @@ function ProjectFoldersSection({ setup }: { setup: SetupStatus }) {
       title="Project folders"
       help={
         <>
-          <span>Folders that hold your git repositories, one per line. Callsign looks three levels down for projects to name by voice.</span>
+          <span>Folders that hold your git repositories, one per line. HeyTerm looks three levels down for projects to name by voice.</span>
           <span>The assistant can still start a session in any folder you name: <SayThis>open a session in ~/Downloads</SayThis>.</span>
         </>
       }
@@ -182,14 +182,14 @@ function ProjectFoldersSection({ setup }: { setup: SetupStatus }) {
 }
 
 function ExistingSessionsSection({ connected }: { connected: boolean }) {
-  const { connection } = useCallsign();
+  const { connection } = useHeyTerm();
   return (
     <Section
       title="Your own Claude sessions"
       help={
         <>
-          <span>Claude sessions you start in your own terminals show up too. Callsign answers their permissions and questions and tells you when they finish, but cannot type into them.</span>
-          <span>While Callsign runs, its hooks sit in ~/.claude/settings.json (backed up first). They come out when it stops or when you turn this off.</span>
+          <span>Claude sessions you start in your own terminals show up too. HeyTerm answers their permissions and questions and tells you when they finish, but cannot type into them.</span>
+          <span>While HeyTerm runs, its hooks sit in ~/.claude/settings.json (backed up first). They come out when it stops or when you turn this off.</span>
         </>
       }
     >
@@ -204,21 +204,21 @@ function ExistingSessionsSection({ connected }: { connected: boolean }) {
 }
 
 function RunningSection({ keepRunning }: { keepRunning: boolean }) {
-  const { connection } = useCallsign();
+  const { connection } = useHeyTerm();
   return (
     <Section
-      title="Closing Callsign"
+      title="Closing HeyTerm"
       help={
         <>
-          <span>By default, closing the last Callsign page closes Callsign and every session in it after 15 seconds, so a reload never does. Sessions come back from Recently closed.</span>
-          <span>You can also stop it with callsign stop in a terminal, and remove it with callsign uninstall.</span>
+          <span>By default, closing the last HeyTerm page closes HeyTerm and every session in it after 15 seconds, so a reload never does. Sessions come back from Recently closed.</span>
+          <span>You can also stop it with heyterm stop in a terminal, and remove it with heyterm uninstall.</span>
         </>
       }
     >
       <p className="text-meta text-ink-muted">{keepRunning ? "Keeps running when the page closes" : "Closes with the page"}</p>
       <div className="flex gap-1">
         <PanelButton onClick={() => connection.send({ type: "set_keep_running", keepRunning: !keepRunning })}>{keepRunning ? "Close with the page" : "Keep running without the page"}</PanelButton>
-        <PanelButton onClick={() => connection.send({ type: "quit" })}>Quit Callsign</PanelButton>
+        <PanelButton onClick={() => connection.send({ type: "quit" })}>Quit HeyTerm</PanelButton>
       </div>
     </Section>
   );

@@ -1,5 +1,5 @@
 {
-  "name": "callsign-cli",
+  "name": "heyterm",
   "version": "0.1.0",
   "description": "Run your coding agents by voice: one window for all your Claude Code sessions, with a voice layer that routes what you say and tells you when a session needs you.",
   "scripts": {
@@ -51,7 +51,7 @@
     "esbuild@0.28.2": true
   },
   "bin": {
-    "callsign": "bin/callsign.js"
+    "heyterm": "bin/heyterm.js"
   },
   "engines": {
     "node": ">=20"

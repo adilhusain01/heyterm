@@ -1,14 +1,14 @@
 // The backend and the announcer, and the three ways the UI acts: words, clicks and focus.
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { useCallsignStore } from "./state/callsign-store.ts";
+import { useHeyTermStore } from "./state/heyterm-store.ts";
 import type { Announcer } from "./voice/announcer.ts";
-import type { CallsignConnection } from "./transport/connection.ts";
+import type { HeyTermConnection } from "./transport/connection.ts";
 import type { InputSource } from "../shared/protocol.ts";
 import type { RouterAction } from "../shared/types.ts";
 
-interface CallsignActions {
-  connection: CallsignConnection;
+interface HeyTermActions {
+  connection: HeyTermConnection;
   announcer: Announcer;
   sendUtterance: (text: string, source: InputSource) => void;
   // A button press: counted as pointer use, and sent to the server as a ready-made action.
@@ -16,11 +16,11 @@ interface CallsignActions {
   focusSession: (sessionName: string) => void;
 }
 
-const CallsignContext = createContext<CallsignActions | undefined>(undefined);
+const HeyTermContext = createContext<HeyTermActions | undefined>(undefined);
 
-export function CallsignProvider({ connection, announcer, children }: { connection: CallsignConnection; announcer: Announcer; children: ReactNode }) {
-  const recordAction = useCallsignStore((state) => state.recordAction);
-  const actions = useMemo<CallsignActions>(
+export function HeyTermProvider({ connection, announcer, children }: { connection: HeyTermConnection; announcer: Announcer; children: ReactNode }) {
+  const recordAction = useHeyTermStore((state) => state.recordAction);
+  const actions = useMemo<HeyTermActions>(
     () => ({
       connection,
       announcer,
@@ -37,11 +37,11 @@ export function CallsignProvider({ connection, announcer, children }: { connecti
     }),
     [connection, announcer, recordAction],
   );
-  return <CallsignContext.Provider value={actions}>{children}</CallsignContext.Provider>;
+  return <HeyTermContext.Provider value={actions}>{children}</HeyTermContext.Provider>;
 }
 
-export function useCallsign(): CallsignActions {
-  const actions = useContext(CallsignContext);
-  if (!actions) throw new Error("useCallsign needs a CallsignProvider above it");
+export function useHeyTerm(): HeyTermActions {
+  const actions = useContext(HeyTermContext);
+  if (!actions) throw new Error("useHeyTerm needs a HeyTermProvider above it");
   return actions;
 }

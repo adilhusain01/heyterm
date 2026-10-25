@@ -18,7 +18,7 @@ describe("ConductorRouting.handledInstantly", () => {
     }
   });
 
-  it("passes a confirm to the assistant when nothing in Callsign waits for one, since the assistant may have asked for it", () => {
+  it("passes a confirm to the assistant when nothing in HeyTerm waits for one, since the assistant may have asked for it", () => {
     expect(ConductorRouting.handledInstantly({ type: "confirm" }, { confirmationWaiting: false })).toBe(false);
   });
 

@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "./App.tsx";
 import { Announcer } from "./voice/announcer.ts";
-import type { CallsignConnection, ConnectionHandlers, TerminalChannel } from "./transport/connection.ts";
+import type { HeyTermConnection, ConnectionHandlers, TerminalChannel } from "./transport/connection.ts";
 import type { ServerMessage } from "../shared/protocol.ts";
 import type { SessionView } from "../shared/types.ts";
 
@@ -28,7 +28,7 @@ const messages: ServerMessage[] = [
   { type: "conversation", entries: [{ id: 1, at: 0, kind: "user", text: "what is everyone doing?" }, { id: 2, at: 0, kind: "assistant", text: "Portfolio wants to force push." }] },
 ];
 
-class FakeConnection implements CallsignConnection {
+class FakeConnection implements HeyTermConnection {
   connect(handlers: ConnectionHandlers): () => void {
     handlers.onStatus("open");
     queueMicrotask(() => messages.forEach((message) => handlers.onMessage(message)));
@@ -67,7 +67,7 @@ describe("the whole page", () => {
 
     // Dictation arrives as a paste; something else on the page (an extension) tries to cancel it.
     document.addEventListener("paste", (event) => event.preventDefault(), { capture: false });
-    const bar = container.querySelector<HTMLInputElement>('input[aria-label="Talk to Callsign"]')!;
+    const bar = container.querySelector<HTMLInputElement>('input[aria-label="Talk to HeyTerm"]')!;
     bar.focus();
     const paste = new Event("paste", { bubbles: true, cancelable: true });
     Object.defineProperty(paste, "clipboardData", { value: { getData: (type: string) => (type === "text/plain" ? "start a session in portfolio" : "") } });

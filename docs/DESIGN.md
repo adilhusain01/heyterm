@@ -1,6 +1,6 @@
-# Callsign design kit
+# HeyTerm design kit
 
-Callsign is a console you mostly listen to. The screen has to answer three questions at a glance: what needs me, what is the assistant doing, and what is each session doing. Everything here serves those three. The rules come from Adil's design taste notes; the component ideas come from the libraries catalogued in his vault, redrawn on these tokens instead of installed.
+HeyTerm is a console you mostly listen to. The screen has to answer three questions at a glance: what needs me, what is the assistant doing, and what is each session doing. Everything here serves those three. The rules come from Adil's design taste notes; the component ideas come from the libraries catalogued in his vault, redrawn on these tokens instead of installed.
 
 ## Principles
 

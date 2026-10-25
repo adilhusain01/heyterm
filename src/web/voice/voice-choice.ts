@@ -3,7 +3,7 @@
 
 export type Voice = "mac" | "browser";
 
-const storageKey = "callsign.voice";
+const storageKey = "heyterm.voice";
 
 export class VoiceChoice {
   static effective({ preference, macVoiceAvailable }: { preference: Voice | undefined; macVoiceAvailable: boolean }): Voice {

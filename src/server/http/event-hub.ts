@@ -14,7 +14,7 @@ const snapshotThrottleMilliseconds = 50;
 
 export class EventHub {
   private readonly sockets = new Set<WebSocket>();
-  // How many Callsign pages are open, so closing the last one can close Callsign.
+  // How many HeyTerm pages are open, so closing the last one can close HeyTerm.
   onPageCountChange: (count: number) => void = () => undefined;
   onQuitRequest: () => void = () => undefined;
   inputLog: InputLog | undefined;
@@ -101,7 +101,7 @@ export class EventHub {
     await this.setup.setExistingSessionsConnected(connected);
     const text = connected
       ? "Connected. Claude sessions you start in any terminal now show up here."
-      : "Disconnected. Callsign's hooks are out of your Claude settings.";
+      : "Disconnected. HeyTerm's hooks are out of your Claude settings.";
     this.broadcast({ type: "feedback", feedback: { text, tone: "success", speak: false } });
     await this.sendSetup();
   }

@@ -1,7 +1,7 @@
-// Runs the Callsign server and the Vite dev server together. Ctrl+C stops both.
+// Runs the HeyTerm server and the Vite dev server together. Ctrl+C stops both.
 import { spawn } from "node:child_process";
 
-const environment = { ...process.env, CALLSIGN_DEV_ORIGIN: "http://localhost:5173" };
+const environment = { ...process.env, HEYTERM_DEV_ORIGIN: "http://localhost:5173" };
 const processes = [
   spawn("npx", ["tsx", "watch", "src/server/serve.ts"], { stdio: "inherit", env: environment }),
   spawn("npx", ["vite"], { stdio: "inherit", env: environment }),

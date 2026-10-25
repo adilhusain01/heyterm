@@ -1,22 +1,22 @@
-// The script every agent hook runs: it sends one event to Callsign on this computer and prints
-// Callsign's answer. Plain Node, so it runs the same on macOS, Linux and Windows. When Callsign is
+// The script every agent hook runs: it sends one event to HeyTerm on this computer and prints
+// HeyTerm's answer. Plain Node, so it runs the same on macOS, Linux and Windows. When HeyTerm is
 // not running it prints nothing and the agent carries on as if no hook existed.
 
 // Permission requests wait for the user's answer; everything else must not slow the agent down.
 export const permissionWaitSeconds = 590;
 
 export function forwardScript(port: number, token: string): string {
-  return `// Written by Callsign. Forwards one agent hook event to Callsign on this computer.
+  return `// Written by HeyTerm. Forwards one agent hook event to HeyTerm on this computer.
 "use strict";
 const http = require("http");
 const origin = process.argv[2];
 const eventName = process.argv[3] || "";
-const sessionName = process.env.CALLSIGN_SESSION;
-const isCallsignSession = origin === "callsign" && Boolean(sessionName);
-const isOutsideSession = origin === "external" && !sessionName && !process.env.CALLSIGN_ROUTER;
-if ((!isCallsignSession && !isOutsideSession) || !/^[A-Za-z]+$/.test(eventName)) process.exit(0);
+const sessionName = process.env.HEYTERM_SESSION;
+const isHeyTermSession = origin === "heyterm" && Boolean(sessionName);
+const isOutsideSession = origin === "external" && !sessionName && !process.env.HEYTERM_ROUTER;
+if ((!isHeyTermSession && !isOutsideSession) || !/^[A-Za-z]+$/.test(eventName)) process.exit(0);
 
-const query = isCallsignSession ? "session=" + encodeURIComponent(sessionName) : "external=1";
+const query = isHeyTermSession ? "session=" + encodeURIComponent(sessionName) : "external=1";
 const waitSeconds = eventName === "PermissionRequest" ? ${permissionWaitSeconds} : 3;
 const chunks = [];
 process.stdin.on("data", (chunk) => chunks.push(chunk));
@@ -28,7 +28,7 @@ process.stdin.on("end", () => {
       port: ${port},
       path: "/hooks/" + eventName + "?" + query,
       method: "POST",
-      headers: { "Content-Type": "application/json", "Content-Length": body.length, "X-Callsign-Token": ${JSON.stringify(token)} },
+      headers: { "Content-Type": "application/json", "Content-Length": body.length, "X-HeyTerm-Token": ${JSON.stringify(token)} },
       timeout: waitSeconds * 1000,
     },
     (response) => {

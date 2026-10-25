@@ -105,7 +105,7 @@ describe("spoken lines", () => {
     expect(spokenFor(makeSession("bookboy", { state: "needs_permission", pending: permission }))).toBe("bookboy wants to run a command. Say approve or deny.");
   });
 
-  it("names the risk of a high-risk command, and approve answers it like any other (Callsign adds no gate of its own)", () => {
+  it("names the risk of a high-risk command, and approve answers it like any other (HeyTerm adds no gate of its own)", () => {
     const risky: PendingRequest = { ...permission, summary: "git push --force origin main", risk: "high", riskReasons: ["force pushes"] };
     expect(spokenFor(makeSession("bookboy", { state: "needs_permission", pending: risky }))).toBe("bookboy wants to run a command that force pushes. Say approve or deny.");
   });
@@ -129,7 +129,7 @@ describe("spoken lines", () => {
   });
 
   it("says when it is the agent's hooks, not a folder, that need trusting", () => {
-    expect(spokenFor(makeSession("demo", { state: "needs_trust", trustSubject: "hooks" }))).toBe("demo asks you to trust Callsign's hooks. Say trust it.");
+    expect(spokenFor(makeSession("demo", { state: "needs_trust", trustSubject: "hooks" }))).toBe("demo asks you to trust HeyTerm's hooks. Say trust it.");
   });
 
   it("asks for the trust and names a failure", () => {

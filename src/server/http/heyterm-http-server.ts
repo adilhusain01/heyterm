@@ -15,10 +15,10 @@ const largestHookBodyBytes = 2 * 1024 * 1024;
 // A page's messages are words and clicks; nothing it sends is this large.
 const largestSocketMessageBytes = 256 * 1024;
 
-export class CallsignHttpServer {
+export class HeyTermHttpServer {
   private readonly server = createServer((request, response) => void this.handle(request, response));
   private readonly sockets = new WebSocketServer({ noServer: true, maxPayload: largestSocketMessageBytes });
-  // Called when someone with the token asks Callsign to stop.
+  // Called when someone with the token asks HeyTerm to stop.
   onShutdownRequest: () => void = () => undefined;
   private readonly serveWeb: ((request: IncomingMessage, response: ServerResponse) => void) | undefined;
 
@@ -64,18 +64,18 @@ export class CallsignHttpServer {
   }
 
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
-    if (!this.guard.isFromThisMac(request)) return respond(response, 403, "Callsign only answers requests from this Mac.");
+    if (!this.guard.isFromThisMac(request)) return respond(response, 403, "HeyTerm only answers requests from this Mac.");
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     if (url.pathname.startsWith("/hooks/") && request.method === "POST") return this.handleHook(request, response, url);
-    // Says it is Callsign, so a second "callsign" can tell it is already running.
-    if (url.pathname === "/health") return respond(response, 200, JSON.stringify({ ok: true, app: "callsign" }), "application/json");
+    // Says it is HeyTerm, so a second "heyterm" can tell it is already running.
+    if (url.pathname === "/health") return respond(response, 200, JSON.stringify({ ok: true, app: "heyterm" }), "application/json");
     if (url.pathname === "/shutdown" && request.method === "POST") {
       if (!this.guard.hasToken(request)) return respond(response, 401, "");
       respond(response, 200, "stopping");
       return this.onShutdownRequest();
     }
     if (this.serveWeb) return this.serveWeb(request, response);
-    respond(response, 404, "The web UI is not built yet. Run npm run build, or npm run dev while working on Callsign.");
+    respond(response, 404, "The web UI is not built yet. Run npm run build, or npm run dev while working on HeyTerm.");
   }
 
   private async handleHook(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {

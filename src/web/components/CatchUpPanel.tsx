@@ -1,15 +1,15 @@
 // "Catch me up": what each session did since you last looked, while the same text is read out.
 
 import { useEffect } from "react";
-import { useCallsign } from "../app-context.tsx";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTerm } from "../app-context.tsx";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { CloseIcon } from "../ui/icons.tsx";
 import { stateDisplay } from "./session-display.ts";
 
 export function CatchUpPanel() {
-  const { perform } = useCallsign();
-  const digests = useCallsignStore((state) => state.catchUp);
-  const closeCatchUp = useCallsignStore((state) => state.closeCatchUp);
+  const { perform } = useHeyTerm();
+  const digests = useHeyTermStore((state) => state.catchUp);
+  const closeCatchUp = useHeyTermStore((state) => state.closeCatchUp);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => event.key === "Escape" && closeCatchUp();

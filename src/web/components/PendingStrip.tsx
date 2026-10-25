@@ -1,15 +1,15 @@
-// What Callsign is waiting on above the command bar: a send about to go, a "which one?", a "say confirm",
+// What HeyTerm is waiting on above the command bar: a send about to go, a "which one?", a "say confirm",
 // or the assistant thinking. Otherwise the last thing it heard.
 
-import { useCallsign } from "../app-context.tsx";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTerm } from "../app-context.tsx";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { AssistantOrb } from "../ui/AssistantOrb.tsx";
 import { Key } from "../ui/Key.tsx";
 import type { ControlState } from "../../shared/protocol.ts";
 
 export function PendingStrip({ control }: { control: ControlState }) {
-  const { perform } = useCallsign();
-  const latestReply = useCallsignStore((state) => state.conversation.findLast((entry) => entry.kind === "assistant")?.text);
+  const { perform } = useHeyTerm();
+  const latestReply = useHeyTermStore((state) => state.conversation.findLast((entry) => entry.kind === "assistant")?.text);
 
   if (control.preview) {
     const remaining = Math.max(0, control.preview.deadline - Date.now());

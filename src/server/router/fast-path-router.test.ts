@@ -172,7 +172,7 @@ describe("talking to a session", () => {
   });
 });
 
-describe("while Callsign or the assistant waits for a yes", () => {
+describe("while HeyTerm or the assistant waits for a yes", () => {
   const waiting = () => makeContext({ hasPendingConfirmation: true });
 
   it("takes yes, approve, go ahead and confirm as the yes", () => {

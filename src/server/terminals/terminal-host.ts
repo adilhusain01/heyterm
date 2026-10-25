@@ -1,6 +1,6 @@
-// Callsign's own terminals: each session's program runs in a pseudo-terminal owned by Callsign,
+// HeyTerm's own terminals: each session's program runs in a pseudo-terminal owned by HeyTerm,
 // with a headless copy of its screen so the screen can be read and shown to a page that opens later.
-// Works the same on macOS, Linux and Windows. When Callsign stops, every program stops with it.
+// Works the same on macOS, Linux and Windows. When HeyTerm stops, every program stops with it.
 
 import pty, { type IPty } from "@lydell/node-pty";
 import serializeModule from "@xterm/addon-serialize";

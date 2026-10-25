@@ -1,4 +1,4 @@
-// Connects the Claude sessions a user starts in their own terminals, by adding Callsign's hooks to
+// Connects the Claude sessions a user starts in their own terminals, by adding HeyTerm's hooks to
 // ~/.claude/settings.json. Only on the user's click; the file is backed up first, and disconnecting
 // removes exactly what was added. Claude Code reloads hooks itself, so running sessions join too.
 
@@ -7,10 +7,10 @@ import os from "node:os";
 import path from "node:path";
 import { UserSettingsHooks } from "./user-settings-hooks.ts";
 
-// The user's own Claude Code settings file. CALLSIGN_CLAUDE_SETTINGS_PATH points Callsign alone at
+// The user's own Claude Code settings file. HEYTERM_CLAUDE_SETTINGS_PATH points HeyTerm alone at
 // another file, for tests, without changing where the agents themselves look.
 export function claudeUserSettingsPath(): string {
-  return process.env.CALLSIGN_CLAUDE_SETTINGS_PATH ?? path.join(process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude"), "settings.json");
+  return process.env.HEYTERM_CLAUDE_SETTINGS_PATH ?? path.join(process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude"), "settings.json");
 }
 
 export class ExistingSessionConnector {
@@ -28,12 +28,12 @@ export class ExistingSessionConnector {
 
   async connect(): Promise<void> {
     const settings = await this.readSettings();
-    await this.writeSettings(UserSettingsHooks.withCallsign(settings, this.scriptPath));
+    await this.writeSettings(UserSettingsHooks.withHeyTerm(settings, this.scriptPath));
   }
 
   async disconnect(): Promise<void> {
     const settings = await this.readSettings();
-    await this.writeSettings(UserSettingsHooks.withoutCallsign(settings));
+    await this.writeSettings(UserSettingsHooks.withoutHeyTerm(settings));
   }
 
   // A file that is not valid JSON is refused rather than overwritten: it belongs to the user.
@@ -45,7 +45,7 @@ export class ExistingSessionConnector {
     try {
       return JSON.parse(text || "{}") as Record<string, unknown>;
     } catch {
-      throw new Error(`${this.settingsPath} is not valid JSON, so Callsign left it alone. Fix it and try again.`);
+      throw new Error(`${this.settingsPath} is not valid JSON, so HeyTerm left it alone. Fix it and try again.`);
     }
   }
 
@@ -54,7 +54,7 @@ export class ExistingSessionConnector {
     const backupPath = path.join(this.backupDirectory, `claude-settings-${new Date().toISOString().replaceAll(":", "-")}.json`);
     await copyFile(this.settingsPath, backupPath).catch(() => undefined);
     await mkdir(path.dirname(this.settingsPath), { recursive: true });
-    const temporaryPath = `${this.settingsPath}.callsign.tmp`;
+    const temporaryPath = `${this.settingsPath}.heyterm.tmp`;
     await writeFile(temporaryPath, `${JSON.stringify(settings, null, 2)}\n`);
     await rename(temporaryPath, this.settingsPath);
   }

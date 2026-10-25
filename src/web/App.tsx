@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
-import { CallsignProvider } from "./app-context.tsx";
+import { HeyTermProvider } from "./app-context.tsx";
 import { CatchUpPanel } from "./components/CatchUpPanel.tsx";
 import { CommandBar } from "./components/CommandBar.tsx";
 import { ConversationPanel } from "./components/ConversationPanel.tsx";
@@ -11,23 +11,23 @@ import { SetupPanel } from "./components/SetupPanel.tsx";
 import { TerminalGrid } from "./components/TerminalGrid.tsx";
 import { WelcomeState } from "./components/WelcomeState.tsx";
 import { isPlayground } from "./playground/is-playground.ts";
-import { useCallsignStore } from "./state/callsign-store.ts";
-import type { CallsignConnection } from "./transport/connection.ts";
+import { useHeyTermStore } from "./state/heyterm-store.ts";
+import type { HeyTermConnection } from "./transport/connection.ts";
 import { VoiceChoice } from "./voice/voice-choice.ts";
 import type { Announcer } from "./voice/announcer.ts";
 import type { ServerMessage } from "../shared/protocol.ts";
 import type { AttentionItem } from "../shared/types.ts";
 
-export function App({ connection, announcer }: { connection: CallsignConnection; announcer: Announcer }) {
-  const hasSnapshot = useCallsignStore((state) => state.hasSnapshot);
-  const sessionCount = useCallsignStore((state) => state.sessions.length);
-  const setup = useCallsignStore((state) => state.setup);
+export function App({ connection, announcer }: { connection: HeyTermConnection; announcer: Announcer }) {
+  const hasSnapshot = useHeyTermStore((state) => state.hasSnapshot);
+  const sessionCount = useHeyTermStore((state) => state.sessions.length);
+  const setup = useHeyTermStore((state) => state.setup);
   const [isSetupOpen, setSetupOpen] = useState(false);
   const closeSetup = useCallback(() => setSetupOpen(false), []);
 
   useServerMessages(connection, announcer);
   useChosenVoice(connection, announcer);
-  const setSpeaking = useCallsignStore((state) => state.setSpeaking);
+  const setSpeaking = useHeyTermStore((state) => state.setSpeaking);
   useEffect(() => {
     announcer.onSpeakingChange = setSpeaking;
   }, [announcer, setSpeaking]);
@@ -40,7 +40,7 @@ export function App({ connection, announcer }: { connection: CallsignConnection;
   }, [isMissingTools]);
 
   return (
-    <CallsignProvider connection={connection} announcer={announcer}>
+    <HeyTermProvider connection={connection} announcer={announcer}>
       <div className="flex h-full flex-col md:flex-row">
         <Sidebar onOpenSetup={() => setSetupOpen(true)} />
         <div className="flex min-h-[55vh] min-w-0 flex-1 flex-col md:min-h-0">
@@ -56,13 +56,13 @@ export function App({ connection, announcer }: { connection: CallsignConnection;
       </div>
       {isSetupOpen && <SetupPanel onClose={closeSetup} />}
       <Toaster theme="dark" position="bottom-right" offset={{ bottom: 96, right: 16 }} toastOptions={{ style: { borderRadius: 6 } }} />
-    </CallsignProvider>
+    </HeyTermProvider>
   );
 }
 
-function useServerMessages(connection: CallsignConnection, announcer: Announcer) {
-  const applyServerMessage = useCallsignStore((state) => state.applyServerMessage);
-  const setConnectionStatus = useCallsignStore((state) => state.setConnectionStatus);
+function useServerMessages(connection: HeyTermConnection, announcer: Announcer) {
+  const applyServerMessage = useHeyTermStore((state) => state.applyServerMessage);
+  const setConnectionStatus = useHeyTermStore((state) => state.setConnectionStatus);
   useEffect(() => {
     return connection.connect({
       onStatus: setConnectionStatus,
@@ -87,9 +87,9 @@ function useServerMessages(connection: CallsignConnection, announcer: Announcer)
 }
 
 // Points the announcer at the Mac's voice or the browser's, following Setup.
-function useChosenVoice(connection: CallsignConnection, announcer: Announcer) {
-  const macVoiceAvailable = useCallsignStore((state) => state.setup?.macVoiceAvailable ?? false);
-  const preference = useCallsignStore((state) => state.voicePreference);
+function useChosenVoice(connection: HeyTermConnection, announcer: Announcer) {
+  const macVoiceAvailable = useHeyTermStore((state) => state.setup?.macVoiceAvailable ?? false);
+  const preference = useHeyTermStore((state) => state.voicePreference);
   useEffect(() => {
     const voice = VoiceChoice.effective({ preference, macVoiceAvailable });
     const macSpeaker = {
@@ -115,9 +115,9 @@ function useUnlockSoundOnFirstGesture(announcer: Announcer) {
 
 function notifyWhenHidden(arrived: AttentionItem[]): void {
   if (!document.hidden || arrived.length === 0 || !("Notification" in window) || Notification.permission !== "granted") return;
-  for (const item of arrived) new Notification("Callsign", { body: item.headline, tag: `${item.sessionName}-${item.kind}` });
+  for (const item of arrived) new Notification("HeyTerm", { body: item.headline, tag: `${item.sessionName}-${item.kind}` });
 }
 
 function updateTitle(waitingCount: number): void {
-  document.title = waitingCount > 0 ? `(${waitingCount}) Callsign` : "Callsign";
+  document.title = waitingCount > 0 ? `(${waitingCount}) HeyTerm` : "HeyTerm";
 }

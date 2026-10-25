@@ -1,4 +1,4 @@
-// Starts Callsign: hooks, terminals, sessions, the assistant and the local server. Every way of
+// Starts HeyTerm: hooks, terminals, sessions, the assistant and the local server. Every way of
 // stopping (the stop command, Ctrl+C, Quit in the page, closing the last page) ends in stop().
 
 import { execFile } from "node:child_process";
@@ -13,7 +13,7 @@ import { loadConfig } from "./config.ts";
 import { ExistingSessionConnector } from "./hooks/existing-session-connector.ts";
 import { HeldHookRequests } from "./hooks/held-hook-requests.ts";
 import { HookInstaller } from "./hooks/hook-installer.ts";
-import { CallsignHttpServer } from "./http/callsign-http-server.ts";
+import { HeyTermHttpServer } from "./http/heyterm-http-server.ts";
 import { EventHub } from "./http/event-hub.ts";
 import { RequestGuard } from "./http/request-guard.ts";
 import { TerminalBridge } from "./http/terminal-bridge.ts";
@@ -32,16 +32,16 @@ import { MacVoice } from "./voice/mac-voice.ts";
 
 const execFileAsync = promisify(execFile);
 
-// A reload or a moment offline is not closing Callsign; this long with no page open is.
+// A reload or a moment offline is not closing HeyTerm; this long with no page open is.
 const closedPageGraceMilliseconds = 15_000;
 
-export interface RunningCallsign {
+export interface RunningHeyTerm {
   url: string;
   token: string;
   stop(reason: string): Promise<void>;
 }
 
-export async function startCallsign(): Promise<RunningCallsign> {
+export async function startHeyTerm(): Promise<RunningHeyTerm> {
   const config = await loadConfig();
   const userConfig = new UserConfig(config.dataDirectory);
   const savedChoices = await userConfig.load();
@@ -71,7 +71,7 @@ export async function startCallsign(): Promise<RunningCallsign> {
   registry.on("changed", () => assistant.noteSessions(registry.list()));
   assistant.noteSessions(registry.list());
 
-  // Sessions from the user's own terminals: hooks go into their Claude settings only while Callsign runs.
+  // Sessions from the user's own terminals: hooks go into their Claude settings only while HeyTerm runs.
   const connector = new ExistingSessionConnector(hooks.forwardScriptPath, path.join(config.dataDirectory, "backups"));
   const showOwnTerminalSessions = savedChoices.showOwnTerminalSessions ?? (await connector.isConnected());
   if (savedChoices.showOwnTerminalSessions === undefined && showOwnTerminalSessions) await userConfig.update({ showOwnTerminalSessions });
@@ -81,23 +81,23 @@ export async function startCallsign(): Promise<RunningCallsign> {
   const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant);
   hub.inputLog = new InputLog(config.dataDirectory);
   const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin);
-  const server = new CallsignHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host));
+  const server = new HeyTermHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host));
   await server.listen();
 
   let closedPageTimer: NodeJS.Timeout | undefined;
   let stopping: Promise<void> | undefined;
   const stop = (reason: string): Promise<void> => {
     stopping ??= (async () => {
-      console.log(`\nStopping Callsign (${reason}).`);
+      console.log(`\nStopping HeyTerm (${reason}).`);
       clearTimeout(closedPageTimer);
       trustWatcher.stop();
       assistant.close();
       launcher.shutdown();
-      // Leave the user's Claude settings as they were before Callsign started.
+      // Leave the user's Claude settings as they were before HeyTerm started.
       if ((await userConfig.load()).showOwnTerminalSessions) await connector.disconnect().catch(() => undefined);
       await registry.saveNow().catch(() => undefined);
       await server.close();
-      console.log("Callsign stopped. Its sessions are under Recently closed next time.");
+      console.log("HeyTerm stopped. Its sessions are under Recently closed next time.");
     })();
     return stopping;
   };
@@ -113,23 +113,23 @@ export async function startCallsign(): Promise<RunningCallsign> {
     if (!pageWasOpen) return;
     closedPageTimer = setTimeout(() => {
       void userConfig.load().then((choices) => {
-        if (!choices.keepRunningWithoutPage) stopAndExit("the last Callsign page was closed");
+        if (!choices.keepRunningWithoutPage) stopAndExit("the last HeyTerm page was closed");
       });
     }, closedPageGraceMilliseconds);
   };
   hub.onQuitRequest = () => stopAndExit("Quit in the page");
-  server.onShutdownRequest = () => stopAndExit("callsign stop");
+  server.onShutdownRequest = () => stopAndExit("heyterm stop");
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) process.once(signal, () => stopAndExit(signal));
 
   const url = `http://127.0.0.1:${config.port}`;
-  console.log(`Callsign is listening on ${url}`);
+  console.log(`HeyTerm is listening on ${url}`);
   console.log(`Projects from: ${config.projectRoots.join(", ") || "no project folders found"}`);
   console.log(`Assistant: ${config.routerModel} on ${process.env.ANTHROPIC_API_KEY ? "your Anthropic API key" : "your Claude Code login"}`);
-  console.log("Stop it with Ctrl+C, callsign stop, or Quit in the page.");
+  console.log("Stop it with Ctrl+C, heyterm stop, or Quit in the page.");
   return { url, token: hooks.token, stop };
 }
 
-// Versions before the move to Callsign's own terminals ran sessions in tmux. Those sessions are
+// Versions before the move to HeyTerm's own terminals ran sessions in tmux. Those sessions are
 // stopped here; their saved copies are offered under "Recently closed" to bring back.
 async function stopSessionsFromOlderVersion(tmuxSocketName: string): Promise<void> {
   if (process.platform === "win32") return;

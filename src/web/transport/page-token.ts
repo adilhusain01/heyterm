@@ -1,7 +1,7 @@
-// The secret that lets this page talk to Callsign. The callsign command opens the page with it in
+// The secret that lets this page talk to HeyTerm. The heyterm command opens the page with it in
 // the address (#token=...); it is kept in this browser and taken out of the address bar at once.
 
-const storageKey = "callsign.token";
+const storageKey = "heyterm.token";
 
 export function pageToken(): string | undefined {
   const fromAddress = new URLSearchParams(window.location.hash.slice(1)).get("token");

@@ -1,4 +1,4 @@
-// Every session Callsign knows, the hook events that change them, and their saved copy on disk.
+// Every session HeyTerm knows, the hook events that change them, and their saved copy on disk.
 
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
@@ -58,7 +58,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     this.announceChange();
   }
 
-  // A session that left while Callsign was away; it is not worth a "recently closed" row.
+  // A session that left while HeyTerm was away; it is not worth a "recently closed" row.
   forget(name: string): void {
     if (!this.sessions.delete(name)) return;
     this.heldRequests.letGoAllFor(name);

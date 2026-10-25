@@ -32,10 +32,10 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
     return reply(session ? await act(session) : `There is no session called ${name}. Sessions: ${registry.list().map((known) => known.name).join(", ") || "none"}.`);
   };
   const ownSessionOnly = (session: SessionView, act: () => Promise<string>) =>
-    session.origin === "external" ? Promise.resolve(`${session.name} runs in the developer's own terminal. Callsign cannot type into it or close it; tell the developer to do it there.`) : act();
+    session.origin === "external" ? Promise.resolve(`${session.name} runs in the developer's own terminal. HeyTerm cannot type into it or close it; tell the developer to do it there.`) : act();
 
   return createSdkMcpServer({
-    name: "callsign",
+    name: "heyterm",
     version: "1.0.0",
     tools: [
       tool("read_session", "Read one session in full: its state, last task, whole last message, what it waits on, and the end of its terminal screen.", { name: z.string() }, ({ name }) =>

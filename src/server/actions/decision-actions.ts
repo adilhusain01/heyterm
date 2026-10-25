@@ -1,4 +1,4 @@
-// Answers, approvals and denials: the actions that release a hook Callsign is holding open.
+// Answers, approvals and denials: the actions that release a hook HeyTerm is holding open.
 
 import { SessionLifecycle } from "../sessions/session-lifecycle.ts";
 import type { HeldHookRequests } from "../hooks/held-hook-requests.ts";

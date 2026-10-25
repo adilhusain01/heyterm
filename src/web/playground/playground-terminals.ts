@@ -20,5 +20,5 @@ export class PlaygroundTerminals {
 }
 
 function banner(sessionName: string): string {
-  return `\x1b[2mClaude Code, simulated for the Callsign playground · ${sessionName}\x1b[0m\r\n`;
+  return `\x1b[2mClaude Code, simulated for the HeyTerm playground · ${sessionName}\x1b[0m\r\n`;
 }

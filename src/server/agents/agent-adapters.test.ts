@@ -4,7 +4,7 @@ import { AgentAdapters } from "./agent-adapters.ts";
 const context = { sessionName: "web", claudeSettingsPath: "/data/claude-settings.json", hookCommand: (event: string) => `node /data/forward.cjs ${event}` };
 
 describe("AgentAdapters", () => {
-  it("starts Claude Code with Callsign's settings for this session only, under the session's name", () => {
+  it("starts Claude Code with HeyTerm's settings for this session only, under the session's name", () => {
     expect(AgentAdapters.get("claude").newSession(context)).toEqual({ program: "claude", args: ["--settings", "/data/claude-settings.json", "-n", "web"] });
   });
 

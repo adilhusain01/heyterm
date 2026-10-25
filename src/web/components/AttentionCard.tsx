@@ -1,6 +1,6 @@
 // The one thing that needs you most, with what to say and buttons for when you would rather click.
 
-import { useCallsign } from "../app-context.tsx";
+import { useHeyTerm } from "../app-context.tsx";
 import { useServerNow } from "../state/use-server-now.ts";
 import { FoldedText } from "../ui/FoldedText.tsx";
 import { Hint } from "../ui/Hint.tsx";
@@ -33,7 +33,7 @@ function CardBody({ item, session }: { item: AttentionItem; session: SessionView
 }
 
 function PermissionBody({ sessionName, pending }: { sessionName: string; pending: PendingPermission }) {
-  const { perform } = useCallsign();
+  const { perform } = useHeyTerm();
   const isHighRisk = pending.risk === "high";
   return (
     <div className="flex flex-col gap-2 px-3 pb-2.5">
@@ -54,7 +54,7 @@ function PermissionBody({ sessionName, pending }: { sessionName: string; pending
 }
 
 function QuestionBody({ sessionName, pending }: { sessionName: string; pending: PendingQuestion }) {
-  const { perform } = useCallsign();
+  const { perform } = useHeyTerm();
   const [question] = pending.questions;
   if (!question) return null;
   const answer = (label: string) => perform({ type: "answer", session: sessionName, requestId: pending.requestId, answers: { [question.question]: label } });
@@ -83,7 +83,7 @@ function QuestionBody({ sessionName, pending }: { sessionName: string; pending: 
 }
 
 function TrustBody({ session }: { session: SessionView }) {
-  const { perform } = useCallsign();
+  const { perform } = useHeyTerm();
   return (
     <div className="flex flex-col gap-2 px-3 pb-2.5">
       <p className="text-body text-ink">Claude has not seen this folder before and asks whether you trust it</p>
@@ -97,7 +97,7 @@ function TrustBody({ session }: { session: SessionView }) {
 }
 
 function MessageBody({ item, session }: { item: AttentionItem; session: SessionView }) {
-  const { perform } = useCallsign();
+  const { perform } = useHeyTerm();
   const headline = item.headline.replace(`${session.name} `, "");
   return (
     <div className="flex flex-col gap-2 px-3 pb-2.5">

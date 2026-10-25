@@ -15,7 +15,7 @@ async function startServer(answer: string): Promise<{ port: number; requests: Ar
     let body = "";
     request.on("data", (chunk) => (body += chunk));
     request.on("end", () => {
-      requests.push({ url: request.url ?? "", token: String(request.headers["x-callsign-token"] ?? ""), body });
+      requests.push({ url: request.url ?? "", token: String(request.headers["x-heyterm-token"] ?? ""), body });
       response.end(answer);
     });
   });
@@ -24,7 +24,7 @@ async function startServer(answer: string): Promise<{ port: number; requests: Ar
 }
 
 async function writeScript(port: number): Promise<string> {
-  const scriptPath = path.join(await mkdtemp(path.join(os.tmpdir(), "callsign-forward-")), "callsign-forward.cjs");
+  const scriptPath = path.join(await mkdtemp(path.join(os.tmpdir(), "heyterm-forward-")), "heyterm-forward.cjs");
   await writeFile(scriptPath, forwardScript(port, "secret-token"));
   return scriptPath;
 }
@@ -39,16 +39,16 @@ function run(scriptPath: string, args: string[], environment: Record<string, str
 }
 
 describe("the hook forwarder", () => {
-  it("sends a Callsign session's event with the token and prints Callsign's answer", async () => {
+  it("sends a HeyTerm session's event with the token and prints HeyTerm's answer", async () => {
     const { port, requests } = await startServer('{"decision":"x"}');
-    const result = await run(await writeScript(port), ["callsign", "PermissionRequest"], { CALLSIGN_SESSION: "web" }, '{"tool_name":"Bash"}');
+    const result = await run(await writeScript(port), ["heyterm", "PermissionRequest"], { HEYTERM_SESSION: "web" }, '{"tool_name":"Bash"}');
     expect(result).toEqual({ stdout: '{"decision":"x"}', code: 0 });
     expect(requests).toEqual([{ url: "/hooks/PermissionRequest?session=web", token: "secret-token", body: '{"tool_name":"Bash"}' }]);
   });
 
-  it("stays out of sessions Callsign did not start", async () => {
+  it("stays out of sessions HeyTerm did not start", async () => {
     const { port, requests } = await startServer("answer");
-    const result = await run(await writeScript(port), ["callsign", "Stop"], {}, "{}");
+    const result = await run(await writeScript(port), ["heyterm", "Stop"], {}, "{}");
     expect(result).toEqual({ stdout: "", code: 0 });
     expect(requests).toEqual([]);
   });
@@ -57,21 +57,21 @@ describe("the hook forwarder", () => {
     const { port, requests } = await startServer("");
     const scriptPath = await writeScript(port);
     await run(scriptPath, ["external", "Stop"], {}, "{}");
-    await run(scriptPath, ["external", "Stop"], { CALLSIGN_ROUTER: "1" }, "{}");
+    await run(scriptPath, ["external", "Stop"], { HEYTERM_ROUTER: "1" }, "{}");
     expect(requests.map((request) => request.url)).toEqual(["/hooks/Stop?external=1"]);
   });
 
-  it("lets the agent carry on, silently, when Callsign is not running", async () => {
+  it("lets the agent carry on, silently, when HeyTerm is not running", async () => {
     const scriptPath = await writeScript(1);
     const started = Date.now();
-    const result = await run(scriptPath, ["callsign", "Stop"], { CALLSIGN_SESSION: "web" }, "{}");
+    const result = await run(scriptPath, ["heyterm", "Stop"], { HEYTERM_SESSION: "web" }, "{}");
     expect(result).toEqual({ stdout: "", code: 0 });
     expect(Date.now() - started).toBeLessThan(3_000);
   });
 
   it("refuses an event name that is not a plain word", async () => {
     const { port, requests } = await startServer("");
-    await run(await writeScript(port), ["callsign", "../shutdown"], { CALLSIGN_SESSION: "web" }, "{}");
+    await run(await writeScript(port), ["heyterm", "../shutdown"], { HEYTERM_SESSION: "web" }, "{}");
     expect(requests).toEqual([]);
   });
 });

@@ -5,8 +5,8 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
-import { useCallsign } from "../app-context.tsx";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTerm } from "../app-context.tsx";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { CloseIcon, ExpandIcon, KeyboardIcon, ShrinkIcon } from "../ui/icons.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
@@ -31,11 +31,11 @@ interface TerminalPaneProps {
 }
 
 export function TerminalPane({ session, isExpanded, onToggleExpanded }: TerminalPaneProps) {
-  const { connection, perform } = useCallsign();
-  const isFocused = useCallsignStore((state) => state.focusedSession === session.name);
-  const isTyping = useCallsignStore((state) => state.typingSession === session.name);
-  const setTypingSession = useCallsignStore((state) => state.setTypingSession);
-  const recordAction = useCallsignStore((state) => state.recordAction);
+  const { connection, perform } = useHeyTerm();
+  const isFocused = useHeyTermStore((state) => state.focusedSession === session.name);
+  const isTyping = useHeyTermStore((state) => state.typingSession === session.name);
+  const setTypingSession = useHeyTermStore((state) => state.setTypingSession);
+  const recordAction = useHeyTermStore((state) => state.recordAction);
   const now = useServerNow();
   const containerRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<HTMLElement>(null);

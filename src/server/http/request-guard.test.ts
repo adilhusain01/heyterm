@@ -21,7 +21,7 @@ describe("RequestGuard", () => {
 
   it("opens the sockets only with the token, from the page's address or a header", () => {
     expect(guard.hasToken(request("/ws?token=the-token", { host: "127.0.0.1:4747" }))).toBe(true);
-    expect(guard.hasToken(request("/hooks/Stop", { host: "127.0.0.1:4747", "x-callsign-token": "the-token" }))).toBe(true);
+    expect(guard.hasToken(request("/hooks/Stop", { host: "127.0.0.1:4747", "x-heyterm-token": "the-token" }))).toBe(true);
     expect(guard.hasToken(request("/ws", { host: "127.0.0.1:4747" }))).toBe(false);
     expect(guard.hasToken(request("/ws?token=the-tokeN", { host: "127.0.0.1:4747" }))).toBe(false);
   });

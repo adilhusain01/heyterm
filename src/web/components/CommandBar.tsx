@@ -1,23 +1,23 @@
 // The one input Wispr (or any dictation tool) types into. It keeps focus, sends dictation by itself
-// after a short quiet, and shows what Callsign is about to do with it.
+// after a short quiet, and shows what HeyTerm is about to do with it.
 
 import { useEffect, useRef, useState } from "react";
-import { useCallsign } from "../app-context.tsx";
+import { useHeyTerm } from "../app-context.tsx";
 import { DictationDetector } from "../dictation-detector.ts";
 import { watchInput } from "../input-diagnostics.ts";
 import { PasteInsertion } from "../paste-insertion.ts";
 import { ListeningState, type Listening } from "../listening-state.ts";
-import { useCallsignStore } from "../state/callsign-store.ts";
+import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useOrbState } from "../state/use-orb-state.ts";
 import { AssistantOrb } from "../ui/AssistantOrb.tsx";
 import { Kbd } from "../ui/Hint.tsx";
 import { PendingStrip } from "./PendingStrip.tsx";
 
 export function CommandBar() {
-  const { sendUtterance, perform, announcer, connection } = useCallsign();
-  const typingSession = useCallsignStore((state) => state.typingSession);
-  const setTypingSession = useCallsignStore((state) => state.setTypingSession);
-  const control = useCallsignStore((state) => state.control);
+  const { sendUtterance, perform, announcer, connection } = useHeyTerm();
+  const typingSession = useHeyTermStore((state) => state.typingSession);
+  const setTypingSession = useHeyTermStore((state) => state.setTypingSession);
+  const control = useHeyTermStore((state) => state.control);
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const detector = useRef(new DictationDetector());
@@ -43,7 +43,7 @@ export function CommandBar() {
   const listening = useListening(inputRef);
   useEffect(() => watchInput(() => inputRef.current, (records) => connection.send({ type: "input_diagnostics", records: records as unknown as Array<Record<string, unknown>> })), [connection]);
   const orbState = useOrbState();
-  const setBarState = useCallsignStore((state) => state.setBarState);
+  const setBarState = useHeyTermStore((state) => state.setBarState);
   useEffect(() => setBarState({ listening }), [listening, setBarState]);
   useEffect(() => setBarState({ barHasText: text.trim().length > 0 }), [text, setBarState]);
 
@@ -78,7 +78,7 @@ export function CommandBar() {
         <PendingStrip control={control} />
         {typingSession && (
           <button type="button" onClick={() => setTypingSession(undefined)} className="cursor-pointer rounded-inner border border-line bg-raised px-3 py-1.5 text-left text-meta text-ink-muted hover:text-ink">
-            Typing into <span className="font-mono text-ink">{typingSession}</span>. Click here to talk to Callsign again.
+            Typing into <span className="font-mono text-ink">{typingSession}</span>. Click here to talk to HeyTerm again.
           </button>
         )}
         {!typingSession && listening !== "listening" && listening !== "typing_in_terminal" && (
@@ -111,8 +111,8 @@ export function CommandBar() {
                 setText("");
               }
             }}
-            placeholder={'Talk to Callsign. Hold your dictation key and try "what is everyone doing?"'}
-            aria-label="Talk to Callsign"
+            placeholder={'Talk to HeyTerm. Hold your dictation key and try "what is everyone doing?"'}
+            aria-label="Talk to HeyTerm"
             className="h-full min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-faint"
             autoComplete="off"
             spellCheck={false}

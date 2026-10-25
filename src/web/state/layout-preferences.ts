@@ -9,7 +9,7 @@ export interface LayoutPreferences {
   arrangement: TerminalArrangement;
 }
 
-const storageKey = "callsign.layout";
+const storageKey = "heyterm.layout";
 const defaults: LayoutPreferences = { sidebarCollapsed: false, conversationCollapsed: false, arrangement: "grid" };
 
 export function loadLayoutPreferences(): LayoutPreferences {

@@ -1,4 +1,4 @@
-// Permission and question hooks that Callsign keeps open until the user decides.
+// Permission and question hooks that HeyTerm keeps open until the user decides.
 
 import { permissionHookTimeoutSeconds } from "./hook-installer.ts";
 

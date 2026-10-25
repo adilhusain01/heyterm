@@ -1,4 +1,4 @@
-// A small stand-in for the Callsign server that runs in the browser, so anyone can try Callsign from a
+// A small stand-in for the HeyTerm server that runs in the browser, so anyone can try HeyTerm from a
 // link. It routes words with the real fast path and acts out three agents from a script.
 
 import { CatchUpDigest } from "../../shared/catch-up.ts";
@@ -36,7 +36,7 @@ export class PlaygroundWorld {
     if (message.type === "utterance") this.hear(message.text);
     if (message.type === "action") this.perform(message.action);
     if (message.type === "focus") this.perform({ type: "focus", session: message.session });
-    if (message.type === "setup_refresh") this.tell({ text: "This is the playground: the agents are simulated. Install Callsign to run your own.", tone: "info", speak: false });
+    if (message.type === "setup_refresh") this.tell({ text: "This is the playground: the agents are simulated. Install HeyTerm to run your own.", tone: "info", speak: false });
   }
 
   private hear(text: string): void {
@@ -106,7 +106,7 @@ export class PlaygroundWorld {
         this.snapshot();
         return this.tell({ text: `${action.mode === "speak" ? "Speaking" : action.mode === "quiet" ? "Quiet mode" : "Muted"}.`, tone: "info", speak: action.mode !== "mute" });
       default:
-        return this.tell({ text: "The playground doesn't act that one out. Install Callsign to try it for real.", tone: "info", speak: true });
+        return this.tell({ text: "The playground doesn't act that one out. Install HeyTerm to try it for real.", tone: "info", speak: true });
     }
   }
 

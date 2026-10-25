@@ -2,7 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const callsignServer = `http://127.0.0.1:${process.env.CALLSIGN_PORT ?? 4747}`;
+const heytermServer = `http://127.0.0.1:${process.env.HEYTERM_PORT ?? 4747}`;
 
 export default defineConfig({
   root: "src/web",
@@ -11,9 +11,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/ws": { target: callsignServer, ws: true },
-      "/pty": { target: callsignServer, ws: true },
-      "/health": callsignServer,
+      "/ws": { target: heytermServer, ws: true },
+      "/pty": { target: heytermServer, ws: true },
+      "/health": heytermServer,
     },
   },
 });

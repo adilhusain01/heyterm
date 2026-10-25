@@ -42,7 +42,7 @@ function describedKey(event: EventFacts): string | undefined {
   return modifiers.length > 0 ? [...modifiers, event.key].join("+") : undefined;
 }
 
-// Watches every way text can reach the page and sends the records to Callsign in small batches.
+// Watches every way text can reach the page and sends the records to HeyTerm in small batches.
 export function watchInput(barElement: () => HTMLInputElement | null, send: (records: InputRecord[]) => void): () => void {
   let batch: InputRecord[] = [];
   const where = () => ({ target: focusedElementKind(barElement()), windowHasFocus: document.hasFocus(), at: Date.now() });

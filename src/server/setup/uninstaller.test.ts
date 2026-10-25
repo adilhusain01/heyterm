@@ -6,27 +6,27 @@ import { HookCommands } from "../hooks/hook-commands.ts";
 import { Uninstaller } from "./uninstaller.ts";
 
 async function makeHome() {
-  const home = await mkdtemp(path.join(os.tmpdir(), "callsign-home-"));
-  const dataDirectory = path.join(home, ".callsign");
+  const home = await mkdtemp(path.join(os.tmpdir(), "heyterm-home-"));
+  const dataDirectory = path.join(home, ".heyterm");
   await mkdir(path.join(dataDirectory, "hooks"), { recursive: true });
   await writeFile(path.join(dataDirectory, "state.json"), "{}");
   const claudeSettingsPath = path.join(home, ".claude", "settings.json");
   await mkdir(path.dirname(claudeSettingsPath), { recursive: true });
   const userHook = { hooks: [{ type: "command", command: "/usr/local/bin/my-own-hook" }] };
-  const callsignHook = { hooks: [{ type: "command", command: HookCommands.forExistingSessions(path.join(dataDirectory, "hooks", "callsign-forward.cjs"), "Stop") }] };
-  await writeFile(claudeSettingsPath, JSON.stringify({ model: "opus", hooks: { Stop: [userHook, callsignHook] } }));
+  const heytermHook = { hooks: [{ type: "command", command: HookCommands.forExistingSessions(path.join(dataDirectory, "hooks", "heyterm-forward.cjs"), "Stop") }] };
+  await writeFile(claudeSettingsPath, JSON.stringify({ model: "opus", hooks: { Stop: [userHook, heytermHook] } }));
   return { home, dataDirectory, claudeSettingsPath, userHook };
 }
 
 describe("Uninstaller", () => {
-  it("takes Callsign's hooks out of the user's Claude settings and leaves everything else", async () => {
+  it("takes HeyTerm's hooks out of the user's Claude settings and leaves everything else", async () => {
     const { dataDirectory, claudeSettingsPath, userHook } = await makeHome();
     const trashed: string[] = [];
     await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async (target) => void trashed.push(target) }).run();
     expect(JSON.parse(await readFile(claudeSettingsPath, "utf8"))).toEqual({ model: "opus", hooks: { Stop: [userHook] } });
   });
 
-  it("moves Callsign's own folder to the Trash rather than deleting it", async () => {
+  it("moves HeyTerm's own folder to the Trash rather than deleting it", async () => {
     const { dataDirectory, claudeSettingsPath } = await makeHome();
     const trashed: string[] = [];
     const report = await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async (target) => void trashed.push(target) }).run();
