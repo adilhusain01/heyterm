@@ -40,7 +40,6 @@ export class PlaygroundWorld {
   }
 
   private hear(text: string): void {
-    this.control = { ...this.control, lastHeard: text };
     const sessions = [...this.sessions.values()];
     const action = this.router.route(text, {
       sessions,

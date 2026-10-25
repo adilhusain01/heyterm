@@ -1,5 +1,5 @@
 // What HeyTerm is waiting on above the command bar: a send about to go, a "which one?", a "say confirm",
-// or the assistant thinking. Otherwise the last thing it heard.
+// or the assistant thinking. What you said shows in the conversation, so it is not repeated here.
 
 import { useHeyTerm } from "../app-context.tsx";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
@@ -63,12 +63,7 @@ export function PendingStrip({ control }: { control: ControlState }) {
   }
 
   // Below the width where the conversation column shows, its latest reply sits here instead.
-  return (
-    <>
-      {latestReply && <p className="truncate px-1 text-small text-ink-muted lg:hidden">{latestReply}</p>}
-      {control.lastHeard && <p className={`truncate px-1 text-small text-ink-faint ${latestReply ? "hidden lg:block" : ""}`}>Heard: {control.lastHeard}</p>}
-    </>
-  );
+  return latestReply ? <p className="truncate px-1 text-small text-ink-muted lg:hidden">{latestReply}</p> : null;
 }
 
 function StripButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {

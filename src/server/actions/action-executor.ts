@@ -28,7 +28,6 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
   private mode: AnnouncementMode = "speak";
   private focusedSession: string | undefined;
   private routing = false;
-  private lastHeard: string | undefined;
   private readonly controls = new PendingControls(() => this.emit("changed"));
   private assistant: Assistant | undefined;
 
@@ -43,7 +42,7 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
   }
 
   controlState(): ControlState {
-    return { ...this.controls.view(), mode: this.mode, focusedSession: this.focusedSession, routing: this.routing, lastHeard: this.lastHeard };
+    return { ...this.controls.view(), mode: this.mode, focusedSession: this.focusedSession, routing: this.routing };
   }
 
   setFocus(sessionName: string): void {
@@ -80,8 +79,6 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
       return;
     }
     const utterance = checked.utterance;
-    this.lastHeard = utterance;
-    this.emit("changed");
     const context = await this.routingContext(focusOverride);
     const action = this.fastPath.route(utterance, context);
     // Anything that is not a plain decision or a session named outright goes to the assistant.

@@ -1,5 +1,6 @@
 // One session's live terminal. Click into it to type by hand; the command bar takes focus back after.
 
+import { TerminalCopy } from "./terminal-copy.ts";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal } from "@xterm/xterm";
@@ -68,6 +69,13 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
     const fit = new FitAddon();
     terminal.loadAddon(fit);
     terminal.open(container);
+    // Cmd+C, or Ctrl+C on Windows and Linux, copies selected text instead of interrupting the agent.
+    const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+    terminal.attachCustomKeyEventHandler((event) => {
+      if (event.type !== "keydown" || !TerminalCopy.copiesSelection(event, terminal.hasSelection(), isMac)) return true;
+      void navigator.clipboard.writeText(terminal.getSelection()).catch(() => undefined);
+      return false;
+    });
     loadWebglRenderer(terminal);
     fit.fit();
     terminalRef.current = terminal;

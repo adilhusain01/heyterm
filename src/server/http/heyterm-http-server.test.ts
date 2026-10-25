@@ -28,6 +28,23 @@ describe("HeyTermHttpServer", () => {
     rmSync(webDirectory, { recursive: true, force: true });
   });
 
+  // Seen on 25 October 2026: after a rebuild (or an npm update) while HeyTerm ran, the new page's
+  // script was missing from the server's file list and the page loaded blank.
+  it("serves page files written after it started, so an update never leaves a blank page", async () => {
+    const webDirectory = mkdtempSync(path.join(tmpdir(), "heyterm-web-"));
+    mkdirSync(path.join(webDirectory, "assets"));
+    writeFileSync(path.join(webDirectory, "index.html"), "<!doctype html><title>HeyTerm</title>");
+    const port = 49_000 + Math.floor(Math.random() * 1_000);
+    const server = new HeyTermHttpServer(port, webDirectory, new RequestGuard(port, "token"), {} as SessionRegistry, {} as EventHub, {} as TerminalBridge, new PairingTickets("token"));
+    await server.listen();
+    writeFileSync(path.join(webDirectory, "assets", "index-new.js"), "void 1;");
+    const response = await fetch(`http://127.0.0.1:${port}/assets/index-new.js`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("void 1;");
+    await server.close();
+    rmSync(webDirectory, { recursive: true, force: true });
+  });
+
   it("survives a socket message over the size limit, closing only that socket", async () => {
     const port = 47_000 + Math.floor(Math.random() * 1_000);
     const hub = { connect: () => undefined } as unknown as EventHub;

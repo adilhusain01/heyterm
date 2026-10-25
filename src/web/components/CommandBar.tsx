@@ -1,6 +1,7 @@
 // The one input Wispr (or any dictation tool) types into. It keeps focus, sends dictation by itself
 // after a short quiet, and shows what HeyTerm is about to do with it.
 
+import { FocusReclaim } from "./focus-reclaim.ts";
 import { useEffect, useRef, useState } from "react";
 import { useHeyTerm } from "../app-context.tsx";
 import { DictationDetector } from "../dictation-detector.ts";
@@ -173,21 +174,40 @@ function useListening(inputRef: React.RefObject<HTMLInputElement | null>): Liste
 }
 
 // Brings focus back to the command bar whenever nothing else should have it, so dictation never
-// lands in the wrong place.
+// lands in the wrong place, but not while the user selects text or has some selected to copy.
 function useKeepFocus(inputRef: React.RefObject<HTMLInputElement | null>, enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
+    let pointerIsDown = false;
     const refocus = () => {
       const active = document.activeElement;
-      const anotherFieldHasFocus = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active?.closest(".xterm");
-      if (!anotherFieldHasFocus || active === inputRef.current) inputRef.current?.focus();
+      const anotherFieldHasFocus = (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || Boolean(active?.closest(".xterm"))) && active !== inputRef.current;
+      const hasSelectedText = Boolean(window.getSelection()?.toString());
+      if (FocusReclaim.shouldReclaim({ anotherFieldHasFocus, pointerIsDown, hasSelectedText })) inputRef.current?.focus();
     };
     refocus();
     const onFocusOut = () => window.setTimeout(refocus, 0);
+    const onPointerDown = () => {
+      pointerIsDown = true;
+    };
+    const onPointerUp = () => {
+      pointerIsDown = false;
+      window.setTimeout(refocus, 0);
+    };
+    // Once the selection is gone (a click elsewhere after copying), the bar takes focus again.
+    const onSelectionChange = () => {
+      if (!pointerIsDown && !window.getSelection()?.toString()) window.setTimeout(refocus, 0);
+    };
     document.addEventListener("focusout", onFocusOut);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("pointerup", onPointerUp, true);
+    document.addEventListener("selectionchange", onSelectionChange);
     window.addEventListener("focus", refocus);
     return () => {
       document.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("pointerup", onPointerUp, true);
+      document.removeEventListener("selectionchange", onSelectionChange);
       window.removeEventListener("focus", refocus);
     };
   }, [enabled, inputRef]);

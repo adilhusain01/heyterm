@@ -32,7 +32,9 @@ export class HeyTermHttpServer {
     private readonly terminals: TerminalBridge,
     private readonly tickets: PairingTickets,
   ) {
-    this.serveWeb = existsSync(webDirectory) ? sirv(webDirectory, { single: true, setHeaders: cachingHeaders }) : undefined;
+    // dev reads files from disk on every request instead of listing them once at start, so an update
+    // while HeyTerm runs serves the new page, which then asks for a restart, rather than a blank page.
+    this.serveWeb = existsSync(webDirectory) ? sirv(webDirectory, { dev: true, single: true, setHeaders: cachingHeaders }) : undefined;
     this.server.on("upgrade", (request, socket, head) => {
       if (!this.guard.isFromThisMac(request) || !this.guard.hasToken(request)) return socket.destroy();
       const url = new URL(request.url ?? "/", "http://127.0.0.1");

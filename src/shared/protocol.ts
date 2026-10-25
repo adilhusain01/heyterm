@@ -29,7 +29,6 @@ export interface ControlState {
   focusedSession?: string;
   // True while the assistant is working on something the user said or something that happened.
   routing: boolean;
-  lastHeard?: string;
 }
 
 export interface ClosedSessionView {
