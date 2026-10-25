@@ -90,7 +90,7 @@ export class SessionLauncher {
       throw new Error(`${closed.name}'s conversation is still open in another terminal. Close it there, or say "open ${closed.name} here" to move it.`);
     }
     const conversationFile = closed.agent === "claude" && closed.agentSessionId ? await ClaudeConversationFile.find(closed.agentSessionId, closed.transcriptPath) : undefined;
-    const conversationFolder = conversationFile ? await ClaudeConversationFile.lastFolder(conversationFile) : undefined;
+    const conversationFolder = conversationFile ? await ClaudeConversationFile.startFolder(conversationFile) : undefined;
     const reopenedHere = ConversationOwner.reopenedHere(closed, Date.now());
     const reopened: SessionView = closed.agent === "shell" ? { ...reopenedHere, state: "idle" } : reopenedHere;
     const session = conversationFile && conversationFolder && (await isFolder(conversationFolder)) ? ConversationOwner.inItsConversationsFolder(reopened, conversationFolder, conversationFile) : reopened;
