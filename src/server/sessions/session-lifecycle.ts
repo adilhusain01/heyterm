@@ -14,7 +14,14 @@ const statesWaitingOnUser: SessionState[] = ["needs_permission", "asked", "needs
 export class SessionLifecycle {
   static readonly maximumActivityEntries = 200;
 
+  // Every event is also activity: it says when the session last did anything, clears a quiet
+  // notice, and tracks the shell command running, if any (see quiet-rules.ts).
   static apply(original: SessionView, event: HookEvent, options: LifecycleOptions = {}): SessionView {
+    const result = SessionLifecycle.applyEvent(original, event, options);
+    return { ...result, lastActivityAt: event.receivedAt, quiet: undefined, runningCommand: runningCommandAfter(result, event) };
+  }
+
+  private static applyEvent(original: SessionView, event: HookEvent, options: LifecycleOptions): SessionView {
     // Any real event means the session moved past a dialog left open across a restart.
     const session = original.blockedByTerminalDialog && event.name !== "Notification" ? { ...original, blockedByTerminalDialog: undefined } : original;
     const payload = event.payload;
@@ -127,6 +134,14 @@ export class SessionLifecycle {
     const entries: ActivityEntry[] = [...session.activitySinceSeen, { kind, text, at }];
     return { ...session, activitySinceSeen: entries.slice(-SessionLifecycle.maximumActivityEntries) };
   }
+}
+
+function runningCommandAfter(session: SessionView, event: HookEvent): SessionView["runningCommand"] {
+  const toolName = stringField(event.payload, "tool_name");
+  if (event.name === "PreToolUse" && toolName === "Bash") return { text: stringField(recordField(event.payload, "tool_input"), "command"), since: event.receivedAt };
+  if (event.name === "PostToolUse" && toolName === "Bash") return undefined;
+  if (["UserPromptSubmit", "Stop", "StopFailure", "SessionEnd"].includes(event.name)) return undefined;
+  return session.runningCommand;
 }
 
 function describeToolUse(toolName: string, toolInput: Record<string, unknown>, projectPath: string): { kind: ActivityKind; text: string } | undefined {

@@ -18,6 +18,8 @@ const tonesByKind: Record<AttentionKind | "sent" | "error", Tone[]> = {
     { frequency: 660, startOffset: 0, duration: 0.09 },
     { frequency: 880, startOffset: 0.11, duration: 0.12 },
   ],
+  // One low, longer note: nothing is wrong yet, but a session has gone quiet.
+  quiet: [{ frequency: 392, startOffset: 0, duration: 0.2 }],
   // Falling notes: something went wrong.
   failed: [
     { frequency: 440, startOffset: 0, duration: 0.12 },

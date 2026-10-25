@@ -6,6 +6,7 @@ import path from "node:path";
 import { AgentSessionMatch } from "./agent-session-match.ts";
 import { ClaudeSessionStatus, type ClaudeSessionRecord } from "./claude-session-status.ts";
 import { SessionNames } from "../../shared/session-names.ts";
+import { QuietRules } from "./quiet-rules.ts";
 import { ExternalSessionNaming } from "./external-session-naming.ts";
 import { AgentHookTranslator, type HookedAgentKind } from "../agents/agent-hook-translator.ts";
 import { SessionLifecycle } from "./session-lifecycle.ts";
@@ -181,6 +182,14 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     if (found.claimsId) this.set({ ...found.session, agentSessionId: event.agentSessionId });
     const answer = await this.applyHookEvent({ name: event.name, sessionName: found.session.name, payload: event.payload, receivedAt });
     return answer || defaultReply;
+  }
+
+  // Marks working sessions that have said nothing for long (quiet-rules.ts); each is told once.
+  noticeQuietSessions(now: number): void {
+    for (const session of this.list()) {
+      const quiet = QuietRules.verdict(session, now);
+      if (quiet) this.update(session.name, (current) => ({ ...current, quiet }));
+    }
   }
 
   // Brings Claude sessions in line with Claude Code's own records: a stopped turn returns to idle,

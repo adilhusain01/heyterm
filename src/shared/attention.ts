@@ -3,7 +3,7 @@
 import { firstSentence, lastQuestionSentence } from "./message-text.ts";
 import type { AnnouncementMode, AttentionItem, AttentionKind, PendingPermission, PendingQuestion, SessionView } from "./types.ts";
 
-const kindOrder: AttentionKind[] = ["permission", "question", "trust", "failed", "finished"];
+const kindOrder: AttentionKind[] = ["permission", "question", "trust", "failed", "finished", "quiet"];
 const kindsSpokenInQuietMode: AttentionKind[] = ["permission", "question"];
 
 export class AttentionQueue {
@@ -21,6 +21,16 @@ export class AnnouncementText {
     if (spoken.length === 1) return spoken[0]!.spoken;
     return `${capitalize(countWord(spoken.length))} sessions need you. ${spoken.map((item) => item.spoken).join(" ")}`;
   }
+}
+
+// The minutes match QuietRules: a session is called quiet at five, a command long at ten.
+function quietItem(session: SessionView, quiet: NonNullable<SessionView["quiet"]>): AttentionItem {
+  const base = { sessionName: session.name, since: quiet.since, kind: "quiet" as const };
+  if (quiet.kind === "long_command") {
+    const command = session.runningCommand?.text;
+    return { ...base, headline: `${session.name} has been running one command for 10 minutes${command ? `: ${command}` : ""}`, spoken: `${session.name} has been running one command for 10 minutes.` };
+  }
+  return { ...base, headline: `${session.name} has gone quiet: nothing from it for 5 minutes`, spoken: `${session.name} has gone quiet for 5 minutes. It may be stuck.` };
 }
 
 function attentionItemFor(session: SessionView): AttentionItem | undefined {
@@ -56,6 +66,8 @@ function attentionItemFor(session: SessionView): AttentionItem | undefined {
       const headline = `${session.name} finished${lead ? `: ${lead}` : ""}${changed ? `${lead ? "" : "."} Changed ${changed}.` : ""}`;
       return { ...base, kind: "finished", headline, spoken: changed ? `${session.name} is done. It changed ${changed}.` : `${session.name} is done.` };
     }
+    case "working":
+      return session.quiet ? quietItem(session, session.quiet) : undefined;
     default:
       return undefined;
   }

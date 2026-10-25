@@ -194,3 +194,23 @@ describe("SessionLifecycle, files changed in the last task", () => {
     expect(session.filesChangedInLastTask).toEqual([]);
   });
 });
+
+describe("SessionLifecycle, activity for spotting a quiet session", () => {
+  it("notes when the session last did anything, and clears a quiet notice", () => {
+    const session = SessionLifecycle.apply(makeSession({ state: "working", quiet: { kind: "quiet", since: 0 } }), makeEvent("PostToolUse", { tool_name: "Read", tool_input: {} }, 7_000));
+    expect(session.lastActivityAt).toBe(7_000);
+    expect(session.quiet).toBeUndefined();
+  });
+
+  it("knows a shell command is running from its start until it ends", () => {
+    let session = SessionLifecycle.apply(makeSession({ state: "working" }), makeEvent("PreToolUse", { tool_name: "Bash", tool_input: { command: "pnpm test" } }, 2_000));
+    expect(session.runningCommand).toEqual({ text: "pnpm test", since: 2_000 });
+    session = SessionLifecycle.apply(session, makeEvent("PostToolUse", { tool_name: "Bash", tool_input: { command: "pnpm test" } }, 9_000));
+    expect(session.runningCommand).toBeUndefined();
+  });
+
+  it("forgets a running command when the turn ends", () => {
+    const session = SessionLifecycle.apply(makeSession({ state: "working", runningCommand: { text: "x", since: 0 } }), makeEvent("Stop", { last_assistant_message: "Done." }));
+    expect(session.runningCommand).toBeUndefined();
+  });
+});

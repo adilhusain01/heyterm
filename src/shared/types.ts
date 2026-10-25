@@ -61,6 +61,12 @@ export interface ActivityEntry {
 // "external": started by the user in their own terminal and reported by the opt-in hooks.
 export type SessionOrigin = "heyterm" | "external";
 
+// A working session that has said nothing for long: quiet, or running one command for long.
+export interface QuietNotice {
+  kind: "quiet" | "long_command";
+  since: number;
+}
+
 // A git worktree HeyTerm made for one session: a checkout of its own, on a branch of its own.
 export interface SessionWorktree {
   repoPath: string;
@@ -87,6 +93,11 @@ export interface SessionView {
   agentSessionId?: string;
   // Files the session's own edits touched since its last prompt, relative to its folder.
   filesChangedInLastTask?: string[];
+  // When the session last sent any hook event, and the shell command it is running, if any.
+  lastActivityAt?: number;
+  runningCommand?: { text: string; since: number };
+  // Set once a working session has gone quiet for long; any new activity clears it.
+  quiet?: QuietNotice;
   // Set when the session works in its own git worktree, because another session used its folder.
   worktree?: SessionWorktree;
   // The name the session's face is drawn from: its first name, so a rename keeps the face.
@@ -101,7 +112,7 @@ export interface SessionView {
   waitedMillisecondsToday: number;
 }
 
-export type AttentionKind = "permission" | "question" | "trust" | "failed" | "finished";
+export type AttentionKind = "permission" | "question" | "trust" | "failed" | "finished" | "quiet";
 
 export interface AttentionItem {
   sessionName: string;

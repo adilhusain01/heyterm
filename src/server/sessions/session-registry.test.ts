@@ -193,3 +193,14 @@ describe("SessionRegistry with a task change tracker", () => {
     expect(registry.get("hello")).toMatchObject({ state: "done", filesChangedInLastTask: ["notes.txt", "todo.md"] });
   });
 });
+
+describe("SessionRegistry.noticeQuietSessions", () => {
+  it("marks a working session that has said nothing for five minutes, once", () => {
+    const registry = makeRegistry();
+    registry.add(session("api", { agent: "claude", state: "working", lastActivityAt: 0 }));
+    registry.add(session("web", { agent: "claude", state: "working", lastActivityAt: 4 * 60_000 }));
+    registry.noticeQuietSessions(5 * 60_000);
+    expect(registry.get("api")?.quiet).toEqual({ kind: "quiet", since: 0 });
+    expect(registry.get("web")?.quiet).toBeUndefined();
+  });
+});

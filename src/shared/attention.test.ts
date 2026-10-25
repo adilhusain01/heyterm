@@ -65,6 +65,15 @@ describe("AttentionQueue.build", () => {
     expect(none?.spoken).toBe("docs is done.");
   });
 
+  it("says when a working session has gone quiet, last in line", () => {
+    const [quiet] = AttentionQueue.build([makeSession("api", { state: "working", quiet: { kind: "quiet", since: 0 } })]);
+    expect(quiet).toMatchObject({ kind: "quiet", headline: "api has gone quiet: nothing from it for 5 minutes", spoken: "api has gone quiet for 5 minutes. It may be stuck." });
+    const [command] = AttentionQueue.build([makeSession("web", { state: "working", quiet: { kind: "long_command", since: 0 }, runningCommand: { text: "pnpm build", since: 0 } })]);
+    expect(command).toMatchObject({ kind: "quiet", headline: "web has been running one command for 10 minutes: pnpm build", spoken: "web has been running one command for 10 minutes." });
+    const order = AttentionQueue.build([makeSession("api", { state: "working", quiet: { kind: "quiet", since: 0 } }), makeSession("tests", { state: "done", lastMessage: "All good." })]).map((item) => item.kind);
+    expect(order).toEqual(["finished", "quiet"]);
+  });
+
   it("leaves out finished work the user has already looked at", () => {
     const queue = AttentionQueue.build([makeSession("seen", { state: "done", stateSince: 100, lastSeenAt: 150 })]);
     expect(queue).toEqual([]);
