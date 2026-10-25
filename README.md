@@ -128,7 +128,9 @@ npm run deploy:site        # builds both and deploys them to Vercel as one site
 
 The landing page lives in `site/`. It shares the app's tokens (`src/web/tokens.css`) and motion (`src/web/motion.css`), so the two never drift apart, and its hero is a small HeyTerm running a scene. The faces it shows are drawn at build time by `scripts/site-faces.mjs`, so the page ships pictures instead of the face generator.
 
-`docs/SPEC.md` is the behaviour HeyTerm promises, and the tests are written from it. `scripts/smoke.mjs` checks an installed package end to end (start, the token wall, stop, uninstall). Pure decisions (routing, risk, session states, the attention queue) live in their own files with tests beside them.
+`docs/SPEC.md` is the behaviour HeyTerm promises, and the tests are written from it. `scripts/smoke.mjs` checks an installed package end to end (start, the token wall, stop, uninstall). Pure decisions (routing, risk, session states, the attention queue, quiet sessions, worktree and change rules) live in their own files with tests beside them.
+
+To try a change while your own HeyTerm runs, build it in a separate checkout (`git worktree add --detach ../heyterm-try HEAD`, with `node_modules` linked in) and start it with its own `HEYTERM_DATA_DIRECTORY`, `HEYTERM_PORT`, `HEYTERM_CLAUDE_SETTINGS_PATH`, `HEYTERM_GROK_HOOKS_PATH` and `HEYTERM_CURSOR_HOOKS_PATH`. A build in the folder a running HeyTerm serves changes the page under it, and a second copy on the real hook files edits the hooks the first one relies on.
 
 Built for [No Hands: The Wispr Challenge](https://www.wemakedevs.org/wispr) by WeMakeDevs and Wispr Flow.
 
