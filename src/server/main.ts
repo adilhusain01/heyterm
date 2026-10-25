@@ -45,6 +45,8 @@ export interface RunningHeyTerm {
 }
 
 export async function startHeyTerm(): Promise<RunningHeyTerm> {
+  // A stray rejected promise is logged, not allowed to take every running session down with the server.
+  process.on("unhandledRejection", (reason) => console.error("HeyTerm caught an unexpected error:", reason instanceof Error ? reason.message : reason));
   const config = await loadConfig();
   await DataFolder.ensurePrivate(config.dataDirectory);
   const userConfig = new UserConfig(config.dataDirectory);

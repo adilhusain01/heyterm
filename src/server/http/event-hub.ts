@@ -36,7 +36,7 @@ export class EventHub {
     executor.on("feedback", (feedback) => this.broadcast({ type: "feedback", feedback }));
     executor.on("focus", (session) => this.broadcast({ type: "focus", session }));
     executor.on("catchUp", (digests) => this.broadcast({ type: "catch_up", digests }));
-    void this.refreshProjects();
+    this.refreshProjects().catch(() => undefined);
   }
 
   connect(socket: WebSocket): void {
@@ -44,7 +44,7 @@ export class EventHub {
     this.onPageCountChange(this.sockets.size);
     socket.send(JSON.stringify(this.snapshot()));
     socket.send(JSON.stringify({ type: "conversation", entries: this.assistant.conversation() } satisfies ServerMessage));
-    void this.sendSetup();
+    this.sendSetup().catch(() => undefined);
     socket.on("message", (raw) => void this.receive(raw.toString(), socket));
     socket.on("close", () => {
       this.sockets.delete(socket);

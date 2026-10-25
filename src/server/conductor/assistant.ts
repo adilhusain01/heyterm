@@ -110,13 +110,13 @@ export class Assistant extends EventEmitter<AssistantEvents> {
 
     let saidPlainLine = false;
     const fallback = setTimeout(() => {
-      void this.situation().then((situation) => {
+      this.situation().then((situation) => {
         const stillWaiting = NarrationRules.stillWaiting(told, AttentionQueue.build(situation.sessions));
         if (stillWaiting.length === 0) return;
         saidPlainLine = true;
         const plain = AnnouncementText.forItems(stillWaiting, this.announcementMode());
         if (plain) this.emit("say", plain);
-      });
+      }, () => undefined);
     }, narrationPatienceMilliseconds);
     try {
       const reply = await this.conductor.ask(ConductorTurnText.forEvent(told, await this.situation()), "event");
