@@ -8,11 +8,23 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "jsx": "react-jsx",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["node"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node"
+    ],
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src", "vite.config.ts", "vitest.config.ts"]
+  "include": [
+    "src",
+    "site",
+    "vite.config.ts",
+    "vite.site.config.ts",
+    "vitest.config.ts"
+  ]
 }

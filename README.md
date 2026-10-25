@@ -110,7 +110,12 @@ npm test           # the unit tests; CI also runs them on macOS, Linux and Windo
 npm run typecheck
 npm run build      # dist/web and dist/server/cli.js
 npm run build:playground   # dist/playground: the same UI on three simulated agents, a static site anyone can open
+npm run dev:site           # the landing page (site/) with reload on :5174
+npm run build:site         # dist/site: the landing page, with the playground under /playground/
+npm run deploy:site        # builds both and deploys them to Vercel as one site
 ```
+
+The landing page lives in `site/`. It shares the app's tokens (`src/web/tokens.css`) and motion (`src/web/motion.css`), so the two never drift apart, and its hero is a small HeyTerm running a scene. The faces it shows are drawn at build time by `scripts/site-faces.mjs`, so the page ships pictures instead of the face generator.
 
 `docs/SPEC.md` is the behaviour HeyTerm promises, and the tests are written from it. `scripts/smoke.mjs` checks an installed package end to end (start, the token wall, stop, uninstall). Pure decisions (routing, risk, session states, the attention queue) live in their own files with tests beside them.
 

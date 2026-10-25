@@ -12,13 +12,14 @@ HeyTerm is a console you mostly listen to. The screen has to answer three questi
 
 ## Tokens
 
-All live in `src/web/styles.css` under `@theme`, and every component takes its values from there.
+All live in `src/web/tokens.css` under `@theme`, shared by the app (`src/web/styles.css`) and the landing page (`site/`); motion utilities live in `src/web/motion.css`, shared the same way. Every component takes its values from there.
 
 | Group | Tokens | Notes |
 |---|---|---|
 | Surfaces | `canvas`, `tray`, `panel`, `raised`, `key`, `key-hover`, `terminal`, `scrim` | Canvas is the working area and panel the sidebars, as in Obsidian. Tray sits in; keys stand out. `terminal` is the same dark in both themes. |
 | Lines | `line`, `line-strong` | Hairlines between groups. Panels never get a shadow. |
-| Ink | `ink`, `ink-muted`, `ink-faint` | Body text, secondary text, hints. Muted keeps 4.5:1 contrast on every surface, faint at least 3:1 (times and hints only). |
+| Ink | `ink`, `ink-muted`, `ink-faint` | Body text, secondary text, hints. Every level keeps WCAG AA's 4.5:1 on every surface, small text included (raised on 2026-10-25 after the landing page's Lighthouse run flagged faint text at 4.0:1). |
+| Terminal text | `terminal-ink`, `terminal-bright`, `terminal-red`, `terminal-green`, `terminal-orange` | Gruvbox Material dark, the palette xterm gets, for terminal text drawn outside xterm (the landing page's demo). |
 | Accent | `accent`, `accent-ink`, `primary`, `primary-hover`, `primary-ink` | `accent` for rings and marks, `accent-ink` where the accent is text. The primary key is the darkest ink in light and the lightest sand in dark. |
 | Outlines | `image-outline` | A neutral 1px line around faces, never tinted. |
 | States | `working`, `permission`, `question`, `trust`, `failed`, `finished`, `idle` | Only for session state. |
@@ -62,3 +63,8 @@ Request parts live in `src/web/components/AttentionCard.tsx`: the `chat` card in
 Below 1024px wide the conversation folds into the line above the bar; below 768px everything is one column, the sidebar takes at most 45% of the height and never folds to the rail. Nothing scrolls sideways at 360 or 390 wide.
 
 Paths are shown by their end (`…/projects/docs`), since that is what names the folder, with the full path on hover.
+
+## Landing page (`site/`)
+
+The same tokens, faces and orb as the app, so it reads as the product. Display type is Martian Mono (variable, OFL), set condensed and heavy: Gruvbox began as a terminal palette, and the page speaks its language; Geist carries everything read. The one moving thing is the hero, a small HeyTerm running a scene on a loop (paused off screen, still under reduced motion); everything else moves only when pressed. Built to `Preferences/Landing Page Playbook.md` in Adil's vault: Lighthouse 97 performance and 100 for accessibility, best practices and SEO on 2026-10-25.
+
