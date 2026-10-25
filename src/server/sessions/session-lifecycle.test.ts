@@ -177,3 +177,20 @@ describe("SessionLifecycle, for agents reporting through translated hooks (Grok 
     expect(session.lastMessage).toBe("Added the test.");
   });
 });
+
+describe("SessionLifecycle, files changed in the last task", () => {
+  it("lists each file an edit finished on, once, relative to the project", () => {
+    let session = SessionLifecycle.apply(makeSession({ state: "idle" }), makeEvent("UserPromptSubmit", { prompt: "fix totals" }));
+    for (const filePath of ["/projects/bookboy/src/totals.ts", "/projects/bookboy/src/totals.ts", "/projects/bookboy/src/totals.test.ts"]) {
+      session = SessionLifecycle.apply(session, makeEvent("PostToolUse", { tool_name: "Edit", tool_input: { file_path: filePath } }));
+    }
+    session = SessionLifecycle.apply(session, makeEvent("PostToolUse", { tool_name: "Bash", tool_input: { command: "pnpm test" } }));
+    session = SessionLifecycle.apply(session, makeEvent("Stop", { last_assistant_message: "Fixed." }));
+    expect(session.filesChangedInLastTask).toEqual(["src/totals.ts", "src/totals.test.ts"]);
+  });
+
+  it("starts the list again with the next task", () => {
+    const session = SessionLifecycle.apply(makeSession({ state: "done", filesChangedInLastTask: ["src/old.ts"] }), makeEvent("UserPromptSubmit", { prompt: "next" }));
+    expect(session.filesChangedInLastTask).toEqual([]);
+  });
+});

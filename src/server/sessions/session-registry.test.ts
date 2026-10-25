@@ -176,3 +176,20 @@ describe("SessionRegistry.forgetExternalSessions", () => {
     expect(registry.recentlyClosedSessions()).toEqual([]);
   });
 });
+
+describe("SessionRegistry with a task change tracker", () => {
+  it("snapshots the folder when a task starts and adds what git saw changed when it ends", async () => {
+    const registry = makeRegistry();
+    const started: string[] = [];
+    registry.useTurnChangeTracker({
+      taskStarted: (current) => void started.push(current.name),
+      filesChangedByTask: async () => ["notes.txt", "todo.md"],
+    });
+    registry.add(session("hello", { origin: "heyterm", agent: "claude", state: "idle", projectPath: "/p/hello" }));
+    await registry.applyHookEvent({ name: "UserPromptSubmit", sessionName: "hello", payload: { prompt: "append bye" }, receivedAt: 1 });
+    await registry.applyHookEvent({ name: "PostToolUse", sessionName: "hello", payload: { tool_name: "Edit", tool_input: { file_path: "/p/hello/notes.txt" } }, receivedAt: 2 });
+    await registry.applyHookEvent({ name: "Stop", sessionName: "hello", payload: { last_assistant_message: "Done." }, receivedAt: 3 });
+    expect(started).toEqual(["hello"]);
+    expect(registry.get("hello")).toMatchObject({ state: "done", filesChangedInLastTask: ["notes.txt", "todo.md"] });
+  });
+});

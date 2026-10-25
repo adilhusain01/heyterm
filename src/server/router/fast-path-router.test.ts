@@ -233,6 +233,11 @@ describe("session commands", () => {
     }
   });
 
+  it("asks what a session changed", () => {
+    expect(router.route("what did synqed change", makeContext())).toEqual({ type: "changes", session: "synqed" });
+    expect(router.route("what has peeker changed?", makeContext())).toEqual({ type: "changes", session: "peeker" });
+  });
+
   it("renames a session to the words after to or as", () => {
     expect(router.route("rename synqed to synqed auth", makeContext())).toEqual({ type: "rename", session: "synqed", newName: "synqed-auth" });
     expect(router.route("rename peeker as peeker landing", makeContext())).toEqual({ type: "rename", session: "peeker", newName: "peeker-landing" });

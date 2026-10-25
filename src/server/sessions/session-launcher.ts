@@ -136,8 +136,6 @@ export class SessionLauncher {
     return status.length > 0;
   }
 
-  // At start nothing is running yet: sessions saved last time are offered under "Recently closed",
-  // and outside sessions report again on their next event.
   // HeyTerm's own sessions ended with it. Sessions in the user's terminal stay, names and all:
   // ClaudeSessionWatcher closes the ones whose Claude has gone.
   restoreAfterStart(): void {

@@ -77,6 +77,8 @@ export interface SessionView {
   // A dialog HeyTerm was holding when it restarted: it is on screen in the terminal, and typed text would land in it.
   blockedByTerminalDialog?: boolean;
   agentSessionId?: string;
+  // Files the session's own edits touched since its last prompt, relative to its folder.
+  filesChangedInLastTask?: string[];
   // The name the session's face is drawn from: its first name, so a rename keeps the face.
   faceSeed?: string;
   // What a needs_trust session asks to trust: its folder, or (Codex) hooks it has not seen before.
@@ -137,6 +139,7 @@ export type RouterAction =
   | { type: "resume"; session: string }
   | { type: "rename"; session: string; newName: string }
   | { type: "forget_closed"; session: string }
+  | { type: "changes"; session: string }
   | { type: "confirm" }
   | { type: "cancel" }
   | { type: "send_now" }

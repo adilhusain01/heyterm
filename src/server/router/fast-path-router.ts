@@ -17,6 +17,7 @@ interface SessionCommand {
 const sessionCommands: SessionCommand[] = [
   { pattern: /^(?:what's|what is|how's|how is) (.+?) (?:doing|up to)$/, build: (session) => ({ type: "status", session }) },
   { pattern: /^status (?:of|for) (.+)$/, build: (session) => ({ type: "status", session }) },
+  { pattern: /^what (?:did|has) (.+?) (?:change|changed|edit|edited)$/, build: (session) => ({ type: "changes", session }) },
   { pattern: /^(?:go to|show me|show|switch to|focus on|focus|look at|bring up|open) (.+)$/, build: (session) => ({ type: "focus", session }) },
   { pattern: /^(?:close|kill|end|shut down|quit|exit) (.+)$/, build: (session) => ({ type: "close", session, confirmed: false }) },
   { pattern: /^(?:stop|interrupt|pause|halt|hold) (.+)$/, build: (session) => ({ type: "interrupt", session }) },

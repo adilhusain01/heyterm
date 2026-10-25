@@ -40,4 +40,13 @@ describe("ConductorTurnText", () => {
     );
     expect(text).toContain("Plain line: demo wants to edit a file. Say confirm or no.");
   });
+
+  // Seen on 25 October 2026: hello said it appended a line and created todo.md, but the assistant
+  // only had the first sentence and told the developer the second part was not done.
+  it("gives the assistant a finished session's whole reply and the files it changed", () => {
+    const helloSession = { ...session, name: "hello", state: "done" as const, lastMessage: 'I added "bye" to notes.txt. I also created todo.md with the line "ship it".', filesChangedInLastTask: ["notes.txt", "todo.md"] };
+    const text = ConductorTurnText.forEvent([{ sessionName: "hello", kind: "finished", since: 0, headline: 'hello finished: I added "bye" to notes.txt.', spoken: "hello is done." }], { sessions: [helloSession], projectNames: [], recentlyClosedNames: [] });
+    expect(text).toContain('I also created todo.md with the line "ship it".');
+    expect(text).toContain("Files it changed in this task: notes.txt, todo.md");
+  });
 });

@@ -123,6 +123,10 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
       tool("trust_folder", "Trust the folder a new session is asking about. Only when the developer said so.", { name: z.string() }, ({ name }) =>
         withSession(name, async () => (await sessionActions.perform({ type: "trust", session: name }, () => undefined)).text),
       ),
+      tool("session_changes", "List the files a session changed in its last task, from its own edits, with line counts from git. Use it before saying what a session did.", { name: z.string() }, async ({ name }) => {
+        const summary = await sessionActions.changes(name);
+        return reply([summary.spoken, ...summary.files].join("\n"));
+      }),
       tool("rename_session", "Rename an open or recently closed session, so the developer can tell it apart. Works for sessions in their own terminal too.", { name: z.string(), new_name: z.string() }, async ({ name, new_name }) =>
         reply(executor.rename(name, SessionNames.fromTyped(new_name)).text),
       ),

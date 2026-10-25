@@ -51,7 +51,10 @@ function attentionItemFor(session: SessionView): AttentionItem | undefined {
     case "done": {
       if (session.lastSeenAt >= session.stateSince) return undefined;
       const lead = firstSentence(session.lastMessage ?? "");
-      return { ...base, kind: "finished", headline: lead ? `${session.name} finished: ${lead}` : `${session.name} finished`, spoken: `${session.name} is done.` };
+      const changedCount = session.filesChangedInLastTask?.length ?? 0;
+      const changed = changedCount > 0 ? `${changedCount} ${changedCount === 1 ? "file" : "files"}` : "";
+      const headline = `${session.name} finished${lead ? `: ${lead}` : ""}${changed ? `${lead ? "" : "."} Changed ${changed}.` : ""}`;
+      return { ...base, kind: "finished", headline, spoken: changed ? `${session.name} is done. It changed ${changed}.` : `${session.name} is done.` };
     }
     default:
       return undefined;

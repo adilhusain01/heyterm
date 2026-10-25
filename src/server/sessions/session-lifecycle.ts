@@ -23,13 +23,13 @@ export class SessionLifecycle {
         return SessionLifecycle.moveTo({ ...session, agentSessionId: stringField(payload, "session_id") || session.agentSessionId, transcriptPath: stringField(payload, "transcript_path") || session.transcriptPath }, "idle", event.receivedAt);
       case "UserPromptSubmit": {
         const prompt = stringField(payload, "prompt");
-        const withPrompt = SessionLifecycle.addActivity({ ...session, lastPrompt: prompt, pending: undefined }, "prompt", prompt, event.receivedAt);
+        const withPrompt = SessionLifecycle.addActivity({ ...session, lastPrompt: prompt, pending: undefined, filesChangedInLastTask: [] }, "prompt", prompt, event.receivedAt);
         return SessionLifecycle.moveTo(withPrompt, "working", event.receivedAt);
       }
       case "PreToolUse":
         return SessionLifecycle.applyToolStart(session, event);
       case "PostToolUse":
-        return SessionLifecycle.applyToolEnd(session, event);
+        return SessionLifecycle.applyToolEnd(SessionLifecycle.withFileChanged(session, event), event);
       case "PermissionRequest":
         return SessionLifecycle.applyPermissionRequest(session, event, options.requestId ?? `request-${event.receivedAt}`);
       case "Stop":
@@ -75,6 +75,14 @@ export class SessionLifecycle {
     const withActivity = activity ? SessionLifecycle.addActivity(session, activity.kind, activity.text, event.receivedAt) : session;
     if (withActivity.state === "working") return withActivity;
     return SessionLifecycle.moveTo(withActivity, "working", event.receivedAt);
+  }
+
+  // An edit that finished, so the file really changed (a denied one never gets here).
+  private static withFileChanged(session: SessionView, event: HookEvent): SessionView {
+    const change = describeToolUse(stringField(event.payload, "tool_name"), recordField(event.payload, "tool_input"), session.projectPath);
+    if (change?.kind !== "file" || !change.text) return session;
+    const files = session.filesChangedInLastTask ?? [];
+    return files.includes(change.text) ? session : { ...session, filesChangedInLastTask: [...files, change.text] };
   }
 
   private static applyToolEnd(session: SessionView, event: HookEvent): SessionView {

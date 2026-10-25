@@ -57,6 +57,14 @@ describe("AttentionQueue.build", () => {
     expect(queue.map((item) => item.sessionName)).toEqual(["older", "newer"]);
   });
 
+  it("says how many files finished work changed, written and spoken", () => {
+    const [item] = AttentionQueue.build([makeSession("api", { state: "done", stateSince: 5, lastSeenAt: 0, lastMessage: "Fixed the totals. Tests pass.", filesChangedInLastTask: ["src/totals.ts", "src/totals.test.ts"] })]);
+    expect(item?.headline).toBe("api finished: Fixed the totals. Changed 2 files.");
+    expect(item?.spoken).toBe("api is done. It changed 2 files.");
+    const [none] = AttentionQueue.build([makeSession("docs", { state: "done", stateSince: 5, lastSeenAt: 0, lastMessage: "Nothing to do." })]);
+    expect(none?.spoken).toBe("docs is done.");
+  });
+
   it("leaves out finished work the user has already looked at", () => {
     const queue = AttentionQueue.build([makeSession("seen", { state: "done", stateSince: 100, lastSeenAt: 150 })]);
     expect(queue).toEqual([]);

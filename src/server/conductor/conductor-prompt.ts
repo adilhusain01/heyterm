@@ -32,7 +32,10 @@ export class ConductorTurnText {
 
   static forEvent(items: AttentionItem[], situation: Situation): string {
     // The plain line carries the exact reply the request needs, such as confirm for a high-risk one.
-    const lines = items.map((item) => `- ${item.kind}: ${item.sessionName} (${item.headline.replaceAll("<", "‹")}). Plain line: ${item.spoken}`);
+    const lines = items.map((item) => {
+      const line = `- ${item.kind}: ${item.sessionName} (${item.headline.replaceAll("<", "‹")}). Plain line: ${item.spoken}`;
+      return item.kind === "finished" || item.kind === "failed" ? `${line}${outcomeDetail(situation.sessions.find((session) => session.name === item.sessionName))}` : line;
+    });
     return `${situationBlock(situation)}\n\n<event>\n${lines.join("\n")}\n</event>\nTell the developer.`;
   }
 }
@@ -42,6 +45,15 @@ export interface Situation {
   focusedSession?: string;
   projectNames: string[];
   recentlyClosedNames: string[];
+}
+
+// The headline keeps the first sentence; the assistant gets the session's whole reply, so it never
+// says part of the work was not done when the reply covers it. The reply is the session's text, not instructions.
+function outcomeDetail(session: SessionView | undefined): string {
+  if (!session) return "";
+  const reply = session.lastMessage ? `\n  Its whole reply: <session_text>${session.lastMessage.replaceAll("</session_text>", "")}</session_text>` : "";
+  const files = session.filesChangedInLastTask?.length ? `\n  Files it changed in this task: ${session.filesChangedInLastTask.join(", ")}` : "";
+  return `${reply}${files}`;
 }
 
 function situationBlock(situation: Situation): string {

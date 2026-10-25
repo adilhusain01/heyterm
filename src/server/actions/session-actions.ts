@@ -1,5 +1,8 @@
 // Actions on whole sessions: deliver text, start, resume, close, interrupt, trust, status, catch up.
 
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { ChangeSummary, type ChangeSummaryResult } from "../../shared/change-summary.ts";
 import { CatchUpDigest, type SessionDigest } from "../../shared/catch-up.ts";
 import { SessionLifecycle } from "../sessions/session-lifecycle.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
@@ -32,6 +35,8 @@ export class SessionActions {
         return this.trust(action.session);
       case "status":
         return this.status(action.session);
+      case "changes":
+        return { text: (await this.changes(action.session)).spoken, tone: "info", speak: true };
       default:
         return { text: "I did not catch what to do.", tone: "warning", speak: true };
     }
@@ -43,6 +48,16 @@ export class SessionActions {
     if (result === "submitted") return { text: `Sent to ${sessionName}.`, tone: "success", speak: false };
     if (result === "queued") return { text: `Queued for ${sessionName}; it reads it after its current step.`, tone: "info", speak: false };
     return { text: `${sessionName} did not take the message. Check its terminal.`, tone: "error", speak: true };
+  }
+
+  // The files the session's own edits touched in its last task, with git's line counts where git has them.
+  async changes(sessionName: string): Promise<ChangeSummaryResult> {
+    const session = this.registry.get(sessionName) ?? this.registry.recentlyClosedSessions().find((closed) => closed.name === sessionName);
+    if (!session) return { files: [], spoken: `There is no session called ${sessionName}.` };
+    const files = session.filesChangedInLastTask ?? [];
+    if (files.length === 0) return ChangeSummary.describe(sessionName, files, undefined);
+    const numstat = await runGit(session.projectPath, ["diff", "--numstat", "--relative", "HEAD", "--", ...files]);
+    return ChangeSummary.describe(sessionName, files, numstat === undefined ? undefined : ChangeSummary.parseNumstat(numstat));
   }
 
   rename(sessionName: string, newName: string): string | undefined {
@@ -112,4 +127,14 @@ export class SessionActions {
     this.markSeen(sessionName);
     return { text: `${digest.spoken}${prompt}`, tone: "info", speak: true };
   }
+}
+
+const execFileAsync = promisify(execFile);
+
+// Git's output, or undefined outside a repository or on any failure.
+function runGit(folder: string, args: string[]): Promise<string | undefined> {
+  return execFileAsync("git", ["-C", folder, ...args], { timeout: 5_000 }).then(
+    ({ stdout }) => stdout,
+    () => undefined,
+  );
 }

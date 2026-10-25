@@ -13,12 +13,19 @@ import type { StateStore } from "./state-store.ts";
 import type { HeldHookRequests } from "../hooks/held-hook-requests.ts";
 import type { HookEvent, HookEventName, SessionView } from "../../shared/types.ts";
 
+// What the registry needs from TurnChangeTracker (turn-change-tracker.ts).
+export interface TurnChangeTracking {
+  taskStarted(session: SessionView): void;
+  filesChangedByTask(session: SessionView): Promise<string[]>;
+}
+
 const recentlyClosedLimit = 20;
 
 export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   private readonly sessions = new Map<string, SessionView>();
   private recentlyClosed: SessionView[] = [];
   private readonly promptWaiters = new Map<string, Set<() => void>>();
+  private turnChangeTracker: TurnChangeTracking | undefined;
   // Launch name to current name, for renamed sessions HeyTerm started: their hooks keep the launch name.
   private readonly launchNames = new Map<string, string>();
   private dayKey = localDayKey(Date.now());
@@ -100,14 +107,23 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     return updated;
   }
 
+  // Lets git say what a task changed, which edit hooks miss when a shell command does the editing.
+  useTurnChangeTracker(tracker: TurnChangeTracking): void {
+    this.turnChangeTracker = tracker;
+  }
+
   // Returns what the hook script should print: a decision for a held request, otherwise nothing.
   async applyHookEvent(event: HookEvent): Promise<string> {
     this.resetWaitsOnNewDay(event.receivedAt);
     const sessionName = this.currentName(event.sessionName);
     const before = this.sessions.get(sessionName);
     if (!before) return "";
+    if (event.name === "UserPromptSubmit") this.turnChangeTracker?.taskStarted(before);
+    // Before the session shows as done, so the finished line already counts every changed file.
+    const changedByTask = event.name === "Stop" && this.turnChangeTracker ? await this.turnChangeTracker.filesChangedByTask(before).catch(() => []) : [];
     const requestId = event.name === "PermissionRequest" ? randomUUID() : undefined;
-    const after = SessionLifecycle.apply(before, event, { requestId });
+    const lifecycleResult = SessionLifecycle.apply(this.sessions.get(sessionName) ?? before, event, { requestId });
+    const after = changedByTask.length > 0 ? { ...lifecycleResult, filesChangedInLastTask: [...new Set([...(lifecycleResult.filesChangedInLastTask ?? []), ...changedByTask])] } : lifecycleResult;
     this.set(after);
     if (before.pending && before.pending.requestId !== after.pending?.requestId) {
       this.heldRequests.letGoAllFor(sessionName, after.pending?.requestId);
