@@ -204,3 +204,44 @@ describe("SessionRegistry.noticeQuietSessions", () => {
     expect(registry.get("web")?.quiet).toBeUndefined();
   });
 });
+
+describe("SessionRegistry, a freed name after a rename", () => {
+  // Adil, 25 October 2026: renamed "whisker" to "heyterm", then could not rename "whisker-2" to "whisker".
+  it("frees the old name of a renamed session it knows by id, so another session can take it", () => {
+    const registry = makeRegistry();
+    registry.add(session("whisker", { origin: "heyterm", agent: "claude", agentSessionId: "conversation-a" }));
+    registry.add(session("whisker-2", { agent: "claude" }));
+    registry.remove("whisker-2");
+    expect(registry.rename("whisker", "heyterm")).toBeUndefined();
+    expect(registry.isNameInUse("whisker")).toBe(false);
+    expect(registry.rename("whisker-2", "whisker")).toBeUndefined();
+    expect(registry.recentlyClosedSessions().map((closed) => closed.name)).toContain("whisker");
+  });
+
+  // Its terminal still reports under the launch name, so its events are matched by conversation id.
+  it("still brings the renamed session its own events when a new session holds the old name", async () => {
+    const registry = makeRegistry();
+    registry.add(session("whisker", { origin: "heyterm", agent: "claude", state: "idle", agentSessionId: "conversation-a" }));
+    registry.rename("whisker", "heyterm");
+    registry.add(session("whisker", { origin: "heyterm", agent: "claude", state: "idle", agentSessionId: "conversation-b" }));
+    await registry.applyHookEvent({ name: "UserPromptSubmit", sessionName: "whisker", payload: { session_id: "conversation-a", prompt: "for heyterm" }, receivedAt: 5 });
+    expect(registry.get("heyterm")).toMatchObject({ state: "working", lastPrompt: "for heyterm" });
+    expect(registry.get("whisker")).toMatchObject({ state: "idle" });
+    await registry.applyHookEvent({ name: "UserPromptSubmit", sessionName: "whisker", payload: { session_id: "conversation-b", prompt: "for the new whisker" }, receivedAt: 6 });
+    expect(registry.get("whisker")).toMatchObject({ state: "working", lastPrompt: "for the new whisker" });
+  });
+});
+
+describe("SessionRegistry, events from a session after it closed", () => {
+  // Seen live on 25 October 2026: closing renamed "greeting" made its Claude send SessionEnd under its
+  // launch name "hello", and the new session called hello was marked stopped.
+  it("drops an event whose conversation id belongs to no open session, instead of giving it to the session now holding that name", async () => {
+    const registry = makeRegistry();
+    registry.add(session("hello", { origin: "heyterm", agent: "claude", state: "idle", agentSessionId: "conversation-a" }));
+    registry.rename("hello", "greeting");
+    registry.add(session("hello", { origin: "heyterm", agent: "claude", state: "idle", agentSessionId: "conversation-b" }));
+    registry.remove("greeting");
+    await registry.applyHookEvent({ name: "SessionEnd", sessionName: "hello", payload: { session_id: "conversation-a" }, receivedAt: 9 });
+    expect(registry.get("hello")).toMatchObject({ state: "idle" });
+  });
+});

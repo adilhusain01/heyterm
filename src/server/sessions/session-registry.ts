@@ -116,7 +116,9 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   // Returns what the hook script should print: a decision for a held request, otherwise nothing.
   async applyHookEvent(event: HookEvent): Promise<string> {
     this.resetWaitsOnNewDay(event.receivedAt);
-    const sessionName = this.currentName(event.sessionName);
+    const routedName = this.currentName(event.sessionName, event.payload, event.name);
+    if (routedName === undefined) return "";
+    const sessionName = routedName;
     const before = this.sessions.get(sessionName);
     if (!before) return "";
     if (event.name === "UserPromptSubmit") void this.turnChangeTracker?.taskStarted(before);
@@ -139,7 +141,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     const closedIndex = this.recentlyClosed.findIndex((closed) => closed.name === currentName);
     if (!live && closedIndex === -1) return `There is no session called ${currentName}.`;
     const ownLaunchNames = [...this.launchNames].filter(([, renamedTo]) => renamedTo === currentName).map(([launchName]) => launchName);
-    const otherLaunchNames = [...this.launchNames.keys()].filter((launchName) => !ownLaunchNames.includes(launchName));
+    const otherLaunchNames = this.reservedLaunchNames().filter((launchName) => !ownLaunchNames.includes(launchName));
     const takenNames = [...this.sessions.keys(), ...this.recentlyClosed.map((closed) => closed.name), ...otherLaunchNames];
     const problem = SessionNames.renameProblem(newName, currentName, takenNames);
     if (problem) return problem;
@@ -162,13 +164,29 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     return undefined;
   }
 
-  // Taken by an open or listed closed session, or kept for a renamed one whose hooks still use it.
+  // Taken by an open or listed closed session, or kept for a renamed one HeyTerm cannot yet tell apart by id.
   isNameInUse(name: string): boolean {
-    return this.sessions.has(name) || this.launchNames.has(name) || this.recentlyClosed.some((closed) => closed.name === name);
+    return this.sessions.has(name) || this.reservedLaunchNames().includes(name) || this.recentlyClosed.some((closed) => closed.name === name);
   }
 
-  private currentName(reportedName: string): string {
-    return this.sessions.has(reportedName) ? reportedName : (this.launchNames.get(reportedName) ?? reportedName);
+  // A renamed session's terminal keeps reporting under its launch name. Its events carry its
+  // conversation id, so they are matched by that id first; the old name is then free for another
+  // session. Only a session with no id yet keeps its launch name reserved.
+  // An event whose id belongs to another conversation than the named session's is not that session's
+  // (a closed session's last words under a name a new session now holds) and goes nowhere. A
+  // SessionStart may bring a new id, as after /clear, so it still goes by name.
+  private currentName(reportedName: string, payload: Record<string, unknown>, eventName: HookEventName): string | undefined {
+    const conversationId = typeof payload.session_id === "string" ? payload.session_id : "";
+    const byConversation = conversationId ? this.list().find((session) => session.origin !== "external" && session.agentSessionId === conversationId) : undefined;
+    if (byConversation) return byConversation.name;
+    const named = this.sessions.has(reportedName) ? reportedName : (this.launchNames.get(reportedName) ?? reportedName);
+    const namedId = this.sessions.get(named)?.agentSessionId;
+    if (conversationId && namedId && namedId !== conversationId && eventName !== "SessionStart") return undefined;
+    return named;
+  }
+
+  private reservedLaunchNames(): string[] {
+    return [...this.launchNames].filter(([, renamedTo]) => !this.sessions.get(renamedTo)?.agentSessionId).map(([launchName]) => launchName);
   }
 
   // An event from Grok Build or Cursor, which run HeyTerm's hooks from a global file in every session.
@@ -224,7 +242,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   private newExternalSession(agentSessionId: string, payload: Record<string, unknown>, now: number): SessionView {
     const workingDirectory = typeof payload.cwd === "string" ? payload.cwd : "";
     const sessionTitle = typeof payload.session_title === "string" ? payload.session_title : undefined;
-    const takenNames = [...this.sessions.keys(), ...this.launchNames.keys(), ...this.recentlyClosed.map((closed) => closed.name)];
+    const takenNames = [...this.sessions.keys(), ...this.reservedLaunchNames(), ...this.recentlyClosed.map((closed) => closed.name)];
     const name = ExternalSessionNaming.nameFor({ sessionTitle, workingDirectory }, takenNames);
     return {
       name,
