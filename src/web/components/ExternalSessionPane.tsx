@@ -7,10 +7,12 @@ import { SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { RequestCard } from "./AttentionCard.tsx";
 import { SessionIdentity } from "./session-identity.ts";
 import { useSessionRequest } from "./DecisionDock.tsx";
+import { PaneButton } from "./TerminalPane.tsx";
+import { ExpandIcon, ShrinkIcon } from "../ui/icons.tsx";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
 import type { SessionView } from "../../shared/types.ts";
 
-export function ExternalSessionPane({ session }: { session: SessionView }) {
+export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: { session: SessionView; isExpanded: boolean; onToggleExpanded?: () => void }) {
   const request = useSessionRequest(session.name);
   const now = useServerNow();
   const display = stateDisplay[session.state];
@@ -22,6 +24,11 @@ export function ExternalSessionPane({ session }: { session: SessionView }) {
         <span className={`text-small ${display.textClass}`}>{display.label}</span>
         {isWaitingOnUser(session.state) && <span className="font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
         <span className="ml-auto text-small text-ink-faint">in your own terminal</span>
+        {onToggleExpanded && (
+          <PaneButton label={isExpanded ? "Show all sessions" : "Show only this session"} onClick={onToggleExpanded}>
+            {isExpanded ? <ShrinkIcon size={14} /> : <ExpandIcon size={14} />}
+          </PaneButton>
+        )}
       </header>
       {request && <RequestCard item={request.item} session={request.session} variant="banner" />}
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">

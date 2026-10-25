@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { RequestThread } from "../../shared/request-thread.ts";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { orbStatusText, useOrbState } from "../state/use-orb-state.ts";
-import { AssistantOrb } from "../ui/AssistantOrb.tsx";
 import { ArrowDownIcon, PanelRightCloseIcon } from "../ui/icons.tsx";
 import { Markdown } from "../ui/Markdown.tsx";
 import { RequestCard, SettledRequest } from "./AttentionCard.tsx";
@@ -59,8 +58,8 @@ export function ConversationPanel() {
   const isEmpty = entries.length === 0 && untold.length === 0;
   return (
     <aside aria-label="Conversation with HeyTerm" className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-panel lg:flex">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4">
-        <AssistantOrb state={orbState} size={28} />
+      {/* The orb lives in the bar you talk into, so the header only says what the assistant is doing. */}
+      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line px-4">
         <div className="flex min-w-0 flex-col">
           <span className="text-meta font-medium text-ink">HeyTerm</span>
           <span key={status} className="status-swap truncate text-small text-ink-faint" aria-live="polite">

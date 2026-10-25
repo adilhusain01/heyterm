@@ -11,6 +11,7 @@ import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useOrbState } from "../state/use-orb-state.ts";
 import { AssistantOrb } from "../ui/AssistantOrb.tsx";
 import { Kbd } from "../ui/Hint.tsx";
+import { PanelRightOpenIcon } from "../ui/icons.tsx";
 import { isPlayground } from "../playground/is-playground.ts";
 import { DecisionDock } from "./DecisionDock.tsx";
 import { PendingStrip } from "./PendingStrip.tsx";
@@ -21,6 +22,7 @@ export function CommandBar() {
   const setTypingSession = useHeyTermStore((state) => state.setTypingSession);
   const control = useHeyTermStore((state) => state.control);
   const conversationCollapsed = useHeyTermStore((state) => state.layout.conversationCollapsed);
+  const changeLayout = useHeyTermStore((state) => state.changeLayout);
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const detector = useRef(new DictationDetector());
@@ -127,6 +129,17 @@ export function CommandBar() {
           <span className="hidden sm:block">
             <Kbd>Enter</Kbd>
           </span>
+          {conversationCollapsed && !isPlayground && (
+            <button
+              type="button"
+              aria-label="Show the conversation"
+              title="Show the conversation"
+              onClick={() => changeLayout({ conversationCollapsed: false })}
+              className="press hidden size-8 cursor-pointer items-center justify-center rounded-inner text-ink-muted transition-colors duration-150 hover:bg-raised hover:text-ink lg:flex"
+            >
+              <PanelRightOpenIcon size={16} />
+            </button>
+          )}
         </label>
       </div>
     </footer>

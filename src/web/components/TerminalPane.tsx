@@ -47,7 +47,8 @@ const terminalTheme = {
 interface TerminalPaneProps {
   session: SessionView;
   isExpanded: boolean;
-  onToggleExpanded: () => void;
+  // Absent when there is nothing to switch between, such as a single session.
+  onToggleExpanded?: () => void;
 }
 
 export function TerminalPane({ session, isExpanded, onToggleExpanded }: TerminalPaneProps) {
@@ -123,9 +124,11 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
               <KeyboardIcon size={13} /> Typing here
             </span>
           )}
-          <PaneButton label={isExpanded ? "Show all sessions" : "Show only this session"} onClick={onToggleExpanded}>
-            {isExpanded ? <ShrinkIcon size={14} /> : <ExpandIcon size={14} />}
-          </PaneButton>
+          {onToggleExpanded && (
+            <PaneButton label={isExpanded ? "Show all sessions" : "Show only this session"} onClick={onToggleExpanded}>
+              {isExpanded ? <ShrinkIcon size={14} /> : <ExpandIcon size={14} />}
+            </PaneButton>
+          )}
           <PaneButton label={`Close ${session.name}`} onClick={() => perform({ type: "close", session: session.name, confirmed: false })}>
             <CloseIcon size={14} />
           </PaneButton>
@@ -144,9 +147,9 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   );
 }
 
-function PaneButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+export function PaneButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className="press flex size-7 cursor-pointer items-center justify-center rounded-small text-ink-muted hover:bg-raised hover:text-ink">
+    <button type="button" aria-label={label} title={label} onClick={onClick} className="press flex size-7 cursor-pointer items-center justify-center rounded-small text-ink-muted transition-colors duration-150 hover:bg-raised hover:text-ink">
       {children}
     </button>
   );
