@@ -2,7 +2,8 @@
 // happened in the sessions, newest at the bottom. A session's request is a message here too: it can
 // be answered where it arrived, and the answer follows it as your reply.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ConversationFollow } from "./conversation-follow.ts";
 import { RequestThread } from "../../shared/request-thread.ts";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { orbStatusText, useOrbState } from "../state/use-orb-state.ts";
@@ -12,8 +13,6 @@ import { RequestCard, SettledRequest } from "./AttentionCard.tsx";
 import type { ConversationEntry } from "../../shared/protocol.ts";
 import type { AttentionItem, SessionView } from "../../shared/types.ts";
 
-// Within this distance of the end, the list counts as read to the bottom and follows new lines.
-const followDistance = 120;
 
 export function ConversationPanel() {
   const entries = useHeyTermStore((state) => state.conversation);
@@ -21,41 +20,76 @@ export function ConversationPanel() {
   const changeLayout = useHeyTermStore((state) => state.changeLayout);
   const orbState = useOrbState();
   const sessions = useHeyTermStore((state) => state.sessions);
-  const listRef = useRef<HTMLOListElement>(null);
-  const [isFollowing, setFollowing] = useState(true);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLOListElement>(null);
+  // A ref, so the size observer below always reads the current value.
+  const isFollowingRef = useRef(true);
+  const shownRequestKeysRef = useRef<string[]>([]);
+  const lastEntryIdRef = useRef<number | undefined>(undefined);
   const [hasUnread, setHasUnread] = useState(false);
   const currentStep = orbState === "thinking" ? latestStepSinceYouSpoke(entries) : undefined;
   const status = currentStep ?? orbStatusText[orbState];
   // A request older than the kept lines still needs an answer, so it goes at the end.
   const untold = useMemo(() => RequestThread.waitingWithoutEntry(entries, sessions), [entries, sessions]);
 
-  // Follow new lines while the end is in view. Your own words and new requests always bring you there.
+  const isEmpty = entries.length === 0 && untold.length === 0;
+
+  // While the end is in view, follow whatever changes the list's size: a new message, a request card
+  // filling in once its session's state arrives, a card opening up.
   useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const latest = entries[entries.length - 1];
-    if (isFollowing || latest?.kind === "user" || latest?.kind === "request") {
-      list.scrollTop = list.scrollHeight;
+    const scroller = scrollerRef.current;
+    const content = contentRef.current;
+    if (!scroller || !content) return;
+    const observer = new ResizeObserver(() => {
+      if (isFollowingRef.current) scroller.scrollTop = scroller.scrollHeight;
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [isEmpty, collapsed]);
+
+  // Your own words bring you to the end; a new permission or question is always brought into view.
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const requestKeys = [...scroller.querySelectorAll<HTMLElement>("[data-request-key]")].map((element) => element.dataset.requestKey!);
+    const newRequestKeys = ConversationFollow.newRequests(shownRequestKeysRef.current, requestKeys);
+    shownRequestKeysRef.current = requestKeys;
+    // Only words just said count: the column re-renders often, and an old message of yours at the end
+    // must not keep pulling the view down while you read further up.
+    const latest = entries.at(-1);
+    const isNewMessage = latest !== undefined && latest.id !== lastEntryIdRef.current;
+    const youJustSpoke = isNewMessage && latest.kind === "user";
+    lastEntryIdRef.current = latest?.id;
+    if (youJustSpoke || isFollowingRef.current) {
+      scroller.scrollTop = scroller.scrollHeight;
+      isFollowingRef.current = true;
       setHasUnread(false);
-    } else setHasUnread(true);
-  }, [entries, untold.length]);
+      return;
+    }
+    // Reading further up: say something new arrived, by message rather than by height, since the
+    // column keeps 80 lines and a new one at the end drops the oldest from the top.
+    if (isNewMessage) setHasUnread(true);
+    const newest = newRequestKeys.at(-1);
+    const card = newest ? scroller.querySelector<HTMLElement>(`[data-request-key="${CSS.escape(newest)}"]`) : null;
+    if (card) bringIntoView(scroller, card);
+  }, [entries, untold, sessions]);
 
   const onScroll = () => {
-    const list = listRef.current;
-    if (!list) return;
-    const atEnd = list.scrollHeight - list.scrollTop - list.clientHeight < followDistance;
-    setFollowing(atEnd);
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const atEnd = ConversationFollow.isAtEnd(scroller);
+    isFollowingRef.current = atEnd;
     if (atEnd) setHasUnread(false);
   };
 
   const jumpToLatest = () => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: reducedMotion ? "auto" : "smooth" });
+    isFollowingRef.current = true;
+    scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: reducedMotion ? "auto" : "smooth" });
     setHasUnread(false);
   };
 
   if (collapsed) return null;
-  const isEmpty = entries.length === 0 && untold.length === 0;
   return (
     <aside aria-label="Conversation with HeyTerm" className="my-2 mr-2 hidden w-[380px] shrink-0 flex-col overflow-hidden rounded-outer border border-line bg-panel lg:flex">
       {/* The orb lives in the bar you talk into, so the header only says what the assistant is doing. */}
@@ -80,7 +114,8 @@ export function ConversationPanel() {
         <EmptyConversation />
       ) : (
         <div className="relative flex min-h-0 flex-1 flex-col">
-          <ol ref={listRef} onScroll={onScroll} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
+          <div ref={scrollerRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto">
+          <ol ref={contentRef} className="flex flex-col gap-3 px-4 py-4">
             {entries.map((entry) => (
               <li key={entry.id} className="enter-rise">
                 <EntryRow entry={entry} sessions={sessions} />
@@ -92,6 +127,7 @@ export function ConversationPanel() {
               </li>
             ))}
           </ol>
+          </div>
           {hasUnread && (
             <button
               type="button"
@@ -108,9 +144,24 @@ export function ConversationPanel() {
   );
 }
 
+// Scrolls only the column (scrollIntoView would also move the panel around it) so the whole card shows,
+// its top first when it is taller than the column.
+function bringIntoView(scroller: HTMLElement, element: HTMLElement): void {
+  const scrollerBox = scroller.getBoundingClientRect();
+  const box = element.getBoundingClientRect();
+  const margin = 16;
+  if (box.bottom > scrollerBox.bottom) scroller.scrollTop += Math.min(box.bottom - scrollerBox.bottom + margin, box.top - scrollerBox.top - margin);
+  else if (box.top < scrollerBox.top) scroller.scrollTop -= scrollerBox.top - box.top + margin;
+}
+
 function LiveRequest({ item, sessions }: { item: AttentionItem; sessions: SessionView[] }) {
   const session = sessions.find((candidate) => candidate.name === item.sessionName);
-  return session ? <RequestCard item={item} session={session} variant="chat" /> : null;
+  // The key lets the column bring a request into view once, when it first appears.
+  return session ? (
+    <div data-request-key={`${item.sessionName}-${item.kind}-${item.since}`}>
+      <RequestCard item={item} session={session} variant="chat" />
+    </div>
+  ) : null;
 }
 
 function EntryRow({ entry, sessions }: { entry: ConversationEntry; sessions: SessionView[] }) {
