@@ -10,7 +10,7 @@ const showAtOnceWithinMilliseconds = 600;
 const screenMargin = 8;
 let lastLabelHiddenAt = 0;
 
-export function RailLabel({ label, children }: { label: ReactNode; children: ReactNode }) {
+export function RailLabel({ label, children, className = "flex", disabled = false }: { label: ReactNode; children: ReactNode; className?: string; disabled?: boolean }) {
   const [isShown, setShown] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | undefined>(undefined);
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -42,9 +42,10 @@ export function RailLabel({ label, children }: { label: ReactNode; children: Rea
   }, [isShown]);
 
   return (
-    <span ref={anchorRef} className="flex" onPointerEnter={show} onPointerLeave={hide} onPointerDown={hide} onFocus={show} onBlur={hide}>
+    <span ref={anchorRef} className={className} onPointerEnter={show} onPointerLeave={hide} onPointerDown={hide} onFocus={show} onBlur={hide}>
       {children}
       {isShown &&
+        !disabled &&
         createPortal(
           <div
             ref={labelRef}

@@ -49,6 +49,10 @@ export class HeldHookRequests {
     }
   }
 
+  renameSession(currentName: string, newName: string): void {
+    for (const request of this.held.values()) if (request.sessionName === currentName) request.sessionName = newName;
+  }
+
   private finish(requestId: string, request: HeldRequest, body: string): void {
     clearTimeout(request.timer);
     this.held.delete(requestId);

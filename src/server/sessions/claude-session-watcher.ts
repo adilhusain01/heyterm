@@ -18,6 +18,7 @@ function claudeSessionsDirectory(): string {
 export class ClaudeSessionWatcher {
   private timer: NodeJS.Timeout | undefined;
   private polling = false;
+  private hasPolled = false;
 
   constructor(private readonly registry: SessionRegistry) {}
 
@@ -34,8 +35,11 @@ export class ClaudeSessionWatcher {
     this.polling = true;
     try {
       const records = await ClaudeSessionWatcher.readRecords(claudeSessionsDirectory());
-      // A Claude Code too old to keep records tells HeyTerm nothing, so nothing is changed.
+      // A Claude Code too old to keep records tells HeyTerm nothing. Sessions kept from before a
+      // restart cannot be checked then, so they go, as they always did; hooks bring live ones back.
       if (records) this.registry.reconcileClaudeSessions(records, ClaudeSessionWatcher.processIsRunning, Date.now());
+      else if (!this.hasPolled) this.registry.forgetExternalSessions();
+      this.hasPolled = true;
     } finally {
       this.polling = false;
     }

@@ -25,6 +25,7 @@ python3 scripts/measure-waits.py
 | "catch me up" / "what's synqed doing?" | says what changed since you last looked |
 | "trust it" | trusts a new folder for the session asking |
 | "go to whisker" / "stop synqed" / "close peeker" / "bring back peeker" | focus, interrupt, close and resume |
+| "rename synqed to synqed auth" | renames a session, open or closed, so two in one folder are easy to tell apart |
 | "be quiet" / "mute" / "talk to me" | announcements for questions and permissions only, sounds only, or everything |
 
 Those happen at once on your computer. Everything else goes to the assistant in the middle: Claude (Opus 5.5 at low effort) on the Agent SDK, through your own Claude Code login, so there is no API key to set up. Ask it anything ("what is everyone doing?", "what changed in heyterm today?", "start a session in portfolio and fix the header") and it answers out loud, reads sessions, sends them work and runs commands on your Mac. It does whatever your Claude Code permission mode allows, and asks you out loud whenever Claude Code would ask. When a session needs you, the assistant tells you what it wants and what to say, in plain words, without reading the command out.

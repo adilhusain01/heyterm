@@ -1,7 +1,7 @@
 // Messages between the HeyTerm server and the web UI over /ws.
 
 import type { SessionDigest } from "./catch-up.ts";
-import type { AgentKind, AnnouncementMode, AttentionKind, RouterAction, SessionView } from "./types.ts";
+import type { AgentKind, AnnouncementMode, AttentionKind, RouterAction, SessionOrigin, SessionView } from "./types.ts";
 
 export interface Feedback {
   text: string;
@@ -35,6 +35,13 @@ export interface ControlState {
 export interface ClosedSessionView {
   name: string;
   projectName: string;
+  // Enough to tell closed sessions apart in the sidebar's details card.
+  agent?: AgentKind;
+  projectPath?: string;
+  origin?: SessionOrigin;
+  agentSessionId?: string;
+  createdAt?: number;
+  closedAt?: number;
 }
 
 // What the Setup screen shows: what is installed, which folders hold projects, what is connected.

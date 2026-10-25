@@ -9,12 +9,14 @@ import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
 import { RailLabel } from "../ui/RailLabel.tsx";
-import { BringBackIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon, SettingsIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../ui/icons.tsx";
+import { BringBackIcon, CloseIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PencilIcon, PlusIcon, SettingsIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../ui/icons.tsx";
 import { Segmented } from "../ui/Segmented.tsx";
 import { avatarRadius, SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { Tray } from "../ui/Surfaces.tsx";
+import { RenameField, RowActionButton, RowActions, SessionDetailsCard } from "./SessionDetails.tsx";
 import { SessionIdentity } from "./session-identity.ts";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
+import type { ClosedSessionView } from "../../shared/protocol.ts";
 import type { AgentKind, AnnouncementMode, SessionView } from "../../shared/types.ts";
 
 const nextMode: Record<AnnouncementMode, AnnouncementMode> = { speak: "quiet", quiet: "mute", mute: "speak" };
@@ -97,7 +99,7 @@ function SidebarPanel({ onOpenSetup, className = "flex" }: { onOpenSetup: () => 
               }
             />
             {recentlyClosed.slice(0, 6).map((closed) => (
-              <ClosedRow key={closed.name} name={closed.name} />
+              <ClosedRow key={closed.name} closed={closed} />
             ))}
           </section>
         )}
@@ -210,45 +212,92 @@ function RailClosedSession({ name }: { name: string }) {
 function SessionRow({ session }: { session: SessionView }) {
   const { perform } = useHeyTerm();
   const focusedSession = useHeyTermStore((state) => state.focusedSession);
+  const takenNames = useTakenNames();
   const now = useServerNow();
+  const [isRenaming, setRenaming] = useState(false);
   const display = stateDisplay[session.state];
   const isFocused = focusedSession === session.name;
   // The state already says what a waiting session needs; otherwise show what it was last asked.
   const detail = isWaitingOnUser(session.state) ? "" : SessionIdentity.promptPreview(session.lastPrompt ?? "");
+  if (isRenaming) {
+    return (
+      <div className="flex items-start gap-2.5 rounded-inner bg-raised px-2 py-1.5">
+        <SessionAvatar name={session.name} state={session.state} size={30} />
+        <RenameField currentName={session.name} takenNames={takenNames} onDone={() => setRenaming(false)} />
+      </div>
+    );
+  }
   return (
-    <button
-      type="button"
-      onClick={() => perform({ type: "focus", session: session.name })}
-      className={`flex w-full cursor-pointer items-center gap-2.5 rounded-inner px-2 py-1.5 text-left transition-colors duration-150 hover:bg-raised ${isFocused ? "bg-raised" : ""}`}
-    >
-      <SessionAvatar name={session.name} state={session.state} size={30} />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="flex items-center gap-1.5">
-          <span className="truncate font-mono text-meta text-ink">{session.name}</span>
-          {session.agent !== "claude" && <span className="shrink-0 text-small text-ink-faint">{session.agent}</span>}
-          {session.origin === "external" && <span className="shrink-0 text-small text-ink-faint">own terminal</span>}
-        </span>
-        <span className="flex items-center gap-1.5 text-small">
-          <span className={display.textClass}>{display.label}</span>
-          {isWaitingOnUser(session.state) && <span className="font-mono text-ink-faint tabular-nums">{shortDuration(now - session.stateSince)}</span>}
-          {detail && <span className="truncate text-ink-faint">· {detail}</span>}
-        </span>
-      </span>
-    </button>
+    <div className="group relative">
+      <RailLabel className="flex" label={<SessionDetailsCard name={session.name} facts={session} hint="Click to show it." />}>
+        <button
+          type="button"
+          onClick={() => perform({ type: "focus", session: session.name })}
+          className={`flex w-full cursor-pointer items-center gap-2.5 rounded-inner px-2 py-1.5 text-left transition-colors duration-150 hover:bg-raised ${isFocused ? "bg-raised" : ""}`}
+        >
+          <SessionAvatar name={session.name} state={session.state} size={30} />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="flex items-center gap-1.5">
+              <span className="truncate font-mono text-meta text-ink">{session.name}</span>
+              {session.agent !== "claude" && <span className="shrink-0 text-small text-ink-faint">{session.agent}</span>}
+              {session.origin === "external" && <span className="shrink-0 text-small text-ink-faint">own terminal</span>}
+            </span>
+            <span className="flex items-center gap-1.5 text-small">
+              <span className={display.textClass}>{display.label}</span>
+              {isWaitingOnUser(session.state) && <span className="font-mono text-ink-faint tabular-nums">{shortDuration(now - session.stateSince)}</span>}
+              {detail && <span className="truncate text-ink-faint">· {detail}</span>}
+            </span>
+          </span>
+        </button>
+      </RailLabel>
+      <RowActions>
+        <RowActionButton label={`Rename ${session.name}`} onClick={() => setRenaming(true)}>
+          <PencilIcon size={13} />
+        </RowActionButton>
+      </RowActions>
+    </div>
   );
 }
 
-function ClosedRow({ name }: { name: string }) {
+function ClosedRow({ closed }: { closed: ClosedSessionView }) {
   const { perform } = useHeyTerm();
+  const takenNames = useTakenNames();
+  const [isRenaming, setRenaming] = useState(false);
+  if (isRenaming) {
+    return (
+      <div className="flex items-start gap-2.5 rounded-inner bg-raised px-2 py-1.5">
+        <SessionAvatar name={closed.name} size={24} />
+        <RenameField currentName={closed.name} takenNames={takenNames} onDone={() => setRenaming(false)} />
+      </div>
+    );
+  }
   return (
-    <button type="button" onClick={() => perform({ type: "resume", session: name })} className="group flex cursor-pointer items-center gap-2.5 rounded-inner px-2 py-1.5 text-left transition-colors duration-150 hover:bg-raised">
-      <span className="opacity-50 transition-opacity duration-150 group-hover:opacity-100">
-        <SessionAvatar name={name} size={24} />
-      </span>
-      <span className="truncate font-mono text-meta text-ink-muted group-hover:text-ink">{name}</span>
-      <BringBackIcon size={14} className="ml-auto text-ink-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
-    </button>
+    <div className="group relative">
+      <RailLabel className="flex" label={<SessionDetailsCard name={closed.name} facts={closed} hint="Click to bring it back where it left off." />}>
+        <button type="button" onClick={() => perform({ type: "resume", session: closed.name })} className="flex w-full cursor-pointer items-center gap-2.5 rounded-inner px-2 py-1.5 text-left transition-colors duration-150 hover:bg-raised">
+          <span className="opacity-50 transition-opacity duration-150 group-hover:opacity-100">
+            <SessionAvatar name={closed.name} size={24} />
+          </span>
+          <span className="truncate font-mono text-meta text-ink-muted group-hover:text-ink">{closed.name}</span>
+        </button>
+      </RailLabel>
+      <RowActions>
+        <RowActionButton label={`Rename ${closed.name}`} onClick={() => setRenaming(true)}>
+          <PencilIcon size={13} />
+        </RowActionButton>
+        <RowActionButton label={`Remove ${closed.name} from the list`} onClick={() => perform({ type: "forget_closed", session: closed.name })}>
+          <CloseIcon size={13} />
+        </RowActionButton>
+      </RowActions>
+    </div>
   );
+}
+
+// Every name an open or closed session has, which a rename cannot take.
+function useTakenNames(): string[] {
+  const sessions = useHeyTermStore((state) => state.sessions);
+  const recentlyClosed = useHeyTermStore((state) => state.recentlyClosed);
+  return useMemo(() => [...sessions.map((session) => session.name), ...recentlyClosed.map((closed) => closed.name)], [sessions, recentlyClosed]);
 }
 
 function NewSessionPicker({ onDone }: { onDone: () => void }) {

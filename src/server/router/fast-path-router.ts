@@ -1,5 +1,6 @@
 // Routes the common spoken commands at once, without a model. Returns undefined when the model should decide.
 
+import { SessionNames } from "../../shared/session-names.ts";
 import { HeadAnswerRouter } from "./head-answer-router.ts";
 import { SpokenNameMatcher } from "./spoken-name-matcher.ts";
 import { SpokenPhrases, normalizedPhrase, spokenOrdinal, textFromWord, withoutNameFiller, wordSpans, type WordSpan } from "./utterance-text.ts";
@@ -41,6 +42,7 @@ export class FastPathRouter {
     return (
       this.routeControlPhrase(phrase, context) ??
       this.routeSpawn(utterance, spans, context) ??
+      this.routeRename(phrase, sessionMatcher, context) ??
       this.routeSessionCommand(phrase, sessionMatcher, context) ??
       this.routeTell(utterance, spans, sessionMatcher) ??
       new HeadAnswerRouter().route(utterance, phrase, context, sessionMatcher) ??
@@ -90,6 +92,16 @@ export class FastPathRouter {
       return { type: "spawn", project: project.name, ...(agent ? { agent } : {}), ...(task ? { task } : {}) };
     }
     return undefined;
+  }
+
+  // "rename synqed to synqed auth": an open session first, then a recently closed one.
+  private routeRename(phrase: string, sessionMatcher: SpokenNameMatcher, context: RoutingContext): RouterAction | undefined {
+    const match = /^rename (.+?) (?:to|as) (.+)$/.exec(phrase);
+    if (!match?.[1] || !match[2]) return undefined;
+    const spokenName = withoutNameFiller(match[1].split(" ")).join(" ");
+    const session = sessionMatcher.findBest(spokenName) ?? new SpokenNameMatcher(context.recentlyClosedNames ?? []).findBest(spokenName);
+    if (!session) return undefined;
+    return { type: "rename", session: session.name, newName: SessionNames.fromTyped(match[2]) };
   }
 
   private routeSessionCommand(phrase: string, sessionMatcher: SpokenNameMatcher, context: RoutingContext): RouterAction | undefined {

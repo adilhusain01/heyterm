@@ -6,7 +6,7 @@ import type { SessionView } from "../../shared/types.ts";
 
 function makeRegistry(): SessionRegistry {
   const store = { save: async () => undefined } as unknown as StateStore;
-  const held = { letGoAllFor: () => undefined, hold: async () => "" } as unknown as HeldHookRequests;
+  const held = { letGoAllFor: () => undefined, renameSession: () => undefined, hold: async () => "" } as unknown as HeldHookRequests;
   return new SessionRegistry(store, held);
 }
 
@@ -55,5 +55,113 @@ describe("SessionRegistry.reconcileClaudeSessions", () => {
     expect(registry.get("synqed")).toMatchObject({ state: "idle", stateSince: 13 * minute });
     expect(registry.get("synqed-3")).toBeUndefined();
     expect(registry.recentlyClosedSessions().map((closed) => closed.name)).toContain("synqed-3");
+  });
+});
+
+describe("SessionRegistry.rename", () => {
+  it("renames a running session and keeps its hooks landing on it", async () => {
+    const registry = makeRegistry();
+    registry.add(session("synqed", { origin: "heyterm", agent: "claude", state: "idle" }));
+    expect(registry.rename("synqed", "synqed-auth")).toBeUndefined();
+    expect(registry.get("synqed")).toBeUndefined();
+    expect(registry.get("synqed-auth")).toMatchObject({ name: "synqed-auth", state: "idle" });
+    // A session HeyTerm started keeps reporting under the name it was launched with.
+    await registry.applyHookEvent({ name: "UserPromptSubmit", sessionName: "synqed", payload: { prompt: "go" }, receivedAt: 5 });
+    expect(registry.get("synqed-auth")).toMatchObject({ state: "working", lastPrompt: "go" });
+    expect(registry.get("synqed")).toBeUndefined();
+  });
+
+  it("renames a closed session, so it comes back under the new name", () => {
+    const registry = makeRegistry();
+    registry.add(session("mine", { agent: "claude" }));
+    registry.remove("mine");
+    expect(registry.rename("mine", "heyterm-landing")).toBeUndefined();
+    expect(registry.recentlyClosedSessions().map((closed) => closed.name)).toEqual(["heyterm-landing"]);
+  });
+
+  it("refuses a name another session has, open or closed", () => {
+    const registry = makeRegistry();
+    registry.add(session("synqed", { agent: "claude" }));
+    registry.add(session("mine", { agent: "claude" }));
+    registry.remove("mine");
+    expect(registry.rename("synqed", "mine")).toBe("There is already a session called mine.");
+    expect(registry.get("synqed")).toBeDefined();
+  });
+
+  it("keeps a renamed session's launch name taken while it is listed, so no new session gets its hooks", () => {
+    const registry = makeRegistry();
+    registry.add(session("synqed", { origin: "heyterm", agent: "claude" }));
+    registry.rename("synqed", "synqed-auth");
+    expect(registry.isNameInUse("synqed")).toBe(true);
+    expect(registry.rename("synqed-auth", "synqed")).toBeUndefined();
+    registry.remove("synqed");
+    // Closed sessions keep their names too, so "bring back synqed" means one session.
+    expect(registry.isNameInUse("synqed")).toBe(true);
+    registry.forgetClosed("synqed");
+    expect(registry.isNameInUse("synqed")).toBe(false);
+  });
+
+  it("says so when there is no such session", () => {
+    expect(makeRegistry().rename("ghost", "spirit")).toBe("There is no session called ghost.");
+  });
+});
+
+describe("SessionRegistry.forgetClosed", () => {
+  it("takes a closed session off the list and leaves open ones alone", () => {
+    const registry = makeRegistry();
+    registry.add(session("mine", { agent: "claude" }));
+    registry.remove("mine");
+    registry.add(session("synqed", { agent: "claude" }));
+    expect(registry.forgetClosed("mine")).toBe(true);
+    expect(registry.recentlyClosedSessions()).toEqual([]);
+    expect(registry.forgetClosed("synqed")).toBe(false);
+    expect(registry.get("synqed")).toBeDefined();
+  });
+
+  it("dates a closed session by when it closed", () => {
+    const registry = makeRegistry();
+    registry.add(session("mine", { agent: "claude", stateSince: 5 }));
+    const before = Date.now();
+    registry.remove("mine");
+    expect(registry.recentlyClosedSessions()[0]!.stateSince).toBeGreaterThanOrEqual(before);
+  });
+});
+
+describe("Session names stay unique across open and closed sessions", () => {
+  // Seen on 25 October 2026: eight closed sessions were all called "mine".
+  it("tells apart closed sessions saved under one name, newest keeping it", () => {
+    const registry = makeRegistry();
+    registry.restore([session("mine", { agent: "claude" })], [session("mine", { agent: "claude", agentSessionId: "a" }), session("mine", { agent: "claude", agentSessionId: "b" }), session("web", { agent: "claude" })]);
+    expect(registry.get("mine")).toBeDefined();
+    expect(registry.recentlyClosedSessions().map((closed) => [closed.name, closed.agentSessionId])).toEqual([
+      ["mine-2", "a"],
+      ["mine-3", "b"],
+      ["web", undefined],
+    ]);
+  });
+
+  it("names a new session from the user's terminal apart from closed ones", async () => {
+    const registry = makeRegistry();
+    registry.restore([], [session("mine", { agent: "claude", agentSessionId: "old" })]);
+    await registry.applyExternalHookEvent("SessionStart", { session_id: "new", cwd: "/Users/adil/Projects/mine" }, 10);
+    expect(registry.list().map((open) => open.name)).toEqual(["mine-2"]);
+  });
+
+  it("counts a closed session's name as taken for new sessions", () => {
+    const registry = makeRegistry();
+    registry.add(session("api", { agent: "claude" }));
+    registry.remove("api");
+    expect(registry.isNameInUse("api")).toBe(true);
+  });
+});
+
+describe("SessionRegistry.forgetExternalSessions", () => {
+  it("drops sessions from the user's own terminal, which nothing can check, and keeps HeyTerm's", () => {
+    const registry = makeRegistry();
+    registry.add(session("synqed-auth", { origin: "external", agent: "claude" }));
+    registry.add(session("api", { origin: "heyterm", agent: "claude" }));
+    registry.forgetExternalSessions();
+    expect(registry.list().map((open) => open.name)).toEqual(["api"]);
+    expect(registry.recentlyClosedSessions()).toEqual([]);
   });
 });

@@ -45,6 +45,10 @@ export class SessionActions {
     return { text: `${sessionName} did not take the message. Check its terminal.`, tone: "error", speak: true };
   }
 
+  rename(sessionName: string, newName: string): string | undefined {
+    return this.launcher.rename(sessionName, newName);
+  }
+
   async close(sessionName: string): Promise<Feedback> {
     await this.launcher.close(sessionName);
     await this.audit.record({ session: sessionName, decision: "closed", subject: sessionName, decidedBy: "voice or click" });

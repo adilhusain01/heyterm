@@ -5,6 +5,7 @@ import { EventEmitter } from "node:events";
 import path from "node:path";
 import { AgentSessionMatch } from "./agent-session-match.ts";
 import { ClaudeSessionStatus, type ClaudeSessionRecord } from "./claude-session-status.ts";
+import { SessionNames } from "../../shared/session-names.ts";
 import { ExternalSessionNaming } from "./external-session-naming.ts";
 import { AgentHookTranslator, type HookedAgentKind } from "../agents/agent-hook-translator.ts";
 import { SessionLifecycle } from "./session-lifecycle.ts";
@@ -18,6 +19,8 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   private readonly sessions = new Map<string, SessionView>();
   private recentlyClosed: SessionView[] = [];
   private readonly promptWaiters = new Map<string, Set<() => void>>();
+  // Launch name to current name, for renamed sessions HeyTerm started: their hooks keep the launch name.
+  private readonly launchNames = new Map<string, string>();
   private dayKey = localDayKey(Date.now());
   private changeTimer: NodeJS.Timeout | undefined;
   private saveTimer: NodeJS.Timeout | undefined;
@@ -31,7 +34,13 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
 
   restore(sessions: SessionView[], recentlyClosed: SessionView[]): void {
     for (const session of sessions) this.sessions.set(session.name, session);
-    this.recentlyClosed = recentlyClosed;
+    // Older versions let closed sessions share a name; the newest keeps it, older ones get a number.
+    const takenNames = new Set(this.sessions.keys());
+    this.recentlyClosed = recentlyClosed.map((closed) => {
+      const name = takenNames.has(closed.name) ? freeNameLike(closed.name, takenNames) : closed.name;
+      takenNames.add(name);
+      return name === closed.name ? closed : { ...closed, name };
+    });
   }
 
   list(): SessionView[] {
@@ -56,9 +65,24 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     if (!session) return;
     this.sessions.delete(name);
     this.heldRequests.letGoAllFor(name);
-    const closed: SessionView = { ...session, state: "stopped", pending: undefined };
+    for (const [launchName, renamedTo] of this.launchNames) if (renamedTo === name) this.launchNames.delete(launchName);
+    const closed: SessionView = { ...session, state: "stopped", stateSince: Date.now(), pending: undefined };
     this.recentlyClosed = [closed, ...this.recentlyClosed].slice(0, recentlyClosedLimit);
     this.announceChange();
+  }
+
+  // Takes a closed session off the list. Its conversation stays with the agent, which can still resume it.
+  forgetClosed(name: string): boolean {
+    const before = this.recentlyClosed.length;
+    this.recentlyClosed = this.recentlyClosed.filter((closed) => closed.name !== name);
+    if (this.recentlyClosed.length === before) return false;
+    this.announceChange();
+    return true;
+  }
+
+  // Without Claude Code's records nothing can say whether these are still running.
+  forgetExternalSessions(): void {
+    for (const session of this.list()) if (session.origin === "external") this.forget(session.name);
   }
 
   // A session that left while HeyTerm was away; it is not worth a "recently closed" row.
@@ -79,16 +103,55 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   // Returns what the hook script should print: a decision for a held request, otherwise nothing.
   async applyHookEvent(event: HookEvent): Promise<string> {
     this.resetWaitsOnNewDay(event.receivedAt);
-    const before = this.sessions.get(event.sessionName);
+    const sessionName = this.currentName(event.sessionName);
+    const before = this.sessions.get(sessionName);
     if (!before) return "";
     const requestId = event.name === "PermissionRequest" ? randomUUID() : undefined;
     const after = SessionLifecycle.apply(before, event, { requestId });
     this.set(after);
     if (before.pending && before.pending.requestId !== after.pending?.requestId) {
-      this.heldRequests.letGoAllFor(event.sessionName, after.pending?.requestId);
+      this.heldRequests.letGoAllFor(sessionName, after.pending?.requestId);
     }
-    if (event.name === "UserPromptSubmit") this.resolvePromptWaiters(event.sessionName);
-    return requestId ? this.heldRequests.hold(requestId, event.sessionName) : "";
+    if (event.name === "UserPromptSubmit") this.resolvePromptWaiters(sessionName);
+    return requestId ? this.heldRequests.hold(requestId, sessionName) : "";
+  }
+
+  // Renames an open or recently closed session; returns why it could not, or undefined.
+  rename(currentName: string, newName: string): string | undefined {
+    const live = this.sessions.get(currentName);
+    const closedIndex = this.recentlyClosed.findIndex((closed) => closed.name === currentName);
+    if (!live && closedIndex === -1) return `There is no session called ${currentName}.`;
+    const ownLaunchNames = [...this.launchNames].filter(([, renamedTo]) => renamedTo === currentName).map(([launchName]) => launchName);
+    const otherLaunchNames = [...this.launchNames.keys()].filter((launchName) => !ownLaunchNames.includes(launchName));
+    const takenNames = [...this.sessions.keys(), ...this.recentlyClosed.map((closed) => closed.name), ...otherLaunchNames];
+    const problem = SessionNames.renameProblem(newName, currentName, takenNames);
+    if (problem) return problem;
+    if (live) {
+      this.sessions.delete(currentName);
+      this.sessions.set(newName, { ...live, name: newName });
+      // A session HeyTerm started reports under its launch name for as long as it runs.
+      this.launchNames.set(currentName, newName);
+      for (const [launchName, renamedTo] of this.launchNames) if (renamedTo === currentName) this.launchNames.set(launchName, newName);
+      this.heldRequests.renameSession(currentName, newName);
+      const waiters = this.promptWaiters.get(currentName);
+      if (waiters) {
+        this.promptWaiters.delete(currentName);
+        this.promptWaiters.set(newName, waiters);
+      }
+    } else {
+      this.recentlyClosed = this.recentlyClosed.map((closed, index) => (index === closedIndex ? { ...closed, name: newName } : closed));
+    }
+    this.announceChange();
+    return undefined;
+  }
+
+  // Taken by an open or listed closed session, or kept for a renamed one whose hooks still use it.
+  isNameInUse(name: string): boolean {
+    return this.sessions.has(name) || this.launchNames.has(name) || this.recentlyClosed.some((closed) => closed.name === name);
+  }
+
+  private currentName(reportedName: string): string {
+    return this.sessions.has(reportedName) ? reportedName : (this.launchNames.get(reportedName) ?? reportedName);
   }
 
   // An event from Grok Build or Cursor, which run HeyTerm's hooks from a global file in every session.
@@ -136,7 +199,8 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   private newExternalSession(agentSessionId: string, payload: Record<string, unknown>, now: number): SessionView {
     const workingDirectory = typeof payload.cwd === "string" ? payload.cwd : "";
     const sessionTitle = typeof payload.session_title === "string" ? payload.session_title : undefined;
-    const name = ExternalSessionNaming.nameFor({ sessionTitle, workingDirectory }, [...this.sessions.keys()]);
+    const takenNames = [...this.sessions.keys(), ...this.launchNames.keys(), ...this.recentlyClosed.map((closed) => closed.name)];
+    const name = ExternalSessionNaming.nameFor({ sessionTitle, workingDirectory }, takenNames);
     return {
       name,
       origin: "external",
@@ -212,4 +276,11 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
 
 function localDayKey(time: number): string {
   return new Date(time).toDateString();
+}
+
+function freeNameLike(name: string, takenNames: Set<string>): string {
+  for (let suffix = 2; ; suffix += 1) {
+    const candidate = `${name}-${suffix}`;
+    if (!takenNames.has(candidate)) return candidate;
+  }
 }

@@ -122,6 +122,16 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
         return this.confirm();
       case "close":
         return this.close(action.session, action.confirmed);
+      case "forget_closed":
+        return this.tell(
+          this.registry.forgetClosed(action.session)
+            ? { text: `Removed ${action.session} from the list. Its conversation is still there to resume.`, tone: "info", speak: false }
+            : { text: `There is no closed session called ${action.session}.`, tone: "warning", speak: false },
+        );
+      case "rename": {
+        const result = this.rename(action.session, action.newName);
+        return this.tell({ text: result.text, tone: result.renamed ? "success" : "warning", speak: !result.renamed });
+      }
       case "choose":
         return this.choose(action.index);
       case "clarify":
@@ -204,6 +214,14 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
     this.controls.dropConfirmation();
     if (this.focusedSession === sessionName) this.focusedSession = undefined;
     this.tell(await this.sessionActions.close(sessionName));
+  }
+
+  // Also the assistant's rename_session tool, which reads the result back.
+  rename(sessionName: string, newName: string): { renamed: boolean; text: string } {
+    const problem = this.sessionActions.rename(sessionName, newName);
+    if (problem) return { renamed: false, text: problem };
+    if (this.focusedSession === sessionName) this.setFocus(newName);
+    return { renamed: true, text: `Renamed ${sessionName} to ${newName}.` };
   }
 
   private async confirm(): Promise<void> {

@@ -80,10 +80,19 @@ export class TerminalHost extends EventEmitter<{ exit: [string] }> {
       for (const viewer of hosted.viewers) viewer.send(data);
     });
     child.onExit(() => {
-      if (this.terminals.get(session.name) !== hosted) return;
-      this.forget(session.name, hosted);
-      this.emit("exit", session.name);
+      // Looked up by the terminal itself, since the session may have been renamed since it started.
+      const currentName = [...this.terminals].find(([, candidate]) => candidate === hosted)?.[0];
+      if (currentName === undefined) return;
+      this.forget(currentName, hosted);
+      this.emit("exit", currentName);
     });
+  }
+
+  renameSession(currentName: string, newName: string): void {
+    const hosted = this.terminals.get(currentName);
+    if (!hosted || this.terminals.has(newName)) return;
+    this.terminals.delete(currentName);
+    this.terminals.set(newName, hosted);
   }
 
   killSession(name: string): void {

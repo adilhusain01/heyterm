@@ -133,6 +133,8 @@ export type RouterAction =
   | { type: "spawn"; project: string; task?: string; agent?: AgentKind }
   | { type: "close"; session: string; confirmed: boolean }
   | { type: "resume"; session: string }
+  | { type: "rename"; session: string; newName: string }
+  | { type: "forget_closed"; session: string }
   | { type: "confirm" }
   | { type: "cancel" }
   | { type: "send_now" }

@@ -115,7 +115,16 @@ export class EventHub {
     return {
       type: "snapshot",
       sessions: this.registry.list(),
-      recentlyClosed: this.registry.recentlyClosedSessions().map((session) => ({ name: session.name, projectName: session.projectName })),
+      recentlyClosed: this.registry.recentlyClosedSessions().map((session) => ({
+        name: session.name,
+        projectName: session.projectName,
+        agent: session.agent,
+        projectPath: session.projectPath,
+        ...(session.origin ? { origin: session.origin } : {}),
+        ...(session.agentSessionId ? { agentSessionId: session.agentSessionId } : {}),
+        createdAt: session.createdAt,
+        closedAt: session.stateSince,
+      })),
       projects: this.projectNames,
       control: this.executor.controlState(),
       serverTime: Date.now(),

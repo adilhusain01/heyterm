@@ -78,6 +78,13 @@ export class SessionLauncher {
     return session;
   }
 
+  // Returns why the session could not take the name, or undefined once it has.
+  rename(currentName: string, newName: string): string | undefined {
+    const problem = this.registry.rename(currentName, newName);
+    if (!problem) this.host.renameSession(currentName, newName);
+    return problem;
+  }
+
   async close(name: string): Promise<void> {
     this.host.killSession(name);
     this.registry.remove(name);
@@ -131,11 +138,10 @@ export class SessionLauncher {
 
   // At start nothing is running yet: sessions saved last time are offered under "Recently closed",
   // and outside sessions report again on their next event.
+  // HeyTerm's own sessions ended with it. Sessions in the user's terminal stay, names and all:
+  // ClaudeSessionWatcher closes the ones whose Claude has gone.
   restoreAfterStart(): void {
-    for (const session of this.registry.list()) {
-      if (session.origin === "external") this.registry.forget(session.name);
-      else this.registry.remove(session.name);
-    }
+    for (const session of this.registry.list()) if (session.origin !== "external") this.registry.remove(session.name);
   }
 
   // HeyTerm is stopping: every session ends and waits under "Recently closed" for next time.
@@ -192,10 +198,10 @@ export class SessionLauncher {
 
   private uniqueName(projectName: string): string {
     const base = projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "session";
-    if (!this.registry.get(base)) return base;
+    if (!this.registry.isNameInUse(base)) return base;
     for (let suffix = 2; ; suffix += 1) {
       const candidate = `${base}-${suffix}`;
-      if (!this.registry.get(candidate)) return candidate;
+      if (!this.registry.isNameInUse(candidate)) return candidate;
     }
   }
 }

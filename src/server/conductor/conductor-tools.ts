@@ -1,6 +1,7 @@
 // What the assistant can do to sessions. Each tool returns plain words for the assistant to read,
 // and never speaks by itself: the assistant decides what the user hears.
 
+import { SessionNames } from "../../shared/session-names.ts";
 import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import type { ActionExecutor } from "../actions/action-executor.ts";
@@ -121,6 +122,9 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
       ),
       tool("trust_folder", "Trust the folder a new session is asking about. Only when the developer said so.", { name: z.string() }, ({ name }) =>
         withSession(name, async () => (await sessionActions.perform({ type: "trust", session: name }, () => undefined)).text),
+      ),
+      tool("rename_session", "Rename an open or recently closed session, so the developer can tell it apart. Works for sessions in their own terminal too.", { name: z.string(), new_name: z.string() }, async ({ name, new_name }) =>
+        reply(executor.rename(name, SessionNames.fromTyped(new_name)).text),
       ),
       tool("show_session", "Bring a session onto the developer's screen.", { name: z.string() }, ({ name }) =>
         withSession(name, async () => {
