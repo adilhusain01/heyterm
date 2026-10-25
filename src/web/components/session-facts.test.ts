@@ -35,4 +35,9 @@ describe("SessionFacts.rows", () => {
   it("leaves out what it does not know", () => {
     expect(SessionFacts.rows({}, now)).toEqual([]);
   });
+
+  it("names the branch of a session that works in a worktree of its own", () => {
+    const rows = SessionFacts.rows({ agent: "claude", projectPath: "/data/worktrees/api-api-2", worktree: { repoPath: "/p/api", worktreePath: "/data/worktrees/api-api-2", branch: "heyterm/api-2", baseCommit: "abc" } }, now);
+    expect(rows).toContainEqual({ label: "Branch", value: "heyterm/api-2, in a worktree of /p/api", isCode: true });
+  });
 });

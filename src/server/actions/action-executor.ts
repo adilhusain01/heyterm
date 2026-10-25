@@ -120,11 +120,7 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
       case "close":
         return this.close(action.session, action.confirmed);
       case "forget_closed":
-        return this.tell(
-          this.registry.forgetClosed(action.session)
-            ? { text: `Removed ${action.session} from the list. Its conversation is still there to resume.`, tone: "info", speak: false }
-            : { text: `There is no closed session called ${action.session}.`, tone: "warning", speak: false },
-        );
+        return this.tell(await this.sessionActions.forgetClosed(action.session));
       case "rename": {
         const result = this.rename(action.session, action.newName);
         return this.tell({ text: result.text, tone: result.renamed ? "success" : "warning", speak: !result.renamed });

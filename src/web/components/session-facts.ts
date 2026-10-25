@@ -1,7 +1,7 @@
 // What the sidebar's details card says about a session, open or closed, so sessions in the same
 // folder can be told apart. Pure.
 
-import type { AgentKind, SessionOrigin } from "../../shared/types.ts";
+import type { AgentKind, SessionOrigin, SessionWorktree } from "../../shared/types.ts";
 
 export interface SessionFactsInput {
   agent?: AgentKind;
@@ -10,6 +10,7 @@ export interface SessionFactsInput {
   agentSessionId?: string;
   createdAt?: number;
   closedAt?: number;
+  worktree?: SessionWorktree;
 }
 
 export interface SessionFactRow {
@@ -26,6 +27,7 @@ export class SessionFacts {
     if (session.agent) rows.push({ label: "Agent", value: agentNames[session.agent] });
     if (session.origin) rows.push({ label: "Runs in", value: session.origin === "external" ? "Your own terminal" : "HeyTerm" });
     if (session.projectPath) rows.push({ label: "Folder", value: session.projectPath });
+    if (session.worktree) rows.push({ label: "Branch", value: `${session.worktree.branch}, in a worktree of ${session.worktree.repoPath}`, isCode: true });
     if (session.createdAt) rows.push({ label: "Started", value: SessionFacts.when(session.createdAt, now) });
     if (session.closedAt) rows.push({ label: "Closed", value: SessionFacts.when(session.closedAt, now) });
     // The id the agent's own resume takes, for example claude --resume <id>.

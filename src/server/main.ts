@@ -31,6 +31,7 @@ import { StateStore } from "./sessions/state-store.ts";
 import { TrustDialogWatcher } from "./sessions/trust-dialog-watcher.ts";
 import { ClaudeSessionWatcher } from "./sessions/claude-session-watcher.ts";
 import { TurnChangeTracker } from "./sessions/turn-change-tracker.ts";
+import { SessionWorktrees } from "./sessions/session-worktrees.ts";
 import { DataFolder } from "./setup/data-folder.ts";
 import { SetupService } from "./setup/setup-service.ts";
 import { InputLog } from "./setup/input-log.ts";
@@ -77,7 +78,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   registry.restore(saved.sessions, saved.recentlyClosed);
   registry.useTurnChangeTracker(new TurnChangeTracker());
 
-  const launcher = new SessionLauncher(host, registry, { claudeSettingsPath: hooks.settingsPath, forwardScriptPath: hooks.forwardScriptPath });
+  const launcher = new SessionLauncher(host, registry, { claudeSettingsPath: hooks.settingsPath, forwardScriptPath: hooks.forwardScriptPath }, new SessionWorktrees(config.dataDirectory));
   launcher.restoreAfterStart();
   const trustWatcher = new TrustDialogWatcher(host, registry);
   trustWatcher.start();

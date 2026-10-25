@@ -1,7 +1,7 @@
 // Messages between the HeyTerm server and the web UI over /ws.
 
 import type { SessionDigest } from "./catch-up.ts";
-import type { AgentKind, AnnouncementMode, AttentionKind, RouterAction, SessionOrigin, SessionView } from "./types.ts";
+import type { AgentKind, AnnouncementMode, AttentionKind, RouterAction, SessionOrigin, SessionView, SessionWorktree } from "./types.ts";
 
 export interface Feedback {
   text: string;
@@ -40,6 +40,7 @@ export interface ClosedSessionView {
   origin?: SessionOrigin;
   agentSessionId?: string;
   faceSeed?: string;
+  worktree?: SessionWorktree;
   createdAt?: number;
   closedAt?: number;
 }

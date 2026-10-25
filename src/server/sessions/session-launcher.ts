@@ -6,12 +6,14 @@ import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
 import { promisify } from "node:util";
 import { ScreenReader } from "./screen-reader.ts";
+import type { SessionWorktrees, WorktreeRemoval } from "./session-worktrees.ts";
+import { WorktreePlan } from "./worktree-plan.ts";
 import { AgentAdapters, type AgentLaunchContext } from "../agents/agent-adapters.ts";
 import { HookCommands } from "../hooks/hook-commands.ts";
 import { LaunchCommand } from "../terminals/launch-command.ts";
 import type { SessionRegistry } from "./session-registry.ts";
 import type { TerminalHost } from "../terminals/terminal-host.ts";
-import type { AgentKind, SessionState, SessionView } from "../../shared/types.ts";
+import type { AgentKind, SessionState, SessionView, SessionWorktree } from "../../shared/types.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -34,6 +36,7 @@ export class SessionLauncher {
     private readonly host: TerminalHost,
     private readonly registry: SessionRegistry,
     private readonly paths: LauncherPaths,
+    private readonly worktrees?: SessionWorktrees,
   ) {
     // A program that ends by itself (/exit, a crash, a failed start) moves its session to "Recently closed".
     host.on("exit", (name) => this.registry.remove(name));
@@ -42,10 +45,14 @@ export class SessionLauncher {
   async start(projectPath: string, projectName: string, task?: string, agent: AgentKind = "claude"): Promise<SessionView> {
     await this.ensureInstalled(agent);
     const name = this.uniqueName(projectName);
+    // A second session in a folder another open session uses works in a git worktree of its own.
+    const sharesAFolder = WorktreePlan.needsOwnWorktree(projectPath, this.registry.list());
+    const made = sharesAFolder && this.worktrees ? await this.worktrees.create(projectPath, name) : undefined;
     const now = Date.now();
     const session: SessionView = {
       name,
-      projectPath,
+      projectPath: made?.path ?? projectPath,
+      ...(made ? { worktree: { repoPath: made.repoPath, worktreePath: made.worktreePath, branch: made.branch, baseCommit: made.baseCommit } } : {}),
       projectName,
       agent,
       state: "starting",
@@ -76,6 +83,11 @@ export class SessionLauncher {
     const launchId = this.registry.get(session.name)?.agentSessionId;
     this.launch(session, adapter.resume(point, { ...this.launchContext(session.name), agentSessionId: launchId }));
     return session;
+  }
+
+  // When a closed session leaves the list, its worktree goes too, unless that would lose work.
+  removeWorktreeIfUnused(worktree: SessionWorktree): Promise<WorktreeRemoval> {
+    return this.worktrees ? this.worktrees.removeIfUnused(worktree) : Promise.resolve("missing");
   }
 
   // Returns why the session could not take the name, or undefined once it has.

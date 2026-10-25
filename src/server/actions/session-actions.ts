@@ -70,6 +70,18 @@ export class SessionActions {
     return ChangeSummary.describe(sessionName, files, counts);
   }
 
+  // Off the list, and its worktree with it when nothing in the worktree would be lost.
+  async forgetClosed(sessionName: string): Promise<Feedback> {
+    const closed = this.registry.recentlyClosedSessions().find((session) => session.name === sessionName);
+    if (!closed || !this.registry.forgetClosed(sessionName)) return { text: `There is no closed session called ${sessionName}.`, tone: "warning", speak: false };
+    const removed = `Removed ${sessionName} from the list. Its conversation is still there to resume.`;
+    if (!closed.worktree) return { text: removed, tone: "info", speak: false };
+    const worktree = await this.launcher.removeWorktreeIfUnused(closed.worktree);
+    if (worktree === "kept_uncommitted") return { text: `${removed} Its worktree has uncommitted changes, so it stays at ${closed.worktree.worktreePath}.`, tone: "info", speak: false };
+    if (worktree === "kept_commits") return { text: `${removed} Its branch ${closed.worktree.branch} has commits of its own, so the worktree stays at ${closed.worktree.worktreePath}.`, tone: "info", speak: false };
+    return { text: `${removed} Its worktree is deleted; nothing in it was lost.`, tone: "info", speak: false };
+  }
+
   rename(sessionName: string, newName: string): string | undefined {
     return this.launcher.rename(sessionName, newName);
   }
@@ -106,6 +118,11 @@ export class SessionActions {
     }
     focus(session.name);
     const taskNote = action.task ? " It gets the task once it is ready." : "";
+    if (session.worktree) {
+      return { text: `Starting ${session.name} in a copy of the folder of its own, on a new branch, so it and the other session there cannot change each other's files. It starts from the last commit.${taskNote}`, tone: "success", speak: true };
+    }
+    const sharing = this.registry.list().find((other) => other.name !== session.name && other.projectPath === session.projectPath);
+    if (sharing) return { text: `Starting ${session.name}. It shares ${sharing.name}'s folder, which is not a git repository, so the two can change each other's files.${taskNote}`, tone: "warning", speak: true };
     return { text: `Starting ${session.name}.${taskNote}`, tone: "success", speak: false };
   }
 
