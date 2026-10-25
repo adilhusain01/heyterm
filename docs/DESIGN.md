@@ -24,7 +24,7 @@ All live in `src/web/styles.css` under `@theme`, and every component takes its v
 | States | `working`, `permission`, `question`, `trust`, `failed`, `finished`, `idle` | Only for session state. |
 | Radii | `outer` 12, `inner` 8, `small` 6, `tiny` 4, `mark` 3 | Concentric: an inner radius is the outer one minus the padding between them, so a key in a tray with 2px padding is `small`. A face's corner is 24% of its size. |
 | Type | `micro` 11, `small` 12.5, `meta` 13, `body` 15, `title` 16, `display` 22 | One scale, no one-off sizes. `micro` is only for the wait under a face in the rail. |
-| Shadows | `shadow-key`, `shadow-key-hover`, `shadow-tray` | Only keys cast one, tinted with the ink rather than grey. Cards, labels and toasts sit flat with a border. |
+| Shadows | `shadow-key`, `shadow-key-hover`, `shadow-tray` | Only keys cast one: a soft drop shadow tinted with the ink, and no highlight line along the top edge (Adil disliked the bevel it made). The recipe follows Aceternity's "Next.js White" button. Cards, labels and toasts sit flat with a border. |
 | Motion | `ease-out`, `ease-in-out`, `duration-press` 120, `duration-enter` 200, `duration-state` 240 | |
 
 ## Components (`src/web/ui/`)
