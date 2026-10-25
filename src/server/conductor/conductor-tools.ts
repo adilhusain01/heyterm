@@ -58,6 +58,7 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
           const lastLines = screen.split("\n").filter((line) => line.trim()).slice(-screenLinesShown).join("\n");
           return [
             `State: ${session.state}. Project folder: ${session.projectPath}.`,
+            session.worktree ? `Works in its own git worktree on branch ${session.worktree.branch}, made from ${session.worktree.repoPath}.` : "",
             session.lastPrompt ? `Last task: <session_text>${session.lastPrompt}</session_text>` : "",
             session.lastMessage ? `Last message: <session_text>${session.lastMessage}</session_text>` : "",
             session.pending ? `Waiting on: <session_text>${JSON.stringify(session.pending.kind === "permission" ? { permission: session.pending.summary, risk: session.pending.risk } : { questions: session.pending.questions })}</session_text>` : "",
