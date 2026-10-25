@@ -81,10 +81,15 @@ posixOnly("TerminalHost", () => {
     }
   });
 
-  // How HeyTerm knows a command still runs in a plain terminal, which sends no hooks.
-  it("names the program in front in the terminal", async () => {
+  // How HeyTerm knows a command still runs in a plain terminal, which sends no hooks. An interactive
+  // shell, as in a terminal, puts each command in front; a non-interactive one stays in front itself.
+  it("names the program in front in the terminal: the shell, then a command typed into it", async () => {
     const host = makeHost();
-    host.createSession({ name: "front", workingDirectory: "/tmp", program: "/bin/sh", args: ["-c", "sleep 5"], environment: {} });
+    host.createSession({ name: "front", workingDirectory: "/tmp", program: "/bin/sh", args: ["-i"], environment: {} });
+    // The shell itself first, whatever it calls itself ("bash" is macOS's /bin/sh, "sh" is Linux's).
+    await waitFor(() => !["", "sleep", undefined].includes(host.foregroundProgram("front")));
+    host.pasteText("front", "sleep 5");
+    host.pressKeys("front", ["Enter"]);
     await waitFor(() => host.foregroundProgram("front") === "sleep");
   });
 
