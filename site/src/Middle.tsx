@@ -92,6 +92,7 @@ const phrases: Array<{ said: string; does: string }> = [
   { said: "bring back peeker", does: "Resumes a closed session where its conversation left off." },
   { said: "what did api change?", does: "Names the files its last task changed, with line counts." },
   { said: "rename synqed to synqed auth", does: "Renames a session, so two in one project are easy to tell apart." },
+  { said: "open a terminal in synqed", does: "Opens your own shell there in a pane, which you type into and the assistant can run commands in." },
   { said: "open synqed here", does: "Moves a Claude session from your own terminal into HeyTerm, conversation and all." },
   { said: "be quiet", does: "Speaks only permissions and questions. Say \"mute\" for sounds only." },
 ];

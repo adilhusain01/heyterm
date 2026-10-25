@@ -176,6 +176,8 @@ function FacesPiece() {
 
 const extras: Array<{ title: string; text: string }> = [
   { title: "Your own terminals too", text: "Claude sessions you started yourself show up beside HeyTerm's, so their questions reach you too. Say \"open synqed here\" to move one in, conversation and all." },
+  { title: "A plain terminal too", text: "Say \"open a terminal in synqed\" for your own shell in a pane, no agent. Type into it yourself, or have the assistant run a command there and tell you what it printed." },
+  { title: "It recovers by itself", text: "When your Mac sleeps or a connection drops, the page reconnects on its own and redraws every terminal, and it says so while it is away." },
   { title: "Drop a screenshot on a session", text: "Drag an image onto a session's terminal, or paste one there, and the agent gets it attached, as if you had pasted it yourself." },
   { title: "See what it ran", text: "Every command the assistant runs is a line you can click open for the full command and its output." },
   { title: "Never miss a request", text: "The conversation follows new messages while you are at the end, and always brings a permission or question into view." },
