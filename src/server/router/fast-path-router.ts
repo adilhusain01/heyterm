@@ -47,7 +47,8 @@ export class FastPathRouter {
       this.routeSpawn(utterance, spans, context) ??
       this.routeRename(phrase, sessionMatcher, context) ??
       this.routeSessionCommand(phrase, sessionMatcher, context) ??
-      this.routeTell(utterance, spans, sessionMatcher) ??
+      // With the assistant in the middle, "tell X to" goes to it, which works out what X should be told.
+      (this.options.sendUnaddressedWordsToFocusedSession ? this.routeTell(utterance, spans, sessionMatcher) : undefined) ??
       new HeadAnswerRouter().route(utterance, phrase, context, sessionMatcher) ??
       this.routeAddressed(utterance, spans, sessionMatcher) ??
       (this.options.sendUnaddressedWordsToFocusedSession ? this.routeToFocusedSession(utterance, phrase, context, sessionMatcher) : undefined)

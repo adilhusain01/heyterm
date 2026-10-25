@@ -66,4 +66,12 @@ describe("ConductorTurnText", () => {
     const text = ConductorTurnText.forUtterance("what is running", { sessions: [{ ...session, name: "portfolio-terminal", agent: "shell", state: "idle" }], projectNames: [], recentlyClosedNames: [] });
     expect(text).toContain("a plain terminal");
   });
+
+  // "tell whisker to go on" now reaches the assistant rather than whisker; it must send a clear
+  // instruction built from what the session last said, keep to what was asked, and ask when unsure.
+  it("tells the assistant how to pass on what the developer wants a session told", () => {
+    expect(conductorSystemPrompt).toContain("tell or ask a session");
+    expect(conductorSystemPrompt).toContain("misheard");
+    expect(conductorSystemPrompt).toContain("nothing they did not ask for");
+  });
 });

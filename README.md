@@ -20,7 +20,8 @@ python3 scripts/measure-waits.py
 | --- | --- |
 | "start a session in portfolio and fix the phone menu" | starts Claude Code in that project and gives it the task |
 | "open a terminal in synqed" | opens a plain terminal there: your login shell, no agent, called `synqed-terminal`; **+** in the sidebar has a Terminal choice too |
-| "peeker, run the tests again" / "tell bookboy to use Neon" | sends your words to that session, after a 1.5 second preview you can cancel |
+| "peeker, run the tests again" | sends your words straight to that session, after a 1.5 second preview you can cancel |
+| "tell whisker to go on" / "ask bookboy why the tests fail" | the assistant reads that session, fixes what dictation misheard, and sends it one clear instruction (asking you first when it cannot tell) |
 | "approve" / "no, use pnpm instead" | answers the permission at the top of the queue; a "no" passes your reason to Claude |
 | "Neon" / "the second one" | answers a multiple-choice question, with no arrow keys |
 | "catch me up" / "what's synqed doing?" | says what changed since you last looked |

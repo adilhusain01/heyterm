@@ -231,6 +231,13 @@ describe("with the assistant in the middle", () => {
   it("still sends words that name a session straight to it", () => {
     expect(routerBesideAssistant.route("peeker, run the tests", makeContext({ focusedSession: "peeker" }))).toMatchObject({ type: "send", session: "peeker", text: "run the tests" });
   });
+
+  // Adil, 26 October 2026: "tell whisker to go on" reached whisker as a bare "go on". Asking for a
+  // session to be told something is a request to the assistant, which works out what to send.
+  it("leaves tell X and ask X to the assistant, which turns them into a clear instruction", () => {
+    expect(routerBesideAssistant.route("tell peeker to go on", makeContext())).toBeUndefined();
+    expect(routerBesideAssistant.route("ask bookboy why the tests fail", makeContext())).toBeUndefined();
+  });
 });
 
 describe("session commands", () => {
