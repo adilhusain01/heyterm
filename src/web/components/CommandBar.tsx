@@ -11,6 +11,7 @@ import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useOrbState } from "../state/use-orb-state.ts";
 import { AssistantOrb } from "../ui/AssistantOrb.tsx";
 import { Kbd } from "../ui/Hint.tsx";
+import { DecisionDock } from "./DecisionDock.tsx";
 import { PendingStrip } from "./PendingStrip.tsx";
 
 export function CommandBar() {
@@ -75,6 +76,7 @@ export function CommandBar() {
   return (
     <footer className="shrink-0 border-t border-line bg-panel px-2 pt-2 pb-2.5">
       <div className="mx-auto flex max-w-[1100px] flex-col gap-1.5">
+        <DecisionDock />
         <PendingStrip control={control} />
         {typingSession && (
           <button type="button" onClick={() => setTypingSession(undefined)} className="cursor-pointer rounded-inner border border-line bg-raised px-3 py-1.5 text-left text-meta text-ink-muted hover:text-ink">

@@ -11,7 +11,7 @@ import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
 import { BringBackIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon, SettingsIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../ui/icons.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { Tray } from "../ui/Surfaces.tsx";
-import { AttentionCard } from "./AttentionCard.tsx";
+import { SessionIdentity } from "./session-identity.ts";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
 import type { AgentKind, AnnouncementMode, SessionView } from "../../shared/types.ts";
 
@@ -36,9 +36,7 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
   const sessions = useHeyTermStore((state) => state.sessions);
   const recentlyClosed = useHeyTermStore((state) => state.recentlyClosed);
   const changeLayout = useHeyTermStore((state) => state.changeLayout);
-  const { queue, ordered } = useOrderedSessions();
-  const head = queue[0];
-  const headSession = head ? sessions.find((session) => session.name === head.sessionName) : undefined;
+  const { ordered } = useOrderedSessions();
   const [isPickerOpen, setPickerOpen] = useState(false);
 
   return (
@@ -54,8 +52,6 @@ function SidebarPanel({ onOpenSetup }: { onOpenSetup: () => void }) {
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-3">
-        {head && headSession && <AttentionCard item={head} session={headSession} moreWaiting={queue.length - 1} />}
-
         <section className="flex flex-col gap-0.5">
           <SectionHeading
             title="Sessions"
@@ -147,7 +143,8 @@ function SessionRow({ session }: { session: SessionView }) {
   const now = useServerNow();
   const display = stateDisplay[session.state];
   const isFocused = focusedSession === session.name;
-  const detail = session.pending?.kind === "permission" ? "Wants your OK" : session.lastPrompt;
+  // The state already says what a waiting session needs; otherwise show what it was last asked.
+  const detail = isWaitingOnUser(session.state) ? "" : SessionIdentity.promptPreview(session.lastPrompt ?? "");
   return (
     <button
       type="button"

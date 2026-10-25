@@ -10,6 +10,8 @@ import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { CloseIcon, ExpandIcon, KeyboardIcon, ShrinkIcon } from "../ui/icons.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
+import { RequestCard } from "./AttentionCard.tsx";
+import { useSessionRequest } from "./DecisionDock.tsx";
 import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
 import type { SessionView } from "../../shared/types.ts";
 
@@ -41,6 +43,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   const paneRef = useRef<HTMLElement>(null);
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const display = stateDisplay[session.state];
+  const request = useSessionRequest(session.name);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -92,7 +95,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   return (
     <section ref={paneRef} className={`flex h-full min-h-[280px] w-full min-w-0 flex-col overflow-hidden rounded-outer border bg-tray transition-colors duration-200 ${borderClass}`}>
       <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
-        <SessionAvatar name={session.name} state={session.state} size={20} />
+        <SessionAvatar name={session.name} state={session.state} size={22} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
         <span className={`text-[12.5px] ${display.textClass}`}>{display.label}</span>
         {isWaitingOnUser(session.state) && <span className="font-mono text-[12.5px] text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
@@ -110,6 +113,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
           </PaneButton>
         </div>
       </header>
+      {request && <RequestCard item={request.item} session={request.session} variant="banner" />}
       <div
         ref={containerRef}
         className="min-h-0 flex-1 cursor-text"
