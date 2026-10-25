@@ -26,6 +26,8 @@ export function ConversationPanel() {
   const isFollowingRef = useRef(true);
   const shownRequestKeysRef = useRef<string[]>([]);
   const lastEntryIdRef = useRef<number | undefined>(undefined);
+  // Where you were reading, kept while the column is folded away, since folding removes the list.
+  const readingPlaceRef = useRef(0);
   const [hasUnread, setHasUnread] = useState(false);
   const currentStep = orbState === "thinking" ? latestStepSinceYouSpoke(entries) : undefined;
   const status = currentStep ?? orbStatusText[orbState];
@@ -46,6 +48,13 @@ export function ConversationPanel() {
     observer.observe(content);
     return () => observer.disconnect();
   }, [isEmpty, collapsed]);
+
+  // Reopened (before the effect below, so a new request still comes into view): at the end when you were following it, otherwise back where you were reading.
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    if (collapsed || !scroller) return;
+    scroller.scrollTop = isFollowingRef.current ? scroller.scrollHeight : readingPlaceRef.current;
+  }, [collapsed]);
 
   // Your own words bring you to the end; a new permission or question is always brought into view.
   useLayoutEffect(() => {
@@ -72,13 +81,14 @@ export function ConversationPanel() {
     const newest = newRequestKeys.at(-1);
     const card = newest ? scroller.querySelector<HTMLElement>(`[data-request-key="${CSS.escape(newest)}"]`) : null;
     if (card) bringIntoView(scroller, card);
-  }, [entries, untold, sessions]);
+  }, [entries, untold, sessions, collapsed]);
 
   const onScroll = () => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const atEnd = ConversationFollow.isAtEnd(scroller);
     isFollowingRef.current = atEnd;
+    readingPlaceRef.current = scroller.scrollTop;
     if (atEnd) setHasUnread(false);
   };
 
