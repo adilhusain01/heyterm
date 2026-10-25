@@ -47,7 +47,7 @@ All live in `src/web/tokens.css` under `@theme`, shared by the app (`src/web/sty
 | `Markdown` | What agents write, rendered from Markdown with no raw HTML, so nothing an agent writes can run in the page. Headings and links in the accent, as in Obsidian. | react-markdown |
 | `icons` | Lucide icons fetched with better-icons from Iconify and kept as source; 1.75px stroke, the same set and weight Obsidian uses. | Lucide via better-icons |
 
-Request parts live in `src/web/components/AttentionCard.tsx`: the `chat` card in the conversation, the slim `bar` row above the bar you talk into, and the `banner` on the asking pane. All three share the same keys and the same spoken hint.
+Request parts live in `src/web/components/AttentionCard.tsx`: the `chat` card in the conversation and the slim `bar` row above the bar you talk into, never both on screen. They share the same keys and the same spoken hint.
 
 ## Layout
 
@@ -58,6 +58,7 @@ Request parts live in `src/web/components/AttentionCard.tsx`: the `chat` card in
 - Centre: the terminals, in a grid whose columns follow the width (each at least 440px; past two rows the grid scrolls instead of shrinking). There is no toolbar above them. A pane's expand key shows that session alone and its shrink key brings the grid back; while one is shown alone, picking another in the sidebar switches to it. With a single session the key is not drawn, since there is nothing to switch between.
 - Right: the conversation with the assistant, with a status line at the top saying what it is doing. The orb is drawn once, in the bar you talk into; the header does not repeat it. The sidebar header, the first row of panes and the conversation header share one 48px top edge. A session's request is a message in it, in the order it arrived, and can be answered right there. An answer, said or clicked, follows it as your own message, and the request settles into a quiet "Answered" line. A request older than the kept lines still appears at the end. Your words and new requests bring the list to the end; anything else that arrives while you read further up shows a "New messages" key instead of moving the page. A request has one place to answer it: the conversation, or the slim row above the bar while the conversation is folded; the asking pane's header shows its state and wait time.
 - The column folds away; a key at the end of the bar brings it back. While it is folded, the screen is under 1024px, or in the playground, the most urgent request sits in one slim row above the bar you talk into: face, name, what it wants, the folder or command in faint mono, and its keys, with any others as faces to switch to.
+- Any text on the page can be selected and copied: the bar takes focus back only once nothing is selected and the mouse is up, so dictation still lands in it. In a terminal, Cmd+C (Ctrl+C on Windows and Linux) copies a selection instead of interrupting the agent. What you said shows as your message in the conversation and is not repeated above the bar.
 - Under the terminals: the bar you talk into, with the orb at its left showing whether it hears you. It belongs to the centre column, so it is exactly as wide as the terminals and shares their gutters, and the conversation column runs the full height beside it.
 - Explanations live behind "?" cards, not in paragraphs under headings.
 
