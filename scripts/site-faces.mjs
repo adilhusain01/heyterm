@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { Avatar, Style } from "@dicebear/core";
 import adventurer from "@dicebear/styles/adventurer.json" with { type: "json" };
 
-const names = ["api", "web", "docs", "tests", "mobile", "shop", "api-2", "api-3", "api-terminal"];
+const names = ["api", "web", "docs", "tests", "mobile", "shop", "api-2", "api-3", "api-terminal", "synqed"];
 const style = new Style(adventurer);
 mkdirSync("site/public/faces", { recursive: true });
 for (const name of names) writeFileSync(`site/public/faces/${name}.svg`, String(new Avatar(style, { seed: name })));

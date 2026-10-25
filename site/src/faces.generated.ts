@@ -8,5 +8,6 @@ export const faces: Record<string, string> = {
   "shop": "/faces/shop.svg",
   "api-2": "/faces/api-2.svg",
   "api-3": "/faces/api-3.svg",
-  "api-terminal": "/faces/api-terminal.svg"
+  "api-terminal": "/faces/api-terminal.svg",
+  "synqed": "/faces/synqed.svg"
 };

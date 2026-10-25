@@ -1,11 +1,11 @@
 // What you get, each shown with a real piece of the app rather than an icon in a box.
 
 import { useState, type ReactNode } from "react";
-import { AssistantOrb } from "../../src/web/ui/AssistantOrb.tsx";
 import { CheckIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../../src/web/ui/icons.tsx";
 import { Face as SessionAvatar } from "./Face.tsx";
 import { StatePiece } from "./diagrams/StateDiagram.tsx";
 import { WorktreePiece } from "./diagrams/WorktreeDiagram.tsx";
+import { Extras } from "./Extras.tsx";
 import { Section, SectionHeading } from "./pieces.tsx";
 
 function Feature({ title, children, piece }: { title: string; children: ReactNode; piece: ReactNode }) {
@@ -28,10 +28,6 @@ export function Features() {
         <Feature title="Requests arrive in the conversation" piece={<RequestPiece />}>
           <p>When a session needs a permission, an answer or a folder trusted, it shows up as a message where you are already looking, with what it wants in plain words.</p>
           <p>Answer with the buttons or out loud. Your answer appears as your own reply, and the request settles so the thread still reads.</p>
-        </Feature>
-        <Feature title="An assistant in the middle" piece={<AssistantPiece />}>
-          <p>Claude Opus 5.5 runs between you and the agents, on your own Claude Code login, so there is no API key to set up.</p>
-          <p>It reads every session, sends them work and tells you what happened, and does anything Claude Code can on your computer: commands, installs, files, the web. It asks you out loud only when Claude Code itself would ask, and remembers your conversation across restarts.</p>
         </Feature>
         <Feature title="Parallel sessions that never collide" piece={<WorktreePiece />}>
           <p>Start a second session in a project that already has one, and it gets a git worktree and a branch of its own, so two agents never edit the same files. Its work waits on that branch for you to merge.</p>
@@ -77,20 +73,6 @@ function RequestPiece() {
   );
 }
 
-function AssistantPiece() {
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="ml-auto w-fit rounded-outer bg-raised px-3 py-2 text-body text-ink">what is everyone doing?</p>
-      <div className="flex gap-3">
-        <AssistantOrb state="speaking" size={26} label="The assistant, speaking" />
-        <p className="text-body leading-relaxed text-ink">
-          api is refactoring the auth middleware. tests just finished: all 48 pass. mobile is waiting on you to approve a package install. web and docs are idle.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 const voiceModes = [
   { mode: "Speaking", icon: SpeakerIcon, says: "Says everything: what finished, what failed, what each session needs." },
   { mode: "Quiet", icon: SpeakerQuietIcon, says: "Says only permissions and questions. The rest stays on screen." },
@@ -126,35 +108,5 @@ function VoicePiece() {
       </p>
       <p className="text-small text-ink-faint">Or say "be quiet", "mute" or "talk to me".</p>
     </div>
-  );
-}
-
-const extras: Array<{ title: string; text: string }> = [
-  { title: "Your own terminals too", text: "Claude sessions you started yourself show up beside HeyTerm's, so their questions reach you too. Say \"open synqed here\" to move one in, conversation and all." },
-  { title: "A plain terminal too", text: "Say \"open a terminal in synqed\" for your own shell in a pane, no agent. Type into it yourself, or have the assistant run a command there and tell you what it printed." },
-  { title: "It recovers by itself", text: "When your Mac sleeps or a connection drops, the page reconnects on its own and redraws every terminal, and it says so while it is away." },
-  { title: "Drop a screenshot on a session", text: "Drag an image onto a session's terminal, or paste one there, and the agent gets it attached, as if you had pasted it yourself." },
-  { title: "See what it ran", text: "Every command the assistant runs is a line you can click open for the full command and its output." },
-  { title: "Never miss a request", text: "The conversation follows new messages while you are at the end, and always brings a permission or question into view." },
-  { title: "Catch me up", text: "After a meeting, one sentence tells you what every session did while you were away." },
-  { title: "It notices a quiet session", text: "A session that says nothing for five minutes, or runs one command for ten, is named out loud before you wonder." },
-  { title: "Tell them apart", text: "Hover a session for its agent, folder, branch and id, and rename it by voice or with a click." },
-  { title: "Copy anything", text: "Select any text, in the conversation or a terminal, and copy it with Cmd+C or Ctrl+C." },
-  { title: "Closing means closed", text: "Stop HeyTerm and every session ends. Bring one back later and its conversation picks up where it left off." },
-  { title: "Gruvbox, light or dark", text: "The same warm palette as this page, in either theme, with the terminals kept dark so agents stay readable." },
-  { title: "macOS, Linux and Windows", text: "One command on each, with the same terminals and the same voice controls." },
-  { title: "Uninstall leaves nothing", text: "heyterm uninstall takes its hooks back out of your agents' settings and moves its folder to the Trash." },
-];
-
-function Extras() {
-  return (
-    <ul className="mt-6 grid gap-x-10 gap-y-8 border-t border-line pt-14 sm:grid-cols-2 lg:grid-cols-3">
-      {extras.map((extra) => (
-        <li key={extra.title} className="flex flex-col gap-2">
-          <h3 className="text-title font-medium text-ink">{extra.title}</h3>
-          <p className="text-body leading-relaxed text-ink-muted">{extra.text}</p>
-        </li>
-      ))}
-    </ul>
   );
 }
