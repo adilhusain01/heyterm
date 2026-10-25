@@ -40,6 +40,7 @@ HeyTerm speaks with your Mac's own voice (whatever is set in System Settings, Ac
 - **Terminals in the middle**, in a grid or one at a time.
 - **The conversation on the right.** When a session needs you, its request arrives as a message there, with buttons and the words to say. Answer by voice or click; your answer shows up as your own message under it. Fold the column away and the most urgent request sits in one slim row above the bar you talk into.
 - **What each task changed.** A finished session says how many files it changed; "what did api change?" names them. A session that goes quiet for five minutes (or runs one command for ten) is named too.
+- **See what the assistant ran.** Each command it runs is a line in the conversation; click it for the full command and its output, and click again to close it.
 - **Drop or paste an image onto a session.** Drag a screenshot or any PNG, JPEG, GIF or WebP onto a session's terminal, or paste one there, and the session gets it attached, as if you had pasted it into Claude Code yourself. It is kept in `~/.heyterm/attachments`.
 - **Any text can be copied.** Select it and press Cmd+C (Ctrl+C on Windows and Linux), in a terminal too.
 - **Gruvbox, light or dark.** HeyTerm starts in Gruvbox Material light; Setup, Appearance switches to dark or follows your system. Terminals stay dark in both, because coding agents colour their text for a dark terminal.

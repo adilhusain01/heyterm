@@ -175,7 +175,10 @@ function FacesPiece() {
 }
 
 const extras: Array<{ title: string; text: string }> = [
-  { title: "Your own terminals too", text: "Claude sessions you started yourself can show up beside HeyTerm's, so their questions reach you as well." },
+  { title: "Your own terminals too", text: "Claude sessions you started yourself show up beside HeyTerm's, so their questions reach you too. Say \"open synqed here\" to move one in, conversation and all." },
+  { title: "Drop a screenshot on a session", text: "Drag an image onto a session's terminal, or paste one there, and the agent gets it attached, as if you had pasted it yourself." },
+  { title: "See what it ran", text: "Every command the assistant runs is a line you can click open for the full command and its output." },
+  { title: "Never miss a request", text: "The conversation follows new messages while you are at the end, and always brings a permission or question into view." },
   { title: "Catch me up", text: "After a meeting, one sentence tells you what every session did while you were away." },
   { title: "It notices a quiet session", text: "A session that says nothing for five minutes, or runs one command for ten, is named out loud before you wonder." },
   { title: "Tell them apart", text: "Hover a session for its agent, folder, branch and id, and rename it by voice or with a click." },
