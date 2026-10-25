@@ -5,7 +5,7 @@ HeyTerm is a console you mostly listen to. The screen has to answer three questi
 ## Principles
 
 - **Press it or read it.** A key casts a shadow and can be pressed. A tray sits in and holds things. A sheet is flat and is only read. Nothing else.
-- **Ink is the only accent.** Colour means a session state and nothing else: blue working, amber needs a permission or trust, violet asked a question, red failed, green done. The assistant is drawn in ink.
+- **Ink is the only accent.** Saturated colour means a session state and nothing else: blue working, amber needs a permission or trust, violet asked a question, red failed, green done. Session faces use soft, muted tints so they never compete with state. The assistant is drawn in ink.
 - **Say it once.** A session's name, state and wait show once per place. A long command folds to four lines.
 - **Motion explains.** Something enters, something is pressed, a state changes. Under 300ms, ease-out, transforms and opacity only, and a cross-fade under reduced motion. Loops (the orb, a spinner) only while something is actually happening.
 
@@ -36,14 +36,15 @@ All live in `src/web/styles.css` under `@theme`, and every component takes its v
 | `FoldedText` | A command or path shown in a tray, folded to four lines with a key to open it. | Design taste, decluttering |
 | `Hint` | What to say out loud, in the faint ink, with the spoken words in quotes. | |
 | `Kbd` | A key cap for keyboard hints. | |
-| `SessionAvatar` | Each session's own face, a pattern drawn from its name in ink tones only, with its state as a small coloured badge (the one place colour appears). | boring-avatars, bauhaus variant |
+| `SessionAvatar` | Each session's own face: its initials (P, DS, W2) on a soft colour of its own, muted so the saturated state badge still stands out. | |
 | `HelpTip` | A "?" beside a heading that opens a short card explaining it, drawn above everything and kept on screen. Headings stay one word or two. | |
 | `Markdown` | What agents write, rendered from Markdown with no raw HTML, so nothing an agent writes can run in the page. | react-markdown |
 | `icons` | Lucide icons fetched with better-icons from Iconify and kept as source; 1.75px stroke. | Lucide via better-icons |
 
 ## Layout
 
-- No top bar. The left sidebar holds the name, what needs you most, every session with its face, Recently closed, today's numbers, the sound mode and Setup. It folds to a 60px rail of session faces with the sound mode and Setup at the bottom.
+- No top bar. The left sidebar holds the name, every session with its face, Recently closed, today's numbers, the sound mode and Setup.
+- Requests sit where you act on them: the most urgent one docks above the bar you talk into (others as faces to switch to), and each asking session shows a slim banner on its own pane. It folds to a 60px rail of session faces with the sound mode and Setup at the bottom.
 - Centre: the terminals, in a grid whose columns follow the width (each at least 440px; past two rows the grid scrolls instead of shrinking), or one at a time with tabs to switch. A pane's expand key switches to one at a time.
 - Right: the conversation with the assistant, its orb and status line at the top. It folds away; a key in the terminal toolbar brings it back.
 - Bottom: the bar you talk into, with the orb at its left showing whether it hears you.
