@@ -30,7 +30,11 @@ export function Features() {
         </Feature>
         <Feature title="An assistant in the middle" piece={<AssistantPiece />}>
           <p>Claude Opus 5.5 runs between you and the agents, on your own Claude Code login, so there is no API key to set up.</p>
-          <p>It reads every session, sends them work, runs commands on your computer and tells you what happened. It asks you out loud only when Claude Code itself would ask.</p>
+          <p>It reads every session, sends them work and tells you what happened, and does anything Claude Code can on your computer: commands, installs, files, the web. It asks you out loud only when Claude Code itself would ask, and remembers your conversation across restarts.</p>
+        </Feature>
+        <Feature title="Parallel sessions that never collide" piece={<ParallelPiece />}>
+          <p>Start a second session in a project that already has one, and it gets a git worktree and a branch of its own, so two agents never edit the same files. Its work waits on that branch for you to merge.</p>
+          <p>When a task ends you hear how many files it changed, and "what did api change?" names them, edits made through shell commands included.</p>
         </Feature>
         <Feature title="Hear what matters, and nothing else" piece={<VoicePiece />}>
           <p>On a Mac it speaks with the voice you chose in System Settings, Siri voices included. Elsewhere it uses your browser's voice.</p>
@@ -81,6 +85,27 @@ function AssistantPiece() {
         <p className="text-body leading-relaxed text-ink">
           api is refactoring the auth middleware. tests just finished: all 48 pass. mobile is waiting on you to approve a package install. web and docs are idle.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ParallelPiece() {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="ml-auto w-fit rounded-outer bg-raised px-3 py-2 text-body text-ink">start another session in api</p>
+      <p className="flex items-start gap-2 text-small text-ink-muted">
+        <span className="mt-1.5 size-1.5 shrink-0 rounded-mark bg-ink-faint" aria-hidden="true" />
+        Starting api-2 in a copy of the folder of its own, on branch <span className="font-mono text-ink">heyterm/api-2</span>.
+      </p>
+      <p className="flex items-start gap-2 text-small text-ink-muted">
+        <span className="mt-1.5 size-1.5 shrink-0 rounded-mark bg-ink-faint" aria-hidden="true" />
+        api-2 finished: Added rate limits to the login route. Changed 3 files.
+      </p>
+      <p className="ml-auto w-fit rounded-outer bg-raised px-3 py-2 text-body text-ink">what did api-2 change?</p>
+      <div className="flex gap-3">
+        <AssistantOrb state="speaking" size={26} label="The assistant, speaking" />
+        <p className="text-body leading-relaxed text-ink">api-2 changed 3 files in its last task: login.ts, limits.ts and login.test.ts. Since the last commit, 64 lines added and 9 removed.</p>
       </div>
     </div>
   );
@@ -150,6 +175,9 @@ function FacesPiece() {
 const extras: Array<{ title: string; text: string }> = [
   { title: "Your own terminals too", text: "Claude sessions you started yourself can show up beside HeyTerm's, so their questions reach you as well." },
   { title: "Catch me up", text: "After a meeting, one sentence tells you what every session did while you were away." },
+  { title: "It notices a quiet session", text: "A session that says nothing for five minutes, or runs one command for ten, is named out loud before you wonder." },
+  { title: "Tell them apart", text: "Hover a session for its agent, folder, branch and id, and rename it by voice or with a click." },
+  { title: "Copy anything", text: "Select any text, in the conversation or a terminal, and copy it with Cmd+C or Ctrl+C." },
   { title: "Closing means closed", text: "Stop HeyTerm and every session ends. Bring one back later and its conversation picks up where it left off." },
   { title: "Gruvbox, light or dark", text: "The same warm palette as this page, in either theme, with the terminals kept dark so agents stay readable." },
   { title: "macOS, Linux and Windows", text: "One command on each, with the same terminals and the same voice controls." },

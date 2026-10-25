@@ -90,6 +90,8 @@ const phrases: Array<{ said: string; does: string }> = [
   { said: "catch me up", does: "Says what changed in every session since you last looked." },
   { said: "trust it", does: "Trusts a new folder for the session asking." },
   { said: "bring back peeker", does: "Resumes a closed session where its conversation left off." },
+  { said: "what did api change?", does: "Names the files its last task changed, with line counts." },
+  { said: "rename synqed to synqed auth", does: "Renames a session, so two in one project are easy to tell apart." },
   { said: "be quiet", does: "Speaks only permissions and questions. Say \"mute\" for sounds only." },
 ];
 
