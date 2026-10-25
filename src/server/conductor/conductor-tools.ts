@@ -38,8 +38,20 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
     name: "heyterm",
     version: "1.0.0",
     tools: [
-      tool("read_session", "Read one session in full: its state, last task, whole last message, what it waits on, and the end of its terminal screen.", { name: z.string() }, ({ name }) =>
-        withSession(name, async (session) => {
+      tool("read_session", "Read one session in full: its state, last task, whole last message, what it waits on, and the end of its terminal screen. Also reads a recently closed session's last task and message.", { name: z.string() }, async ({ name }) => {
+        const closed = registry.get(name) ? undefined : registry.recentlyClosedSessions().find((session) => session.name === name);
+        if (closed) {
+          return reply(
+            [
+              `${name} is closed (under Recently closed); bring_back_session resumes it. Project folder: ${closed.projectPath}.`,
+              closed.lastPrompt ? `Last task: <session_text>${closed.lastPrompt}</session_text>` : "",
+              closed.lastMessage ? `Last message: <session_text>${closed.lastMessage}</session_text>` : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          );
+        }
+        return withSession(name, async (session) => {
           sessionActions.markSeen(name);
           const screen = session.origin === "external" ? "" : await launcher.readScreen(name).catch(() => "");
           const lastLines = screen.split("\n").filter((line) => line.trim()).slice(-screenLinesShown).join("\n");
@@ -52,8 +64,8 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
           ]
             .filter(Boolean)
             .join("\n");
-        }),
-      ),
+        });
+      }),
       tool("send_to_session", "Give a session its next prompt, as if the developer typed it.", { name: z.string(), text: z.string() }, ({ name, text }) =>
         withSession(name, (session) => ownSessionOnly(session, async () => (await sessionActions.deliver(name, text)).text)),
       ),
