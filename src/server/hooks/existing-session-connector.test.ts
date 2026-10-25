@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ExistingSessionConnector } from "./existing-session-connector.ts";
 
 const folders: string[] = [];
+const settingsPathBefore = process.env.HEYTERM_CLAUDE_SETTINGS_PATH;
 function connectorWithSettings(settings: object): { connector: ExistingSessionConnector; settingsPath: string } {
   const folder = mkdtempSync(path.join(tmpdir(), "heyterm-connector-"));
   folders.push(folder);
@@ -15,7 +16,7 @@ function connectorWithSettings(settings: object): { connector: ExistingSessionCo
 }
 
 afterEach(() => {
-  delete process.env.HEYTERM_CLAUDE_SETTINGS_PATH;
+  process.env.HEYTERM_CLAUDE_SETTINGS_PATH = settingsPathBefore;
   for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true });
 });
 

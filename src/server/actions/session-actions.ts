@@ -146,6 +146,12 @@ export class SessionActions {
       return { text: error instanceof Error ? error.message : String(error), tone: "warning", speak: true };
     }
     focus(session.name);
+    if (session.projectPath !== closed.projectPath) {
+      // Its conversation was opened from another folder with /resume, and Claude Code keeps it there.
+      const neighbour = this.registry.list().find((other) => other.name !== session.name && other.projectPath === session.projectPath);
+      const sharing = neighbour ? ` It shares that folder with ${neighbour.name}.` : "";
+      return { text: `Bringing back ${session.name} in ${session.projectPath}, the folder its conversation runs in.${sharing}`, tone: neighbour ? "warning" : "success", speak: false };
+    }
     return { text: `Bringing back ${session.name}.`, tone: "success", speak: false };
   }
 

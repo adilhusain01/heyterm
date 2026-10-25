@@ -15,35 +15,37 @@ async function makeHome() {
   const userHook = { hooks: [{ type: "command", command: "/usr/local/bin/my-own-hook" }] };
   const heytermHook = { hooks: [{ type: "command", command: HookCommands.forExistingSessions(path.join(dataDirectory, "hooks", "heyterm-forward.cjs"), "Stop") }] };
   await writeFile(claudeSettingsPath, JSON.stringify({ model: "opus", hooks: { Stop: [userHook, heytermHook] } }));
-  return { home, dataDirectory, claudeSettingsPath, userHook };
+  // Inside the made-up home, so no test can touch the user's real Grok and Cursor files.
+  const agentHookPaths = { grokPath: path.join(home, ".grok", "hooks", "heyterm.json"), cursorPath: path.join(home, ".cursor", "hooks.json") };
+  return { home, dataDirectory, claudeSettingsPath, userHook, agentHookPaths };
 }
 
 describe("Uninstaller", () => {
   it("takes HeyTerm's hooks out of the user's Claude settings and leaves everything else", async () => {
-    const { dataDirectory, claudeSettingsPath, userHook } = await makeHome();
+    const { dataDirectory, claudeSettingsPath, userHook, agentHookPaths } = await makeHome();
     const trashed: string[] = [];
-    await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async (target) => void trashed.push(target) }).run();
+    await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async (target) => void trashed.push(target), agentHookPaths }).run();
     expect(JSON.parse(await readFile(claudeSettingsPath, "utf8"))).toEqual({ model: "opus", hooks: { Stop: [userHook] } });
   });
 
   it("moves HeyTerm's own folder to the Trash rather than deleting it", async () => {
-    const { dataDirectory, claudeSettingsPath } = await makeHome();
+    const { dataDirectory, claudeSettingsPath, agentHookPaths } = await makeHome();
     const trashed: string[] = [];
-    const report = await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async (target) => void trashed.push(target) }).run();
+    const report = await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async (target) => void trashed.push(target), agentHookPaths }).run();
     expect(trashed).toEqual([dataDirectory]);
     expect(report.removedHooks).toBe(true);
   });
 
   it("leaves the folder where it is, and says so, when there is no Trash to move it to", async () => {
-    const { dataDirectory, claudeSettingsPath } = await makeHome();
-    const report = await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async () => Promise.reject(new Error("no trash")) }).run();
+    const { dataDirectory, claudeSettingsPath, agentHookPaths } = await makeHome();
+    const report = await new Uninstaller({ dataDirectory, claudeSettingsPath, moveToTrash: async () => Promise.reject(new Error("no trash")), agentHookPaths }).run();
     expect((await stat(dataDirectory)).isDirectory()).toBe(true);
     expect(report.leftBehind).toEqual([dataDirectory]);
   });
 
   it("works when Claude Code has no settings file at all", async () => {
-    const { dataDirectory } = await makeHome();
-    const report = await new Uninstaller({ dataDirectory, claudeSettingsPath: "/no/such/settings.json", moveToTrash: async () => undefined }).run();
+    const { dataDirectory, agentHookPaths } = await makeHome();
+    const report = await new Uninstaller({ dataDirectory, claudeSettingsPath: "/no/such/settings.json", moveToTrash: async () => undefined, agentHookPaths }).run();
     expect(report.removedHooks).toBe(false);
   });
 

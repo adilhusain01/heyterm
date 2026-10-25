@@ -10,6 +10,14 @@ export class ConversationOwner {
     return { ...closed, origin: "heyterm", state: "starting", stateSince: now, lastSeenAt: now, pending: undefined, activitySinceSeen: [], quiet: undefined, runningCommand: undefined };
   }
 
+  // A Claude conversation runs in the folder it was filed under, even when the session had been
+  // put in a worktree; the worktree stays only if that folder is inside it.
+  static inItsConversationsFolder(session: SessionView, conversationFolder: string, conversationFile: string): SessionView {
+    const worktreePath = session.worktree?.worktreePath;
+    const staysInWorktree = worktreePath !== undefined && (conversationFolder === worktreePath || conversationFolder.startsWith(`${worktreePath}/`));
+    return { ...session, projectPath: conversationFolder, transcriptPath: conversationFile, worktree: staysInWorktree ? session.worktree : undefined };
+  }
+
   // The process still holding the session's conversation, from Claude Code's records.
   static liveProcess(session: SessionView, records: Map<string, ClaudeSessionRecord> | undefined, processIsRunning: (pid: number) => boolean): number | undefined {
     if (session.agent !== "claude" || !session.agentSessionId || !records) return undefined;

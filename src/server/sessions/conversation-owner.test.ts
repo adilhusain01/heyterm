@@ -14,6 +14,33 @@ describe("ConversationOwner.reopenedHere", () => {
   });
 });
 
+describe("ConversationOwner.inItsConversationsFolder", () => {
+  const worktree = { repoPath: "/p/Whisker", worktreePath: "/home/.heyterm/worktrees/Whisker-whisker-2", branch: "heyterm/whisker-2", baseCommit: "744fe46" };
+  const conversationFile = "/home/.claude/projects/-p-Whisker/8fd9f8e2.jsonl";
+
+  // Seen on 26 October 2026: whisker ran in a HeyTerm worktree, but its conversation came from the
+  // main folder through /resume, so Claude Code kept it there and worked there.
+  it("reopens a session in the folder its conversation runs in, out of a worktree it no longer uses", () => {
+    const session = closed({ projectPath: worktree.worktreePath, worktree });
+    const moved = ConversationOwner.inItsConversationsFolder(session, "/p/Whisker", conversationFile);
+    expect(moved.projectPath).toBe("/p/Whisker");
+    expect(moved.worktree).toBeUndefined();
+    expect(moved.transcriptPath).toBe(conversationFile);
+  });
+
+  it("keeps the worktree when the conversation runs in a folder inside it", () => {
+    const session = closed({ projectPath: worktree.worktreePath, worktree });
+    const moved = ConversationOwner.inItsConversationsFolder(session, `${worktree.worktreePath}/app`, conversationFile);
+    expect(moved.projectPath).toBe(`${worktree.worktreePath}/app`);
+    expect(moved.worktree).toEqual(worktree);
+  });
+
+  it("changes nothing but the file's path when the conversation runs where the session does", () => {
+    const session = closed({ projectPath: "/p/whisker" });
+    expect(ConversationOwner.inItsConversationsFolder(session, "/p/whisker", conversationFile)).toEqual({ ...session, transcriptPath: conversationFile });
+  });
+});
+
 describe("ConversationOwner.liveProcess", () => {
   const records = new Map([["6f41676e", { pid: 58033, sessionId: "6f41676e", status: "busy" }]]);
 

@@ -3,9 +3,10 @@
 
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
-import { access } from "node:fs/promises";
+import { access, stat } from "node:fs/promises";
 import { promisify } from "node:util";
 import { ScreenReader } from "./screen-reader.ts";
+import { ClaudeConversationFile } from "./claude-conversation-file.ts";
 import { ClaudeSessionRecords } from "./claude-session-watcher.ts";
 import { ConversationOwner } from "./conversation-owner.ts";
 import type { SessionWorktrees, WorktreeRemoval } from "./session-worktrees.ts";
@@ -80,9 +81,14 @@ export class SessionLauncher {
     if (ConversationOwner.liveProcess(closed, await ClaudeSessionRecords.read(), ClaudeSessionRecords.processIsRunning)) {
       throw new Error(`${closed.name}'s conversation is still open in another terminal. Close it there, or say "open ${closed.name} here" to move it.`);
     }
-    const session = ConversationOwner.reopenedHere(closed, Date.now());
+    const conversationFile = closed.agent === "claude" && closed.agentSessionId ? await ClaudeConversationFile.find(closed.agentSessionId, closed.transcriptPath) : undefined;
+    const conversationFolder = conversationFile ? await ClaudeConversationFile.lastFolder(conversationFile) : undefined;
+    const reopened = ConversationOwner.reopenedHere(closed, Date.now());
+    const session = conversationFile && conversationFolder && (await isFolder(conversationFolder)) ? ConversationOwner.inItsConversationsFolder(reopened, conversationFolder, conversationFile) : reopened;
+    // Left behind with nothing in it, the worktree goes; with changes or commits it stays.
+    if (closed.worktree && !session.worktree) void this.removeWorktreeIfUnused(closed.worktree).catch(() => undefined);
     this.registry.add(session);
-    const conversationSaved = closed.transcriptPath ? await fileExists(closed.transcriptPath) : closed.lastPrompt !== undefined;
+    const conversationSaved = closed.agent === "claude" ? conversationFile !== undefined : closed.transcriptPath ? await fileExists(closed.transcriptPath) : closed.lastPrompt !== undefined;
     const point = { agentSessionId: closed.agentSessionId, conversationSaved };
     const adapter = AgentAdapters.get(closed.agent);
     // A conversation that was never saved starts again, under a new id where the agent takes one.
@@ -264,4 +270,12 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function isFolder(folderPath: string): Promise<boolean> {
+  try {
+    return (await stat(folderPath)).isDirectory();
+  } catch {
+    return false;
+  }
 }

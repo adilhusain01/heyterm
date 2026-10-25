@@ -8,6 +8,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { AgentAdapters } from "./agents/agent-adapters.ts";
 import { CliArguments } from "./cli-arguments.ts";
+import { agentHookPaths } from "./hooks/agent-hook-files.ts";
 import { claudeUserSettingsPath } from "./hooks/existing-session-connector.ts";
 import { startHeyTerm } from "./main.ts";
 import { compareVersions, testedClaudeVersion } from "./setup/setup-service.ts";
@@ -93,7 +94,7 @@ async function stopRunning(): Promise<boolean> {
 
 async function uninstall(): Promise<boolean> {
   if (!(await stopRunning())) return false;
-  const report = await new Uninstaller({ dataDirectory: dataDirectory(), claudeSettingsPath: claudeUserSettingsPath(), moveToTrash }).run();
+  const report = await new Uninstaller({ dataDirectory: dataDirectory(), claudeSettingsPath: claudeUserSettingsPath(), moveToTrash, agentHookPaths: agentHookPaths() }).run();
   console.log(report.removedHooks ? "Took HeyTerm's hooks out of your Claude Code settings." : "Your Claude Code settings had no HeyTerm hooks.");
   for (const folder of report.trashed) console.log(`Moved ${folder} to the Trash.`);
   for (const folder of report.leftBehind) console.log(`Could not move ${folder} to the Trash. Delete it yourself if you want it gone.`);
