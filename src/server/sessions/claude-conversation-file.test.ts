@@ -38,17 +38,23 @@ describe("ClaudeConversationFile.find", () => {
   });
 });
 
-describe("ClaudeConversationFile.lastFolderIn", () => {
-  it("reads the folder of the last entry that names one", () => {
-    const text = ['{"cwd":"/p/first","type":"user"}', '{"cwd":"/p/Whisker","type":"assistant"}', '{"type":"summary"}', ""].join("\n");
-    expect(ClaudeConversationFile.lastFolderIn(text)).toBe("/p/Whisker");
+describe("ClaudeConversationFile.startFolderIn", () => {
+  // Seen on 26 October 2026: whisker's agent had moved into the vault to write notes, so its last
+  // entries named the vault, and Bring back opened it there instead of in its project.
+  it("reads the folder the conversation started in, where Claude Code files it, not where its agent moved last", () => {
+    const text = ['{"cwd":"/p/Whisker","type":"user"}', '{"cwd":"/p/Whisker","type":"assistant"}', '{"cwd":"/vault","type":"assistant"}', ""].join("\n");
+    expect(ClaudeConversationFile.startFolderIn(text)).toBe("/p/Whisker");
   });
 
-  it("skips a line cut in half where the read started", () => {
-    expect(ClaudeConversationFile.lastFolderIn('wd":"/p/broken"}\n{"cwd":"/p/whole"}\n{"cwd":"/p/cut')).toBe("/p/whole");
+  it("skips entries before the first that names a folder", () => {
+    expect(ClaudeConversationFile.startFolderIn('{"type":"summary"}\n{"cwd":"/p/whole"}\n')).toBe("/p/whole");
+  });
+
+  it("ignores a line cut off where the read stopped", () => {
+    expect(ClaudeConversationFile.startFolderIn('{"type":"summary"}\n{"cwd":"/p/cu')).toBeUndefined();
   });
 
   it("finds nothing in a file with no folder", () => {
-    expect(ClaudeConversationFile.lastFolderIn('{"type":"summary"}\n')).toBeUndefined();
+    expect(ClaudeConversationFile.startFolderIn('{"type":"summary"}\n')).toBeUndefined();
   });
 });

@@ -1,4 +1,4 @@
-// Where a Claude Code conversation is saved, and the folder it runs in. Claude Code files each
+// Where a Claude Code conversation is saved, and the folder it started in. Claude Code files each
 // conversation under the folder it started in (~/.claude/projects/<that folder>/<id>.jsonl) and
 // keeps it there when /resume opens it from another folder, moving to the original folder, while
 // its hooks report a path under the new one. Found on 26 October 2026: a session in a HeyTerm
@@ -9,8 +9,8 @@ import { access, open, readdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-// The last entries are enough to know the folder; the file itself can be tens of megabytes.
-const tailBytes = 256 * 1024;
+// The first entries are enough to know the folder; the file itself can be tens of megabytes.
+const headBytes = 256 * 1024;
 
 function claudeProjectsDirectory(): string {
   return path.join(process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude"), "projects");
@@ -27,27 +27,26 @@ export class ClaudeConversationFile {
     return undefined;
   }
 
-  static async lastFolder(conversationFile: string): Promise<string | undefined> {
+  // The folder the conversation started in. Claude Code files it under that folder, and its agent may
+  // have moved elsewhere since (whisker's into the vault, 26 October 2026), so the first entries count.
+  static async startFolder(conversationFile: string): Promise<string | undefined> {
     const file = await open(conversationFile, "r").catch(() => undefined);
     if (!file) return undefined;
     try {
-      const { size } = await file.stat();
-      const length = Math.min(size, tailBytes);
-      const buffer = Buffer.alloc(length);
-      await file.read(buffer, 0, length, size - length);
-      return ClaudeConversationFile.lastFolderIn(buffer.toString("utf8"));
+      const buffer = Buffer.alloc(headBytes);
+      const { bytesRead } = await file.read(buffer, 0, headBytes, 0);
+      return ClaudeConversationFile.startFolderIn(buffer.subarray(0, bytesRead).toString("utf8"));
     } finally {
       await file.close();
     }
   }
 
   // Each entry is one JSON line with the folder it ran in as "cwd". Pure.
-  static lastFolderIn(text: string): string | undefined {
-    const lines = text.split("\n");
-    for (let index = lines.length - 1; index >= 0; index -= 1) {
+  static startFolderIn(text: string): string | undefined {
+    for (const line of text.split("\n")) {
       let entry: unknown;
       try {
-        entry = JSON.parse(lines[index]!);
+        entry = JSON.parse(line);
       } catch {
         continue;
       }
