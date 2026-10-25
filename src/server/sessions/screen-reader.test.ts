@@ -109,5 +109,62 @@ describe("ScreenReader.trustDialogKeys", () => {
     expect(ScreenReader.trustDialogKeys(grokTrustScreen)).toEqual(["y"]);
     expect(ScreenReader.trustSubject(grokTrustScreen)).toBe("folder");
   });
+
+  // Captured from Cursor 2026.10.22 on 25 October 2026: the same question as Grok's, inside a box,
+  // with a letter in brackets before each option.
+  const cursorTrustScreen = `
+ ╭──────────────────────────────────────────────────────────────────────────╮
+ │                                                                          │
+ │  ⚠ Workspace Trust Required                                              │
+ │                                                                          │
+ │  Cursor Agent can execute code and access files in this directory.       │
+ │                                                                          │
+ │  Do you trust the contents of this directory?                            │
+ │                                                                          │
+ │    /private/tmp/scratch/project                                          │
+ │                                                                          │
+ │                                                                          │
+ │  ▶ [a] Trust this workspace                                              │
+ │    [q] Quit                                                              │
+ │                                                                          │
+ │  Use arrow keys to navigate, Enter to select, or press the key shown     │
+ │                                                                          │
+ ╰──────────────────────────────────────────────────────────────────────────╯
+`;
+
+  it("trusts a folder in Cursor by pressing its a key", () => {
+    expect(ScreenReader.trustDialogKeys(cursorTrustScreen)).toEqual(["a"]);
+    expect(ScreenReader.trustSubject(cursorTrustScreen)).toBe("folder");
+  });
+
+  // Cursor leaves the answered box on screen above its prompt, without the hint line.
+  const cursorTrustAnsweredScreen = `
+ ╭──────────────────────────────────────────────────────────────────────────╮
+ │                                                                          │
+ │  ⚠ Workspace Trust Required                                              │
+ │                                                                          │
+ │  Cursor Agent can execute code and access files in this directory.       │
+ │                                                                          │
+ │  Do you trust the contents of this directory?                            │
+ │                                                                          │
+ │    /private/tmp/scratch/project                                          │
+ │                                                                          │
+ │                                                                          │
+ │    [a] Trust this workspace                                              │
+ │    [q] Quit                                                              │
+ │                                                                          │
+ │  ⏳Trusting workspace...                                                  │
+ │                                                                          │
+ ╰──────────────────────────────────────────────────────────────────────────╯
+
+  Cursor Agent
+  v2026.10.22-27dcf5f
+
+  → Plan, search, build anything
+`;
+
+  it("does not ask again once Cursor's trust box has been answered", () => {
+    expect(ScreenReader.trustDialogKeys(cursorTrustAnsweredScreen)).toBeUndefined();
+  });
 });
 

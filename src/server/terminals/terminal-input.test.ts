@@ -6,6 +6,8 @@ describe("TerminalInput.keys", () => {
     expect(TerminalInput.keys(["Down", "Down", "Enter"])).toBe("\x1b[B\x1b[B\r");
     expect(TerminalInput.keys(["Escape"])).toBe("\x1b");
     expect(TerminalInput.keys(["C-c"])).toBe("\x03");
+    expect(TerminalInput.keys(["y"])).toBe("y");
+    expect(TerminalInput.keys(["a"])).toBe("a");
   });
 
   it("refuses a key it does not know instead of typing its name", () => {

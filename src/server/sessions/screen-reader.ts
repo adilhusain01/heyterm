@@ -6,6 +6,9 @@ const trustOptionText = /Yes, I trust this folder|\bTrust (?:all )?and continue\
 const hookReviewText = /Hooks need review/;
 // Grok Build asks "Do you trust the contents of this directory?" and answers to a letter per option.
 const grokTrustText = /Do you trust the contents of this directory\?[\s\S]*Yes, proceed\s+y\b/;
+// Cursor asks the same question in a box and puts each option's letter in brackets: "[a] Trust this workspace".
+// Once answered, the box stays on screen but its last line, "...or press the key shown", is gone.
+const cursorTrustText = /Do you trust the contents of this directory\?[\s\S]*\[a\] Trust this workspace[\s\S]*press the key shown/;
 
 export type TrustSubject = "folder" | "hooks";
 // Claude Code marks the selected option with ❯, Codex with ›.
@@ -21,6 +24,7 @@ export class ScreenReader {
   // Keys that select "Yes, I trust this folder" and confirm it, or undefined when the dialog is not showing.
   static trustDialogKeys(screenText: string): string[] | undefined {
     if (grokTrustText.test(screenText)) return ["y"];
+    if (cursorTrustText.test(screenText)) return ["a"];
     const lines = screenText.split("\n");
     const trustLineIndex = lines.findIndex((line) => trustOptionText.test(line));
     if (trustLineIndex === -1) return undefined;
