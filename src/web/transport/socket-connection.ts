@@ -2,7 +2,7 @@
 // when HeyTerm restarts, when the browser drops it, and when it only looks open after the Mac slept
 // (rules in connection-health.ts). A pane that reconnects is redrawn from the server's screen.
 
-import { ConnectionHealth } from "./connection-health.ts";
+import { ConnectionHealth, type PaneLossCause } from "./connection-health.ts";
 import { ensurePageToken, pageToken } from "./page-token.ts";
 import { UnsentMessages } from "./unsent-messages.ts";
 import type { HeyTermConnection, ConnectionHandlers, TerminalChannel } from "./connection.ts";
@@ -135,7 +135,7 @@ class ReconnectingTerminal {
   private isLost = false;
   private readonly dataListeners: Array<(data: string) => void> = [];
   private readonly closeListeners: Array<() => void> = [];
-  private readonly lostListeners: Array<() => void> = [];
+  private readonly lostListeners: Array<(cause: PaneLossCause) => void> = [];
   private readonly redrawListeners: Array<() => void> = [];
   // Only before the first connection: keys typed into a pane that lost its connection are not
   // saved up to land in the agent minutes later.
@@ -178,7 +178,7 @@ class ReconnectingTerminal {
       socket.onmessage = null;
       socket.close();
     }
-    this.notifyLost();
+    this.notifyLost("heyterm");
     window.clearTimeout(this.retryTimer);
     this.open();
   }
@@ -197,13 +197,17 @@ class ReconnectingTerminal {
     let receivedScreen = false;
     socket.onopen = () => {
       this.hasOpened = true;
-      this.isLost = false;
-      this.attempt = 0;
       this.pendingBeforeFirstOpen.splice(0).forEach((text) => socket.send(text));
     };
     socket.onmessage = (event) => {
       // The server's first message is the whole screen; the pane clears its old copy just before it.
       if (isReconnect && !receivedScreen) this.redrawListeners.forEach((listener) => listener());
+      // Back only once the screen arrives: a remote pane's socket opens here even while the other
+      // computer is down, and would otherwise say so and retry at full speed every time.
+      if (!receivedScreen) {
+        this.isLost = false;
+        this.attempt = 0;
+      }
       receivedScreen = true;
       this.dataListeners.forEach((listener) => listener(String(event.data)));
     };
@@ -214,16 +218,16 @@ class ReconnectingTerminal {
         this.closeListeners.forEach((listener) => listener());
         return;
       }
-      this.notifyLost();
+      this.notifyLost(ConnectionHealth.paneLossCause(event.code));
       this.attempt += 1;
       this.retryTimer = window.setTimeout(() => this.open(), ConnectionHealth.reconnectDelay(this.attempt));
     };
   }
 
-  private notifyLost(): void {
+  private notifyLost(cause: PaneLossCause): void {
     if (this.isLost || !this.hasOpened) return;
     this.isLost = true;
-    this.lostListeners.forEach((listener) => listener());
+    this.lostListeners.forEach((listener) => listener(cause));
   }
 
   private send(text: string): void {

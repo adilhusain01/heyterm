@@ -14,6 +14,7 @@ import { createAssistant } from "./conductor/create-assistant.ts";
 import { AssistantMemory } from "./conductor/assistant-memory.ts";
 import { loadConfig } from "./config.ts";
 import { PageBuild } from "../shared/page-build.ts";
+import { RemoteHosts } from "./remote/remote-hosts.ts";
 import { PagePresence } from "./http/page-presence.ts";
 import { AttachmentRules } from "./attachments/attachment-rules.ts";
 import { acceptsText } from "./router/fast-path-router.ts";
@@ -100,16 +101,26 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   const audit = new AuditLog(config.dataDirectory);
   const decisions = new DecisionActions(registry, heldRequests, audit);
   const sessionActions = new SessionActions(registry, launcher, projects, audit);
+  // Sessions on other computers' HeyTerm (remotes.json): shown here as "host/name", acted on there.
+  const remoteHosts = config.remotes.length > 0 ? new RemoteHosts(registry, config.remotes) : undefined;
+  if (remoteHosts) {
+    sessionActions.useRemoteHosts(remoteHosts);
+    decisions.useRemoteHosts(remoteHosts);
+  }
   const executor = new ActionExecutor(registry, projects, new FastPathRouter({ sendUnaddressedWordsToFocusedSession: false }), decisions, sessionActions);
-  const assistant = createAssistant({ model: config.routerModel, workingDirectory: os.homedir(), memory: new AssistantMemory(config.dataDirectory), registry, launcher, projects, sessionActions, decisions, executor, audit });
+  const assistant = createAssistant({ model: config.routerModel, workingDirectory: os.homedir(), memory: new AssistantMemory(config.dataDirectory), registry, launcher, projects, sessionActions, decisions, executor, audit, ...(remoteHosts ? { remote: remoteHosts } : {}) });
   executor.attachAssistant(assistant);
   executor.on("feedback", (feedback) => assistant.recordOutcome(feedback.text));
-  registry.on("changed", () => assistant.noteSessions(registry.list()));
-  assistant.noteSessions(registry.list());
+  // A HeyTerm serving another one has nobody to talk to: the other one's assistant does the talking.
+  if (!config.remoteHost) {
+    registry.on("changed", () => assistant.noteSessions(registry.list()));
+    assistant.noteSessions(registry.list());
+  }
 
   // Sessions from the user's own terminals: hooks go into their Claude settings only while HeyTerm runs.
   const connector = new ExistingSessionConnector(hooks.forwardScriptPath, path.join(config.dataDirectory, "backups"));
-  const showOwnTerminalSessions = savedChoices.showOwnTerminalSessions ?? (await connector.isConnected());
+  // On a computer serving another HeyTerm, the sessions started there by hand (claude-keep on a VPS) are the point.
+  const showOwnTerminalSessions = savedChoices.showOwnTerminalSessions ?? (config.remoteHost || (await connector.isConnected()));
   if (savedChoices.showOwnTerminalSessions === undefined && showOwnTerminalSessions) await userConfig.update({ showOwnTerminalSessions });
   if (showOwnTerminalSessions) await connector.connect().catch((error: Error) => console.error(error.message));
 
@@ -117,10 +128,12 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   const pageEntry = PageBuild.entryFromIndexHtml(await readFile(path.join(config.webDirectory, "index.html"), "utf8").catch(() => ""));
   const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant, pageEntry);
   hub.inputLog = new InputLog(config.dataDirectory);
-  const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin);
+  const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin, config.acceptedHostNames);
   const tickets = new PairingTickets(hooks.token);
-  const server = new HeyTermHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host), tickets);
+  const server = new HeyTermHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host, remoteHosts), tickets);
   await server.listen();
+  remoteHosts?.on("feedback", (feedback) => hub.tellPages(feedback));
+  remoteHosts?.start();
 
   let closedPageTimer: NodeJS.Timeout | undefined;
   let stopping: Promise<void> | undefined;
@@ -133,6 +146,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
       trustWatcher.stop();
       claudeSessionWatcher.stop();
       assistant.close();
+      remoteHosts?.stop();
       launcher.shutdown();
       // Leave the user's Claude settings as they were before HeyTerm started.
       if ((await userConfig.load()).showOwnTerminalSessions) await connector.disconnect().catch(() => undefined);
@@ -155,7 +169,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
     if (pageWasOpen && !lastPageLeftOnPurpose) console.log("The page lost its connection. HeyTerm keeps running and the page reconnects by itself.");
     closedPageTimer = setTimeout(() => {
       void userConfig.load().then((choices) => {
-        const facts = { openPageCount: count, pageWasOpen, lastPageLeftOnPurpose, keepRunningWithoutPage: choices.keepRunningWithoutPage === true };
+        const facts = { openPageCount: count, pageWasOpen, lastPageLeftOnPurpose, keepRunningWithoutPage: config.remoteHost || choices.keepRunningWithoutPage === true };
         if (PagePresence.shouldStopSoon(facts)) stopAndExit("the last HeyTerm page was closed");
       });
     }, closedPageGraceMilliseconds);
@@ -163,6 +177,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   hub.onQuitRequest = () => stopAndExit("Quit in the page");
   server.onShutdownRequest = () => stopAndExit("heyterm stop");
   server.onAttachment = async (sessionName, bytes, contentType) => {
+    if (remoteHosts?.isRemote(sessionName)) return remoteHosts.attach(sessionName, bytes, contentType);
     const session = registry.get(sessionName);
     if (!session) return { ok: false, text: `There is no session called ${sessionName}.` };
     if (session.origin === "external") return { ok: false, text: `${sessionName} runs in your own terminal, so HeyTerm cannot type into it. Say "open ${sessionName} here" first.` };
@@ -180,6 +195,8 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   console.log(`HeyTerm is listening on ${url}`);
   console.log(`Projects from: ${config.projectRoots.join(", ") || "no project folders found"}`);
   console.log(`Assistant: ${config.routerModel} on ${process.env.ANTHROPIC_API_KEY ? "your Anthropic API key" : "your Claude Code login"}`);
+  if (config.remoteHost) console.log(`Serving another HeyTerm${config.acceptedHostNames.length > 0 ? `, which reaches it as ${config.acceptedHostNames.join(" or ")}` : ""}. Its sessions keep running while the other computer sleeps.`);
+  for (const remote of config.remotes) console.log(`Showing the sessions of ${remote.name} (${remote.url}) as ${remote.name}/...`);
   console.log("Stop it with Ctrl+C, heyterm stop, or Quit in the page.");
   return { url, issueTicket: () => tickets.issue(), stop };
 }

@@ -78,6 +78,10 @@ export interface SessionWorktree {
 
 export interface SessionView {
   name: string;
+  // Set for a session on another computer's HeyTerm (its name starts "host/"); everything done to it goes there.
+  host?: string;
+  // Set while that computer cannot be reached: the rest is what it last reported.
+  hostUnreachable?: boolean;
   origin?: SessionOrigin;
   projectPath: string;
   projectName: string;

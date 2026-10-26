@@ -44,4 +44,9 @@ describe("SessionFacts.rows", () => {
   it("says a terminal runs no agent", () => {
     expect(SessionFacts.rows({ agent: "shell" }, now)).toEqual([{ label: "Agent", value: "None, a plain terminal" }]);
   });
+
+  it("says which computer a session from another computer's HeyTerm runs on", () => {
+    expect(SessionFacts.rows({ origin: "heyterm", host: "vps" }, now)).toEqual([{ label: "Runs in", value: "HeyTerm on vps" }]);
+    expect(SessionFacts.rows({ origin: "external", host: "vps" }, now)).toEqual([{ label: "Runs in", value: "Your own terminal on vps" }]);
+  });
 });

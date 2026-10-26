@@ -5,12 +5,17 @@ import type { IncomingMessage } from "node:http";
 
 export class RequestGuard {
   private readonly allowedOrigins: Set<string>;
+  private readonly acceptedHostNames: Set<string>;
 
+  // acceptedHostNames: extra names this HeyTerm answers to, for one that serves another HeyTerm over
+  // Tailscale (heyterm --remote-host --allow-host <name>). Requests through them still need the token.
   constructor(
     private readonly port: number,
     private readonly token: string,
     developmentOrigin?: string,
+    acceptedHostNames: string[] = [],
   ) {
+    this.acceptedHostNames = new Set(["127.0.0.1", "localhost", "[::1]", ...acceptedHostNames.map((name) => name.toLowerCase())]);
     this.allowedOrigins = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
     if (developmentOrigin) this.allowedOrigins.add(developmentOrigin);
   }
@@ -19,7 +24,7 @@ export class RequestGuard {
   isFromThisMac(request: IncomingMessage): boolean {
     const host = request.headers.host ?? "";
     const hostName = host.replace(/:\d+$/, "");
-    if (!["127.0.0.1", "localhost", "[::1]"].includes(hostName)) return false;
+    if (!this.acceptedHostNames.has(hostName.toLowerCase())) return false;
     const origin = request.headers.origin;
     if (origin && !this.allowedOrigins.has(origin)) return false;
     const fetchSite = request.headers["sec-fetch-site"];

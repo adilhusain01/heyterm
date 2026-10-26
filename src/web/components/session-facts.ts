@@ -6,6 +6,8 @@ import type { AgentKind, SessionOrigin, SessionWorktree } from "../../shared/typ
 export interface SessionFactsInput {
   agent?: AgentKind;
   origin?: SessionOrigin;
+  // The other computer whose HeyTerm runs it, for a "host/name" session.
+  host?: string;
   projectPath?: string;
   agentSessionId?: string;
   createdAt?: number;
@@ -25,7 +27,8 @@ export class SessionFacts {
   static rows(session: SessionFactsInput, now: number): SessionFactRow[] {
     const rows: SessionFactRow[] = [];
     if (session.agent) rows.push({ label: "Agent", value: agentNames[session.agent] });
-    if (session.origin) rows.push({ label: "Runs in", value: session.origin === "external" ? "Your own terminal" : "HeyTerm" });
+    const onHost = session.host ? ` on ${session.host}` : "";
+    if (session.origin) rows.push({ label: "Runs in", value: `${session.origin === "external" ? "Your own terminal" : "HeyTerm"}${onHost}` });
     if (session.projectPath) rows.push({ label: "Folder", value: session.projectPath });
     if (session.worktree) rows.push({ label: "Branch", value: `${session.worktree.branch}, in a worktree of ${session.worktree.repoPath}`, isCode: true });
     if (session.createdAt) rows.push({ label: "Started", value: SessionFacts.when(session.createdAt, now) });

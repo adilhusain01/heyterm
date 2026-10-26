@@ -10,10 +10,13 @@ import type { SessionActions } from "../actions/session-actions.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { SessionLauncher } from "../sessions/session-launcher.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
+import type { RemoteSessionGateway } from "../remote/remote-gateway.ts";
 import type { SessionView } from "../../shared/types.ts";
 
 // The last part of a terminal screen is what matters; the rest is scrollback.
 const screenLinesShown = 60;
+// A command sent to a terminal on another computer is read back this long after; its running state is not known here.
+const remoteCommandReadMilliseconds = 4_000;
 
 interface ConductorToolDependencies {
   registry: SessionRegistry;
@@ -22,10 +25,13 @@ interface ConductorToolDependencies {
   sessionActions: SessionActions;
   decisions: DecisionActions;
   executor: ActionExecutor;
+  remote?: RemoteSessionGateway;
 }
 
 export function createConductorTools(dependencies: ConductorToolDependencies): McpSdkServerConfigWithInstance {
-  const { registry, launcher, projects, sessionActions, decisions, executor } = dependencies;
+  const { registry, launcher, projects, sessionActions, decisions, executor, remote } = dependencies;
+  // A session on another computer has its screen there.
+  const screenOf = (session: SessionView) => (session.host && remote ? remote.readScreen(session.name) : launcher.readScreen(session.name));
   const decidedBy = { decidedBy: "the assistant, on the developer's words" };
 
   const withSession = async (name: string, act: (session: SessionView) => Promise<string>) => {
@@ -54,7 +60,7 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
         }
         return withSession(name, async (session) => {
           sessionActions.markSeen(name);
-          const screen = session.origin === "external" ? "" : await launcher.readScreen(name).catch(() => "");
+          const screen = session.origin === "external" ? "" : await screenOf(session).catch(() => "");
           const lastLines = screen.split("\n").filter((line) => line.trim()).slice(-screenLinesShown).join("\n");
           return [
             `State: ${session.state}. Project folder: ${session.projectPath}.`,
@@ -72,6 +78,14 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
         withSession(name, (session) =>
           ownSessionOnly(session, async () => {
             if (session.agent !== "shell") return (await sessionActions.deliver(name, text)).text;
+            if (session.host) {
+              // A terminal on another computer: its computer runs the command; its screen is read a moment later.
+              const sent = await sessionActions.deliver(name, text);
+              if (sent.tone !== "success") return sent.text;
+              await new Promise((resolve) => setTimeout(resolve, remoteCommandReadMilliseconds));
+              const remoteLines = (await screenOf(session).catch(() => "")).split("\n").filter((line) => line.trim()).slice(-screenLinesShown).join("\n");
+              return `Sent. Its screen ${remoteCommandReadMilliseconds / 1000} seconds later:\n<session_text>${remoteLines}</session_text>`;
+            }
             const { finished, screen } = await launcher.runInTerminal(name, text);
             const lastLines = screen.split("\n").filter((line) => line.trim()).slice(-screenLinesShown).join("\n");
             return `${finished ? "The command finished." : "The command is still running."} Screen:\n<session_text>${lastLines}</session_text>`;
@@ -147,7 +161,7 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
         return reply([summary.spoken, ...summary.files].join("\n"));
       }),
       tool("rename_session", "Rename an open or recently closed session, so the developer can tell it apart. Works for sessions in their own terminal too.", { name: z.string(), new_name: z.string() }, async ({ name, new_name }) =>
-        reply(executor.rename(name, SessionNames.fromTyped(new_name)).text),
+        reply((await executor.rename(name, SessionNames.fromTyped(new_name))).text),
       ),
       tool("show_session", "Bring a session onto the developer's screen.", { name: z.string() }, ({ name }) =>
         withSession(name, async () => {

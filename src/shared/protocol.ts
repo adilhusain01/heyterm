@@ -33,6 +33,7 @@ export interface ControlState {
 
 export interface ClosedSessionView {
   name: string;
+  host?: string;
   projectName: string;
   // Enough to tell closed sessions apart in the sidebar's details card.
   agent?: AgentKind;

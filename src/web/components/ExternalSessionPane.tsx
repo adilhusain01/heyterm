@@ -11,13 +11,13 @@ import { SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { SessionIdentity } from "./session-identity.ts";
 import { PaneButton } from "./TerminalPane.tsx";
 import { ExpandIcon, ShrinkIcon } from "../ui/icons.tsx";
-import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
+import { displayFor, isWaitingOnUser, shortDuration } from "./session-display.ts";
 import type { SessionView } from "../../shared/types.ts";
 
 export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: { session: SessionView; isExpanded: boolean; onToggleExpanded?: () => void }) {
   const { perform } = useHeyTerm();
   const now = useServerNow();
-  const display = stateDisplay[session.state];
+  const display = displayFor(session);
   return (
     <section
       // HeyTerm cannot type into a session in the user's own terminal, so a dropped image is answered with how to move it here.
@@ -36,7 +36,7 @@ export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: {
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
         <span className={`text-small ${display.textClass}`}>{display.label}</span>
         {isWaitingOnUser(session.state) && <span className="font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
-        <span className="ml-auto text-small text-ink-faint">in your own terminal</span>
+        <span className="ml-auto text-small text-ink-faint">in your own terminal{session.host ? ` on ${session.host}` : ""}</span>
         {/* Closes it in that terminal and reopens the same conversation here, with a live screen. */}
         <Key size="small" className="shrink-0" onClick={() => perform({ type: "adopt", session: session.name, confirmed: false })}>
           Open here

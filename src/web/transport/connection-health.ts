@@ -5,6 +5,8 @@
 
 export type SocketHealthVerdict = "fine" | "ask" | "waiting" | "dead";
 export type OutageNotice = "reconnecting" | "not_answering";
+// What dropped a pane: this computer's HeyTerm, or the other computer a "host/name" pane reaches through it.
+export type PaneLossCause = "heyterm" | "remote";
 
 const askAfterSilenceMilliseconds = 15_000;
 const replyDeadlineMilliseconds = 5_000;
@@ -14,6 +16,8 @@ const notAnsweringAfterMilliseconds = 25_000;
 // Codes HeyTerm's server closes a pane with: the session ended, or there is no such session.
 const sessionEndedCode = 1000;
 const noSuchSessionCode = 4404;
+// This computer's HeyTerm closes a remote pane with it when the other computer dropped the pane.
+const remoteDroppedCode = 4502;
 
 export class ConnectionHealth {
   static readonly checkEveryMilliseconds = 2_500;
@@ -26,6 +30,14 @@ export class ConnectionHealth {
 
   static terminalShouldReconnect(closeCode: number): boolean {
     return closeCode !== sessionEndedCode && closeCode !== noSuchSessionCode;
+  }
+
+  static paneLossCause(closeCode: number): PaneLossCause {
+    return closeCode === remoteDroppedCode ? "remote" : "heyterm";
+  }
+
+  static paneLostNotice(cause: PaneLossCause, host: string | undefined): string {
+    return `Lost the connection to ${cause === "remote" && host ? host : "HeyTerm"}. Reconnecting...`;
   }
 
   static reconnectDelay(attempt: number): number {

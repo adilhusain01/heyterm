@@ -23,6 +23,12 @@ export const stateDisplay: Record<SessionState, StateDisplay> = {
   stopped: { label: "Stopped", textClass: "text-ink-faint", markClass: "bg-idle", ringClass: "", needsYou: false },
 };
 
+// How a session looks now. One on a computer HeyTerm cannot reach shows that, not its last state.
+export function displayFor(session: Pick<SessionView, "state" | "host" | "hostUnreachable">): StateDisplay {
+  if (session.host && session.hostUnreachable) return { label: `${session.host} not reachable`, textClass: "text-ink-faint", markClass: "bg-idle", ringClass: "", needsYou: false };
+  return stateDisplay[session.state];
+}
+
 const waitingStates: SessionState[] = ["needs_permission", "asked", "needs_trust", "done", "failed"];
 
 // The word beside a session's name saying what runs in it. Claude Code is the default and goes unsaid.

@@ -10,7 +10,7 @@ import { CheckIcon } from "../ui/icons.tsx";
 import { Key } from "../ui/Key.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { PathDisplay } from "./path-display.ts";
-import { shortDuration, stateDisplay } from "./session-display.ts";
+import { displayFor, shortDuration } from "./session-display.ts";
 import type { AttentionItem, PendingPermission, PendingQuestion, SessionView } from "../../shared/types.ts";
 
 type RequestVariant = "chat" | "bar";
@@ -22,7 +22,7 @@ export function RequestCard({ item, session, variant }: { item: AttentionItem; s
 
 function ChatRequest({ item, session }: { item: AttentionItem; session: SessionView }) {
   const now = useServerNow();
-  const display = stateDisplay[session.state];
+  const display = displayFor(session);
   return (
     <section aria-live="polite" aria-label={`${session.name}: ${whatItWants(item, session)}`} className="flex flex-col gap-2.5 rounded-outer border border-line-strong bg-canvas p-3">
       <header className="flex items-center gap-2 text-meta">

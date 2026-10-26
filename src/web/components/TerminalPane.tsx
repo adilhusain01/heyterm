@@ -1,6 +1,7 @@
 // One session's live terminal. Click into it to type by hand; the command bar takes focus back after.
 
 import { attachImage, firstImage } from "../transport/attach-image.ts";
+import { ConnectionHealth } from "../transport/connection-health.ts";
 import { TerminalCopy } from "./terminal-copy.ts";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
@@ -12,7 +13,7 @@ import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { useServerNow } from "../state/use-server-now.ts";
 import { CloseIcon, ExpandIcon, KeyboardIcon, ShrinkIcon } from "../ui/icons.tsx";
 import { SessionAvatar } from "../ui/SessionAvatar.tsx";
-import { isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
+import { displayFor, isWaitingOnUser, shortDuration } from "./session-display.ts";
 import type { SessionView } from "../../shared/types.ts";
 
 // Keystrokes this close together count as one keyboard action in the hands-off meter.
@@ -62,7 +63,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
   const containerRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<HTMLElement>(null);
   const terminalRef = useRef<Terminal | undefined>(undefined);
-  const display = stateDisplay[session.state];
+  const display = displayFor(session);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -84,7 +85,7 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
     const channel = connection.openTerminal(session.name, terminal.cols, terminal.rows);
     channel.onData((data) => terminal.write(data));
     channel.onClose(() => terminal.write("\r\n\x1b[2mThis session is no longer running.\x1b[0m\r\n"));
-    channel.onConnectionLost?.(() => terminal.write("\r\n\x1b[2mLost the connection to HeyTerm. Reconnecting...\x1b[0m\r\n"));
+    channel.onConnectionLost?.((cause) => terminal.write(`\r\n\x1b[2m${ConnectionHealth.paneLostNotice(cause, session.host)}\x1b[0m\r\n`));
     channel.onRedraw?.(() => terminal.reset());
     // onData also carries the terminal's automatic replies to tmux; only onKey is a person typing.
     const input = terminal.onData((data) => channel.write(data));

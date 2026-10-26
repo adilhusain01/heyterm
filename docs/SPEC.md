@@ -85,6 +85,15 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 
 "Catch me up" lists, per session, what happened since you last looked at it: prompts sent, tools used, files changed, and the last message's first lines. A session counts as looked at when it was focused or answered.
 
+## Sessions on another computer
+
+- A HeyTerm started with `--remote-host` serves another HeyTerm: it keeps running without a page, narrates nothing, and shows the sessions from its own terminals by default. It answers only on 127.0.0.1 plus the names given with `--allow-host`, which is how `tailscale serve` reaches it.
+- `heyterm remote add <name> <address>` reads that HeyTerm's token on standard input and writes it to `~/.heyterm/remotes.json` (mode 600). Names are lowercase letters, digits and dashes, up to 20 characters. An address is HTTPS, or HTTP to this computer only.
+- The Mac's HeyTerm keeps one socket to each remote, pinged every 20 seconds and reconnected with a growing delay up to 10 seconds. Each snapshot from it replaces that computer's sessions here, named `host/name`. They are never saved here, and none of this computer's checks (Claude records, quiet notices, hooks, worktrees, shared folders, closing on stop) touch them.
+- Send, answer, approve, deny, trust, interrupt, close, bring back, rename, remove from the list and "open X here" go to that computer as actions, after any confirmation here, and its reply is the answer. A pane opens that computer's terminal through this one, and the assistant reads its screen the same way. A dropped image is posted to it.
+- When the connection drops, its sessions stay listed with "not reachable" in place of their state, their panes say so once, and every action is refused with that reason. The next snapshot clears it.
+- Checked live on 26 October 2026 with two HeyTerms on one Mac: the remote session's pane and typing, an approval sent from the Mac and returned to the held hook, a message from the assistant answered by the other HeyTerm, the other HeyTerm stopped, frozen and started again.
+
 ## Safety
 
 - The server listens on 127.0.0.1 only and refuses requests whose `Host` is not local or whose `Origin` names a non-local page.
@@ -112,4 +121,4 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 
 ## Out of scope for the first version
 
-Sessions on another machine, typing into sessions in the user's own terminal (one moves in with "open X here" instead), and phone control.
+Typing into sessions in the user's own terminal (one moves in with "open X here" instead), and phone control.

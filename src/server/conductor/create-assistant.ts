@@ -15,6 +15,7 @@ import type { AuditLog } from "../safety/audit-log.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { SessionLauncher } from "../sessions/session-launcher.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
+import type { RemoteSessionGateway } from "../remote/remote-gateway.ts";
 
 interface AssistantDependencies {
   model: string;
@@ -28,6 +29,8 @@ interface AssistantDependencies {
   decisions: DecisionActions;
   executor: ActionExecutor;
   audit: AuditLog;
+  // Sessions on another computer's HeyTerm (vps/name); reading their screen goes there.
+  remote?: RemoteSessionGateway;
 }
 
 export function createAssistant(dependencies: AssistantDependencies): Assistant {

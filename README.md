@@ -86,6 +86,33 @@ To see the Claude sessions you start in your own terminals as well, open Setup a
 
 Closing the page stops HeyTerm after 15 seconds, so a reload never does. A page that only lost its connection (the Mac slept, the browser dropped it, the tab sat in the background) never stops it: the page reconnects by itself and redraws every terminal from HeyTerm's copy of the screen, and after 5 seconds without a connection it says so. Setup has **Keep running without the page** if you want it to stay up.
 
+## Sessions on another computer
+
+A Claude session on a server, such as one kept alive with `claude-keep` on a VPS, can sit in your Mac's HeyTerm next to the local ones: you see its screen, hear when it finishes or asks for a permission, and answer it or send it work by voice. HeyTerm runs on both computers. The server's copy owns its sessions and their hooks, and the Mac's copy shows them as `vps/<name>` and sends what you do back there.
+
+On the server, start HeyTerm in remote-host mode and give it an HTTPS address on your tailnet:
+
+```bash
+npx heyterm --remote-host --allow-host vps.your-tailnet.ts.net
+tailscale serve --bg --https=8443 http://127.0.0.1:4747
+```
+
+`--remote-host` keeps it running with no page open, keeps it quiet, and shows the server's own Claude sessions, including the ones `claude-keep` holds open. It still listens on 127.0.0.1 only. `tailscale serve` is what reaches it, and `--allow-host` lets through requests that name that address.
+
+On the Mac, add the server once and restart HeyTerm:
+
+```bash
+ssh vps cat ~/.heyterm/token | heyterm remote add vps https://vps.your-tailnet.ts.net:8443
+heyterm remote list
+heyterm remote remove vps
+```
+
+The token comes in on standard input, so it stays out of your shell history, and it is kept in `~/.heyterm/remotes.json`, readable by you alone. The address has to be HTTPS; plain HTTP is accepted only for this computer.
+
+The server's sessions keep running while the Mac sleeps. When the Mac cannot reach the server, they show "vps not reachable" and nothing is sent there; HeyTerm keeps trying, and redraws them when the server answers again. A session from the server's own terminal can be answered but not typed into, the same as on the Mac, until "open X here" moves it into the server's HeyTerm.
+
+Not there yet: starting a session on the server from the Mac, line counts in "what did X change" for a server's session, and reading a command's output in a server's terminal any sooner than a fixed 4 seconds.
+
 ## How it works
 
 - **Sessions run in HeyTerm's own terminals** (pseudo-terminals it owns, the same on macOS, Linux and Windows), with a copy of each screen so the assistant can read it and a page opened later sees it.

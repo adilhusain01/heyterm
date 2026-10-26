@@ -1,10 +1,12 @@
 // Settings, from the environment with sensible defaults.
 
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DataFolder } from "./setup/data-folder.ts";
 import { UserConfig } from "./setup/user-config.ts";
+import { RemoteHostRules, type RemoteHost } from "./remote/remote-host-rules.ts";
 
 export interface HeyTermConfig {
   port: number;
@@ -16,6 +18,12 @@ export interface HeyTermConfig {
   // A web origin allowed besides HeyTerm's own, for the Vite dev server.
   developmentOrigin?: string;
   webDirectory: string;
+  // Serving another computer's HeyTerm (heyterm --remote-host): no assistant talk, no stop when no page is open.
+  remoteHost: boolean;
+  // Host names besides this computer's own that requests may name, such as its Tailscale name.
+  acceptedHostNames: string[];
+  // Other computers whose HeyTerm sessions this one shows, from remotes.json in the data folder.
+  remotes: RemoteHost[];
 }
 
 const defaultProjectRoots = ["Documents/Projects", "Projects", "code", "dev", "src", "Developer"];
@@ -43,5 +51,8 @@ export async function loadConfig(): Promise<HeyTermConfig> {
     tmuxSocketName: process.env.HEYTERM_TMUX_SOCKET ?? "callsign",
     developmentOrigin: process.env.HEYTERM_DEV_ORIGIN,
     webDirectory: builtWebDirectory(),
+    remoteHost: process.env.HEYTERM_REMOTE_HOST === "1",
+    acceptedHostNames: (process.env.HEYTERM_ACCEPTED_HOSTS ?? "").split(",").map((name) => name.trim()).filter(Boolean),
+    remotes: RemoteHostRules.readRemotes(await readFile(path.join(dataDirectory, "remotes.json"), "utf8").catch(() => "[]")),
   };
 }

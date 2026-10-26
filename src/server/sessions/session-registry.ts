@@ -25,6 +25,8 @@ const recentlyClosedLimit = 20;
 export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   private readonly sessions = new Map<string, SessionView>();
   private recentlyClosed: SessionView[] = [];
+  // Closed sessions another computer's HeyTerm reports, by that computer (remote-host-rules.ts).
+  private readonly hostRecentlyClosed = new Map<string, SessionView[]>();
   private readonly promptWaiters = new Map<string, Set<() => void>>();
   private turnChangeTracker: TurnChangeTracking | undefined;
   // Launch name to current name, for renamed sessions HeyTerm started: their hooks keep the launch name.
@@ -60,7 +62,27 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   }
 
   recentlyClosedSessions(): SessionView[] {
-    return this.recentlyClosed;
+    return [...this.recentlyClosed, ...[...this.hostRecentlyClosed.values()].flat()];
+  }
+
+  // What another computer's HeyTerm reports, in place of what it reported before. Those sessions are
+  // its to change; here they are only shown, and what is done to them is sent there.
+  replaceHostSessions(host: string, sessions: SessionView[], recentlyClosed: SessionView[]): void {
+    for (const session of this.list()) if (session.host === host) this.sessions.delete(session.name);
+    for (const session of sessions) this.sessions.set(session.name, session);
+    this.hostRecentlyClosed.set(host, recentlyClosed);
+    this.announceChange();
+  }
+
+  // The connection to that computer dropped: its sessions stay listed, marked, until it reports again.
+  markHostUnreachable(host: string): void {
+    for (const session of this.list()) if (session.host === host) this.sessions.set(session.name, { ...session, hostUnreachable: true });
+    this.announceChange();
+  }
+
+  // This computer's own sessions: the ones its hooks, records, folders and saved copy are about.
+  localSessions(): SessionView[] {
+    return this.list().filter((session) => !session.host);
   }
 
   add(session: SessionView): void {
@@ -90,7 +112,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
 
   // Without Claude Code's records nothing can say whether these are still running.
   forgetExternalSessions(): void {
-    for (const session of this.list()) if (session.origin === "external") this.forget(session.name);
+    for (const session of this.localSessions()) if (session.origin === "external") this.forget(session.name);
   }
 
   // A session that left while HeyTerm was away; it is not worth a "recently closed" row.
@@ -177,7 +199,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   // SessionStart may bring a new id, as after /clear, so it still goes by name.
   private currentName(reportedName: string, payload: Record<string, unknown>, eventName: HookEventName): string | undefined {
     const conversationId = typeof payload.session_id === "string" ? payload.session_id : "";
-    const byConversation = conversationId ? this.list().find((session) => session.origin !== "external" && session.agentSessionId === conversationId) : undefined;
+    const byConversation = conversationId ? this.localSessions().find((session) => session.origin !== "external" && session.agentSessionId === conversationId) : undefined;
     if (byConversation) return byConversation.name;
     const named = this.sessions.has(reportedName) ? reportedName : (this.launchNames.get(reportedName) ?? reportedName);
     const namedId = this.sessions.get(named)?.agentSessionId;
@@ -195,7 +217,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     const defaultReply = AgentHookTranslator.defaultReply(agent, eventName);
     const event = AgentHookTranslator.translate(agent, eventName, rawPayload);
     if (!event) return defaultReply;
-    const found = AgentSessionMatch.find(this.list(), agent, event.agentSessionId, String(event.payload.cwd ?? ""));
+    const found = AgentSessionMatch.find(this.localSessions(), agent, event.agentSessionId, String(event.payload.cwd ?? ""));
     if (!found) return defaultReply;
     if (found.claimsId) this.set({ ...found.session, agentSessionId: event.agentSessionId });
     const answer = await this.applyHookEvent({ name: event.name, sessionName: found.session.name, payload: event.payload, receivedAt });
@@ -204,7 +226,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
 
   // Marks working sessions that have said nothing for long (quiet-rules.ts); each is told once.
   noticeQuietSessions(now: number): void {
-    for (const session of this.list()) {
+    for (const session of this.localSessions()) {
       const quiet = QuietRules.verdict(session, now);
       if (quiet) this.update(session.name, (current) => ({ ...current, quiet }));
     }
@@ -213,7 +235,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   // Brings Claude sessions in line with Claude Code's own records: a stopped turn returns to idle,
   // and a session from the user's terminal whose Claude has gone is closed.
   reconcileClaudeSessions(records: Map<string, ClaudeSessionRecord>, processIsRunning: (pid: number) => boolean, now: number): void {
-    for (const session of this.list()) {
+    for (const session of this.localSessions()) {
       const record = session.agentSessionId ? records.get(session.agentSessionId) : undefined;
       const verdict = ClaudeSessionStatus.verdict(session, record, record ? processIsRunning(record.pid) : false, now);
       if (verdict === "turn_stopped") {
@@ -228,7 +250,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   async applyExternalHookEvent(name: HookEventName, payload: Record<string, unknown>, receivedAt: number): Promise<string> {
     const agentSessionId = typeof payload.session_id === "string" ? payload.session_id : "";
     if (!agentSessionId) return "";
-    let session = this.list().find((known) => known.origin === "external" && known.agentSessionId === agentSessionId);
+    let session = this.localSessions().find((known) => known.origin === "external" && known.agentSessionId === agentSessionId);
     if (!session) {
       if (name === "SessionEnd") return "";
       session = this.newExternalSession(agentSessionId, payload, receivedAt);
@@ -293,7 +315,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   async saveNow(): Promise<void> {
     clearTimeout(this.saveTimer);
     this.saveTimer = undefined;
-    await this.store.save({ sessions: this.list(), recentlyClosed: this.recentlyClosed });
+    await this.store.save({ sessions: this.localSessions(), recentlyClosed: this.recentlyClosed });
   }
 
   private resetWaitsOnNewDay(now: number): void {
@@ -311,7 +333,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     }, 40);
     this.saveTimer ??= setTimeout(() => {
       this.saveTimer = undefined;
-      this.store.save({ sessions: this.list(), recentlyClosed: this.recentlyClosed }).catch(() => undefined);
+      this.store.save({ sessions: this.localSessions(), recentlyClosed: this.recentlyClosed }).catch(() => undefined);
     }, 500);
   }
 }

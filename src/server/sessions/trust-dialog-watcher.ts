@@ -31,7 +31,7 @@ export class TrustDialogWatcher {
     if (this.polling) return;
     this.polling = true;
     try {
-      for (const session of this.registry.list()) {
+      for (const session of this.registry.localSessions()) {
         if (session.state !== "starting") continue;
         const screen = await this.screens.captureScreen(session.name);
         if (ScreenReader.trustDialogKeys(screen)) {

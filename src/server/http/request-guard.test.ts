@@ -25,4 +25,14 @@ describe("RequestGuard", () => {
     expect(guard.hasToken(request("/ws", { host: "127.0.0.1:4747" }))).toBe(false);
     expect(guard.hasToken(request("/ws?token=the-tokeN", { host: "127.0.0.1:4747" }))).toBe(false);
   });
+
+  // On a VPS, Tailscale's serve passes requests on to 127.0.0.1 with the VPS's own Tailscale name as
+  // the Host. Another HeyTerm connects with no page, so it sends no Origin.
+  it("lets another HeyTerm in through a host name it was told to accept, and nothing else through it", () => {
+    const remoteGuard = new RequestGuard(4747, "the-token", undefined, ["vps.example.ts.net"]);
+    expect(remoteGuard.isFromThisMac(request("/ws", { host: "vps.example.ts.net:8443" }))).toBe(true);
+    expect(remoteGuard.isFromThisMac(request("/ws", { host: "vps.example.ts.net:8443", origin: "https://evil.example" }))).toBe(false);
+    expect(remoteGuard.isFromThisMac(request("/ws", { host: "other.example.ts.net:8443" }))).toBe(false);
+    expect(guard.isFromThisMac(request("/ws", { host: "vps.example.ts.net:8443" }))).toBe(false);
+  });
 });

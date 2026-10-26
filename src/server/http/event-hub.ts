@@ -8,7 +8,7 @@ import type { SessionRegistry } from "../sessions/session-registry.ts";
 import type { SetupService } from "../setup/setup-service.ts";
 import type { MacVoice } from "../voice/mac-voice.ts";
 import type { InputLog } from "../setup/input-log.ts";
-import type { ClientMessage, ServerMessage } from "../../shared/protocol.ts";
+import type { ClientMessage, Feedback, ServerMessage } from "../../shared/protocol.ts";
 
 const snapshotThrottleMilliseconds = 50;
 
@@ -53,6 +53,11 @@ export class EventHub {
       this.sockets.delete(socket);
       this.onPageCountChange(this.sockets.size, this.pagesClosingOnPurpose.has(socket));
     });
+  }
+
+  // A line every open page shows, from outside the executor (a remote computer lost or found again).
+  tellPages(feedback: Feedback): void {
+    this.broadcast({ type: "feedback", feedback });
   }
 
   private async receive(text: string, socket: WebSocket): Promise<void> {

@@ -64,3 +64,17 @@ describe("ConnectionHealth.outageNotice", () => {
     expect(ConnectionHealth.outageNotice(30 * second)).toBe("not_answering");
   });
 });
+
+describe("ConnectionHealth.paneLostNotice", () => {
+  it("names the computer that dropped: the other one for a remote pane, else this one's HeyTerm", () => {
+    expect(ConnectionHealth.paneLostNotice("remote", "vps")).toBe("Lost the connection to vps. Reconnecting...");
+    expect(ConnectionHealth.paneLostNotice("heyterm", "vps")).toBe("Lost the connection to HeyTerm. Reconnecting...");
+    expect(ConnectionHealth.paneLostNotice("heyterm", undefined)).toBe("Lost the connection to HeyTerm. Reconnecting...");
+  });
+
+  it("keeps trying a pane whose other computer dropped", () => {
+    expect(ConnectionHealth.terminalShouldReconnect(4502)).toBe(true);
+    expect(ConnectionHealth.paneLossCause(4502)).toBe("remote");
+    expect(ConnectionHealth.paneLossCause(1006)).toBe("heyterm");
+  });
+});

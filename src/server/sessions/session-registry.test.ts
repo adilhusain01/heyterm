@@ -245,3 +245,53 @@ describe("SessionRegistry, events from a session after it closed", () => {
     expect(registry.get("hello")).toMatchObject({ state: "idle" });
   });
 });
+
+describe("SessionRegistry with sessions from another computer", () => {
+  const minute = 60_000;
+  const mirrored = (name: string, overrides: Partial<SessionView> = {}) => session(`vps/${name}`, { agent: "claude", host: "vps", origin: "heyterm", ...overrides });
+
+  // The VPS's HeyTerm owns these; this one shows what it reports (26 October 2026).
+  it("lists another computer's sessions beside its own, and replaces them on each report", () => {
+    const registry = makeRegistry();
+    registry.add(session("whisker", { agent: "claude" }));
+    registry.replaceHostSessions("vps", [mirrored("voice-sticky"), mirrored("notes")], []);
+    registry.replaceHostSessions("vps", [mirrored("voice-sticky", { state: "working" })], [mirrored("notes", { state: "stopped" })]);
+    expect(registry.list().map((known) => known.name)).toEqual(["whisker", "vps/voice-sticky"]);
+    expect(registry.get("vps/voice-sticky")?.state).toBe("working");
+    expect(registry.recentlyClosedSessions().map((closed) => closed.name)).toEqual(["vps/notes"]);
+  });
+
+  it("never saves them, since the other computer keeps them", async () => {
+    let saved: { sessions: SessionView[]; recentlyClosed: SessionView[] } | undefined;
+    const store = { save: async (state: { sessions: SessionView[]; recentlyClosed: SessionView[] }) => void (saved = state) } as unknown as StateStore;
+    const registry = new SessionRegistry(store, { letGoAllFor: () => undefined } as unknown as HeldHookRequests);
+    registry.add(session("whisker", { agent: "claude" }));
+    registry.replaceHostSessions("vps", [mirrored("voice-sticky")], [mirrored("notes", { state: "stopped" })]);
+    await registry.saveNow();
+    expect(saved?.sessions.map((known) => known.name)).toEqual(["whisker"]);
+    expect(saved?.recentlyClosed).toEqual([]);
+  });
+
+  // This Mac has no Claude records for the VPS's sessions; checking them here would close them all.
+  it("leaves them out of the checks only this computer can make", () => {
+    const registry = makeRegistry();
+    registry.replaceHostSessions("vps", [mirrored("own-terminal", { origin: "external", agentSessionId: "dec22d69", state: "idle", stateSince: 0 }), mirrored("busy", { state: "working", lastActivityAt: 0 })], []);
+    registry.reconcileClaudeSessions(new Map(), () => false, 60 * minute);
+    registry.noticeQuietSessions(60 * minute);
+    registry.forgetExternalSessions();
+    expect(registry.list().map((known) => known.name)).toEqual(["vps/own-terminal", "vps/busy"]);
+    expect(registry.get("vps/busy")?.quiet).toBeUndefined();
+  });
+
+  // A dropped connection to the VPS (26 October 2026) left vps/voice-sticky saying Working for good.
+  it("marks a computer's sessions as unreachable while its connection is down, until it reports again", () => {
+    const registry = makeRegistry();
+    registry.add(session("whisker", { agent: "claude" }));
+    registry.replaceHostSessions("vps", [mirrored("voice-sticky", { state: "working" })], []);
+    registry.markHostUnreachable("vps");
+    expect(registry.get("vps/voice-sticky")).toMatchObject({ state: "working", hostUnreachable: true });
+    expect(registry.get("whisker")?.hostUnreachable).toBeUndefined();
+    registry.replaceHostSessions("vps", [mirrored("voice-sticky", { state: "idle" })], []);
+    expect(registry.get("vps/voice-sticky")?.hostUnreachable).toBeUndefined();
+  });
+});

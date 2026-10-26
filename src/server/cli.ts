@@ -11,6 +11,7 @@ import { CliArguments } from "./cli-arguments.ts";
 import { agentHookPaths } from "./hooks/agent-hook-files.ts";
 import { claudeUserSettingsPath } from "./hooks/existing-session-connector.ts";
 import { startHeyTerm } from "./main.ts";
+import { RemotesFile } from "./remote/remotes-file.ts";
 import { compareVersions, testedClaudeVersion } from "./setup/setup-service.ts";
 import { moveToTrash } from "./setup/trash.ts";
 import { Uninstaller } from "./setup/uninstaller.ts";
@@ -24,15 +25,26 @@ Usage:
   heyterm stop         stop HeyTerm and every session in it
   heyterm doctor       check that this computer has what HeyTerm needs
   heyterm uninstall    stop it and remove everything it put on this computer
+  heyterm remote add <name> <address>
+                       show another computer's HeyTerm sessions here as <name>/...;
+                       pass its token on standard input, for example:
+                       ssh vps cat ~/.heyterm/token | heyterm remote add vps https://vps.example.ts.net:8443
+  heyterm remote list | remote remove <name>
+  heyterm --remote-host --allow-host <name>
+                       serve another computer's HeyTerm (on a VPS): keeps running with no page,
+                       and accepts requests that name <name>, such as its Tailscale name
   heyterm --no-open    start without opening the browser
   heyterm --port 4747  use another port (or set HEYTERM_PORT)
   heyterm --help       show this text
 `;
 
 async function runCli(args: string[]): Promise<void> {
-  const { command, port, open, help } = CliArguments.parse(args);
+  const { command, commandArguments, port, open, help, remoteHost, acceptedHostNames } = CliArguments.parse(args);
   if (help) return void process.stdout.write(helpText);
   if (port) process.env.HEYTERM_PORT = port;
+  if (remoteHost) process.env.HEYTERM_REMOTE_HOST = "1";
+  if (acceptedHostNames.length > 0) process.env.HEYTERM_ACCEPTED_HOSTS = acceptedHostNames.join(",");
+  if (command === "remote") process.exit((await runRemoteCommand(commandArguments)) ? 0 : 1);
   if (command === "doctor") process.exit((await runDoctor()) ? 0 : 1);
   if (command === "stop") process.exit((await stopRunning()) ? 0 : 1);
   if (command === "uninstall") process.exit((await uninstall()) ? 0 : 1);
@@ -122,6 +134,46 @@ async function pageUrl(): Promise<string> {
 
 function baseUrl(): string {
   return `http://127.0.0.1:${process.env.HEYTERM_PORT ?? 4747}`;
+}
+
+// heyterm remote add|list|remove. The token comes on standard input so it is never typed into a
+// command line or shown on screen.
+async function runRemoteCommand(commandArguments: string[]): Promise<boolean> {
+  const remotes = new RemotesFile(dataDirectory());
+  const [action, name, address] = commandArguments;
+  if (action === "list") {
+    const known = await remotes.list();
+    if (known.length === 0) console.log("No other computers yet. Add one with heyterm remote add <name> <address>.");
+    for (const remote of known) console.log(`${remote.name}  ${remote.url}`);
+    return true;
+  }
+  if (action === "remove" && name) {
+    const removed = await remotes.remove(name);
+    console.log(removed ? `Removed ${name}. Restart HeyTerm to stop showing its sessions.` : `There is no computer called ${name}.`);
+    return removed;
+  }
+  if (action === "add" && name && address) {
+    if (process.stdin.isTTY) {
+      console.error(`Pass ${name}'s HeyTerm token on standard input, for example:\n  ssh ${name} cat ~/.heyterm/token | heyterm remote add ${name} ${address}`);
+      return false;
+    }
+    const token = (await readStandardInput()).trim();
+    const problem = await remotes.add({ name, url: address, token });
+    if (problem) {
+      console.error(problem);
+      return false;
+    }
+    console.log(`Added ${name}. Restart HeyTerm to show its sessions as ${name}/...`);
+    return true;
+  }
+  process.stdout.write(helpText);
+  return false;
+}
+
+async function readStandardInput(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 function dataDirectory(): string {

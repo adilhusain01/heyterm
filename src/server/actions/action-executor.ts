@@ -8,6 +8,7 @@ import { SessionActions } from "./session-actions.ts";
 import { AttentionQueue } from "../../shared/attention.ts";
 import { RequestThread } from "../../shared/request-thread.ts";
 import { acceptsText, type FastPathRouter } from "../router/fast-path-router.ts";
+import { RemoteHostRules } from "../remote/remote-host-rules.ts";
 import { ConductorRouting } from "../conductor/conductor-rules.ts";
 import type { Assistant } from "../conductor/assistant.ts";
 import type { Situation } from "../conductor/conductor-prompt.ts";
@@ -124,7 +125,7 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
       case "forget_closed":
         return this.tell(await this.sessionActions.forgetClosed(action.session));
       case "rename": {
-        const result = this.rename(action.session, action.newName);
+        const result = await this.rename(action.session, action.newName);
         return this.tell({ text: result.text, tone: result.renamed ? "success" : "warning", speak: !result.renamed });
       }
       case "choose":
@@ -212,11 +213,14 @@ export class ActionExecutor extends EventEmitter<ExecutorEvents> {
   }
 
   // Also the assistant's rename_session tool, which reads the result back.
-  rename(sessionName: string, newName: string): { renamed: boolean; text: string } {
-    const problem = this.sessionActions.rename(sessionName, newName);
+  async rename(sessionName: string, newName: string): Promise<{ renamed: boolean; text: string }> {
+    const problem = await this.sessionActions.rename(sessionName, newName);
     if (problem) return { renamed: false, text: problem };
-    if (this.focusedSession === sessionName) this.setFocus(newName);
-    return { renamed: true, text: `Renamed ${sessionName} to ${newName}.` };
+    // A session on another computer keeps that computer's name in front of its own.
+    const host = RemoteHostRules.split(sessionName)?.host;
+    const shownName = host ? RemoteHostRules.mirroredName(host, newName) : newName;
+    if (this.focusedSession === sessionName) this.setFocus(shownName);
+    return { renamed: true, text: `Renamed ${sessionName} to ${shownName}.` };
   }
 
   // Moves a session from the user's own terminal into HeyTerm; a working one is asked about first.

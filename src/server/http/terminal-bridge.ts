@@ -9,10 +9,20 @@ type TerminalClientMessage = { type: "input"; data: string } | { type: "resize";
 // Typing and pastes are small; anything larger is not a person at a keyboard.
 const largestInputBytes = 64 * 1024;
 
+// What the bridge needs for a session on another computer: a socket to that terminal there.
+export interface RemoteTerminals {
+  isRemote(sessionName: string): boolean;
+  openTerminal(sessionName: string, columns: number, rows: number): WebSocket | undefined;
+}
+
 export class TerminalBridge {
-  constructor(private readonly host: TerminalHost) {}
+  constructor(
+    private readonly host: TerminalHost,
+    private readonly remote?: RemoteTerminals,
+  ) {}
 
   connect(socket: WebSocket, sessionName: string, columns: number, rows: number): void {
+    if (this.remote?.isRemote(sessionName)) return this.connectRemote(socket, sessionName, columns, rows);
     const viewer = {
       send: (data: string) => {
         if (socket.readyState === socket.OPEN) socket.send(data);
@@ -32,6 +42,29 @@ export class TerminalBridge {
       if (message?.type === "resize") attachment.resize(message.columns, message.rows);
     });
     socket.on("close", () => attachment.detach());
+  }
+
+  // A pane for a session on another computer talks to that computer's terminal through this one:
+  // what is typed goes there, and its screen comes back, each closing when the other does.
+  private connectRemote(socket: WebSocket, sessionName: string, columns: number, rows: number): void {
+    const remoteSocket = this.remote!.openTerminal(sessionName, columns, rows);
+    if (!remoteSocket) return socket.close(4404, "no such session");
+    const waiting: string[] = [];
+    remoteSocket.on("open", () => waiting.splice(0).forEach((text) => remoteSocket.send(text)));
+    remoteSocket.on("message", (data) => {
+      if (socket.readyState === socket.OPEN) socket.send(String(data));
+    });
+    remoteSocket.on("close", (code) => {
+      // 4502 tells the page the other computer dropped, not this one (connection-health.ts).
+      if (socket.readyState === socket.OPEN) socket.close(code === 1000 || code === 4404 ? code : 4502, "remote closed");
+    });
+    socket.on("message", (raw) => {
+      const text = raw.toString();
+      if (text.length > largestInputBytes || !parseMessage(text)) return;
+      if (remoteSocket.readyState === remoteSocket.OPEN) remoteSocket.send(text);
+      else waiting.push(text);
+    });
+    socket.on("close", () => remoteSocket.close());
   }
 }
 

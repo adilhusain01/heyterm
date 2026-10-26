@@ -8,6 +8,7 @@ import { ChangeSummary, type ChangeSummaryResult } from "../../shared/change-sum
 import { CatchUpDigest, type SessionDigest } from "../../shared/catch-up.ts";
 import { SessionLifecycle } from "../sessions/session-lifecycle.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
+import type { RemoteSessionGateway } from "../remote/remote-gateway.ts";
 import type { AuditLog } from "../safety/audit-log.ts";
 import type { SessionLauncher } from "../sessions/session-launcher.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
@@ -17,6 +18,8 @@ import type { RouterAction } from "../../shared/types.ts";
 type SessionAction = Extract<RouterAction, { type: "spawn" | "resume" | "interrupt" | "trust" | "status" }>;
 
 export class SessionActions {
+  private remote: RemoteSessionGateway | undefined;
+
   constructor(
     private readonly registry: SessionRegistry,
     private readonly launcher: SessionLauncher,
@@ -24,7 +27,17 @@ export class SessionActions {
     private readonly audit: AuditLog,
   ) {}
 
+  // Sessions on another computer ("vps/name") are acted on by that computer's HeyTerm.
+  useRemoteHosts(remote: RemoteSessionGateway): void {
+    this.remote = remote;
+  }
+
+  private isRemote(sessionName: string): boolean {
+    return this.remote?.isRemote(sessionName) ?? false;
+  }
+
   async perform(action: RouterAction, focus: (sessionName: string) => void): Promise<Feedback> {
+    if ((action.type === "resume" || action.type === "interrupt" || action.type === "trust") && this.isRemote(action.session)) return this.remote!.perform(action);
     switch (action.type) {
       case "spawn":
         return this.spawn(action, focus);
@@ -45,6 +58,7 @@ export class SessionActions {
   }
 
   async deliver(sessionName: string, text: string): Promise<Feedback> {
+    if (this.isRemote(sessionName)) return this.remote!.perform({ type: "send", session: sessionName, text, needsPreview: false });
     this.markSeen(sessionName);
     const result = await this.launcher.deliverText(sessionName, text);
     if (result === "submitted") return { text: `Sent to ${sessionName}.`, tone: "success", speak: false };
@@ -71,6 +85,7 @@ export class SessionActions {
   }
 
   async adopt(sessionName: string, focus: (sessionName: string) => void): Promise<Feedback> {
+    if (this.isRemote(sessionName)) return this.remote!.perform({ type: "adopt", session: sessionName, confirmed: true });
     try {
       const session = await this.launcher.adopt(sessionName);
       focus(session.name);
@@ -82,6 +97,7 @@ export class SessionActions {
 
   // Off the list, and its worktree with it when nothing in the worktree would be lost.
   async forgetClosed(sessionName: string): Promise<Feedback> {
+    if (this.isRemote(sessionName)) return this.remote!.perform({ type: "forget_closed", session: sessionName });
     const closed = this.registry.recentlyClosedSessions().find((session) => session.name === sessionName);
     if (!closed || !this.registry.forgetClosed(sessionName)) return { text: `There is no closed session called ${sessionName}.`, tone: "warning", speak: false };
     const removed = `Removed ${sessionName} from the list. Its conversation is still there to resume.`;
@@ -92,17 +108,24 @@ export class SessionActions {
     return { text: `${removed} Its worktree is deleted; nothing in it was lost.`, tone: "info", speak: false };
   }
 
-  rename(sessionName: string, newName: string): string | undefined {
-    return this.launcher.rename(sessionName, newName);
+  // Returns why the session could not take the name, or undefined once it has.
+  async rename(sessionName: string, newName: string): Promise<string | undefined> {
+    if (!this.isRemote(sessionName)) return this.launcher.rename(sessionName, newName);
+    // The other computer names it; the name it shows here follows from its next report.
+    const feedback = await this.remote!.perform({ type: "rename", session: sessionName, newName });
+    return feedback.tone === "success" ? undefined : feedback.text;
   }
 
   async close(sessionName: string): Promise<Feedback> {
+    if (this.isRemote(sessionName)) return this.remote!.perform({ type: "close", session: sessionName, confirmed: true });
     await this.launcher.close(sessionName);
     await this.audit.record({ session: sessionName, decision: "closed", subject: sessionName, decidedBy: "voice or click" });
     return { text: `Closed ${sessionName}. Say bring back ${sessionName} to resume it.`, tone: "info", speak: false };
   }
 
+  // Not knowable for another computer's folder; its own HeyTerm asks about a working session.
   hasUncommittedChanges(sessionName: string): Promise<boolean> {
+    if (this.isRemote(sessionName)) return Promise.resolve(false);
     return this.launcher.hasUncommittedChanges(sessionName);
   }
 
@@ -142,7 +165,7 @@ export class SessionActions {
     if (session.worktree) {
       return { text: `Starting ${session.name} in a copy of the folder of its own, on a new branch, so it and the other session there cannot change each other's files. It starts from the last commit.${taskNote}`, tone: "success", speak: true };
     }
-    const sharing = this.registry.list().find((other) => other.name !== session.name && other.projectPath === session.projectPath);
+    const sharing = this.registry.localSessions().find((other) => other.name !== session.name && other.projectPath === session.projectPath);
     if (sharing) return { text: `Starting ${session.name}. It shares ${sharing.name}'s folder, which is not a git repository, so the two can change each other's files.${taskNote}`, tone: "warning", speak: true };
     return { text: `Starting ${session.name}.${taskNote}`, tone: "success", speak: false };
   }
@@ -159,7 +182,7 @@ export class SessionActions {
     focus(session.name);
     if (session.projectPath !== closed.projectPath) {
       // Its conversation was opened from another folder with /resume, and Claude Code keeps it there.
-      const neighbour = this.registry.list().find((other) => other.name !== session.name && other.projectPath === session.projectPath);
+      const neighbour = this.registry.localSessions().find((other) => other.name !== session.name && other.projectPath === session.projectPath);
       const sharing = neighbour ? ` It shares that folder with ${neighbour.name}.` : "";
       return { text: `Bringing back ${session.name} in ${session.projectPath}, the folder its conversation runs in.${sharing}`, tone: neighbour ? "warning" : "success", speak: false };
     }

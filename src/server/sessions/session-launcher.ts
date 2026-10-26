@@ -59,7 +59,7 @@ export class SessionLauncher {
     const isTerminal = agent === "shell";
     const name = this.uniqueName(isTerminal ? ShellRules.sessionName(projectName) : projectName);
     // A second agent in a folder another open session uses works in a git worktree of its own.
-    const sharesAFolder = WorktreePlan.needsOwnWorktree(projectPath, this.registry.list(), agent);
+    const sharesAFolder = WorktreePlan.needsOwnWorktree(projectPath, this.registry.localSessions(), agent);
     const made = sharesAFolder && this.worktrees ? await this.worktrees.create(projectPath, name) : undefined;
     const now = Date.now();
     const session: SessionView = {
@@ -219,12 +219,13 @@ export class SessionLauncher {
   // HeyTerm's own sessions ended with it. Sessions in the user's terminal stay, names and all:
   // ClaudeSessionWatcher closes the ones whose Claude has gone.
   restoreAfterStart(): void {
-    for (const session of this.registry.list()) if (session.origin !== "external") this.registry.remove(session.name);
+    for (const session of this.registry.localSessions()) if (session.origin !== "external") this.registry.remove(session.name);
   }
 
-  // HeyTerm is stopping: every session ends and waits under "Recently closed" for next time.
+  // HeyTerm is stopping: every session of this computer's ends and waits under "Recently closed" for
+  // next time. Another computer's sessions are its own to close.
   shutdown(): void {
-    for (const session of this.registry.list()) if (session.origin !== "external") this.registry.remove(session.name);
+    for (const session of this.registry.localSessions()) if (session.origin !== "external") this.registry.remove(session.name);
     this.host.shutdown();
   }
 

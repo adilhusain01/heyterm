@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agentTag, messageVoiceHint } from "./session-display.ts";
+import { agentTag, displayFor, messageVoiceHint } from "./session-display.ts";
 
 describe("messageVoiceHint", () => {
   it("offers a spoken reply to a question from a session HeyTerm runs", () => {
@@ -21,5 +21,18 @@ describe("agentTag", () => {
     expect(agentTag("shell")).toBe("terminal");
     expect(agentTag("codex")).toBe("codex");
     expect(agentTag("claude")).toBeUndefined();
+  });
+});
+
+describe("displayFor", () => {
+  it("shows a session by its state", () => {
+    expect(displayFor({ state: "working" }).label).toBe("Working");
+  });
+
+  // Its last state could be minutes old, so it is not shown as current.
+  it("says a session on a computer HeyTerm cannot reach is not reachable, and does not ask for you", () => {
+    const display = displayFor({ state: "needs_permission", host: "vps", hostUnreachable: true });
+    expect(display.label).toBe("vps not reachable");
+    expect(display.needsYou).toBe(false);
   });
 });

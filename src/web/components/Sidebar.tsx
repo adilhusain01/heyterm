@@ -15,7 +15,7 @@ import { avatarRadius, SessionAvatar } from "../ui/SessionAvatar.tsx";
 import { Tray } from "../ui/Surfaces.tsx";
 import { RenameField, RowActionButton, RowActions, SessionDetailsCard } from "./SessionDetails.tsx";
 import { SessionIdentity } from "./session-identity.ts";
-import { agentTag, isWaitingOnUser, shortDuration, stateDisplay } from "./session-display.ts";
+import { agentTag, displayFor, isWaitingOnUser, shortDuration } from "./session-display.ts";
 import type { ClosedSessionView } from "../../shared/protocol.ts";
 import type { AgentKind, AnnouncementMode, SessionView } from "../../shared/types.ts";
 
@@ -151,7 +151,7 @@ function RailSession({ session, isHead }: { session: SessionView; isHead: boolea
   const { perform } = useHeyTerm();
   const focusedSession = useHeyTermStore((state) => state.focusedSession);
   const now = useServerNow();
-  const display = stateDisplay[session.state];
+  const display = displayFor(session);
   const isWaiting = isWaitingOnUser(session.state);
   const waitedFor = isWaiting ? shortDuration(now - session.stateSince) : "";
   const detail = isWaiting ? "" : SessionIdentity.promptPreview(session.lastPrompt ?? "");
@@ -215,7 +215,7 @@ function SessionRow({ session }: { session: SessionView }) {
   const takenNames = useTakenNames();
   const now = useServerNow();
   const [isRenaming, setRenaming] = useState(false);
-  const display = stateDisplay[session.state];
+  const display = displayFor(session);
   const isFocused = focusedSession === session.name;
   // The state already says what a waiting session needs; otherwise show what it was last asked.
   const detail = isWaitingOnUser(session.state) ? "" : SessionIdentity.promptPreview(session.lastPrompt ?? "");

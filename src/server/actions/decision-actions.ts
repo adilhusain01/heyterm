@@ -2,6 +2,7 @@
 
 import { SessionLifecycle } from "../sessions/session-lifecycle.ts";
 import type { HeldHookRequests } from "../hooks/held-hook-requests.ts";
+import type { RemoteSessionGateway } from "../remote/remote-gateway.ts";
 import type { AuditLog } from "../safety/audit-log.ts";
 import type { SessionRegistry } from "../sessions/session-registry.ts";
 import type { Feedback } from "../../shared/protocol.ts";
@@ -12,13 +13,21 @@ export interface DecisionContext {
 }
 
 export class DecisionActions {
+  private remote: RemoteSessionGateway | undefined;
+
   constructor(
     private readonly registry: SessionRegistry,
     private readonly heldRequests: HeldHookRequests,
     private readonly audit: AuditLog,
   ) {}
 
+  // Another computer's HeyTerm holds its sessions' requests, so the decision goes there.
+  useRemoteHosts(remote: RemoteSessionGateway): void {
+    this.remote = remote;
+  }
+
   async answer(sessionName: string, requestId: string, answers: Record<string, string>, context: DecisionContext): Promise<Feedback> {
+    if (this.remote?.isRemote(sessionName)) return this.remote.perform({ type: "answer", session: sessionName, requestId, answers });
     const session = this.registry.get(sessionName);
     if (session?.pending?.kind !== "question" || session.pending.requestId !== requestId) return closedRequest(sessionName);
     const updatedInput = { ...session.pending.toolInput, answers };
@@ -30,6 +39,7 @@ export class DecisionActions {
   }
 
   async approve(sessionName: string, requestId: string, context: DecisionContext): Promise<Feedback> {
+    if (this.remote?.isRemote(sessionName)) return this.remote.perform({ type: "approve", session: sessionName, requestId, confirmed: true });
     const session = this.registry.get(sessionName);
     if (session?.pending?.kind !== "permission" || session.pending.requestId !== requestId) return closedRequest(sessionName);
     const { summary, risk } = session.pending;
@@ -40,6 +50,7 @@ export class DecisionActions {
   }
 
   async deny(sessionName: string, requestId: string, reason: string | undefined, context: DecisionContext): Promise<Feedback> {
+    if (this.remote?.isRemote(sessionName)) return this.remote.perform({ type: "deny", session: sessionName, requestId, ...(reason ? { reason } : {}) });
     const session = this.registry.get(sessionName);
     if (session?.pending?.kind !== "permission" || session.pending.requestId !== requestId) return closedRequest(sessionName);
     const { summary, risk } = session.pending;
