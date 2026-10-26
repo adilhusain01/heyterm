@@ -1,6 +1,7 @@
 // A command, path or message in a tray, folded to a few lines with a key to read it all.
 
 import { useState } from "react";
+import { CopyButton } from "./CopyButton.tsx";
 import { Tray } from "./Surfaces.tsx";
 
 export function FoldedText({ text, lines = 4, mono = true }: { text: string; lines?: number; mono?: boolean }) {
@@ -10,13 +11,14 @@ export function FoldedText({ text, lines = 4, mono = true }: { text: string; lin
   return (
     <Tray className="flex flex-col">
       {/* The padding sits outside the clamped element, so no part of a hidden line shows through. */}
-      <div className="px-2.5 py-2">
+      <div className="relative py-2 pr-9 pl-2.5">
         <pre
           className={`overflow-hidden whitespace-pre-wrap break-words text-ink ${mono ? "font-mono text-small leading-relaxed" : "font-sans text-meta"}`}
           style={isOpen || !isLong ? undefined : { display: "-webkit-box", WebkitLineClamp: lines, WebkitBoxOrient: "vertical" }}
         >
           {text}
         </pre>
+        <CopyButton text={() => text} className="absolute top-1 right-1" />
       </div>
       {isLong && (
         <button type="button" onClick={() => setOpen(!isOpen)} className="cursor-pointer border-t border-line px-2.5 py-1 text-left text-meta text-ink-muted transition-colors duration-150 hover:text-ink">

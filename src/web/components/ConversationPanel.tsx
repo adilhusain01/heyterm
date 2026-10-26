@@ -8,6 +8,7 @@ import { RequestThread } from "../../shared/request-thread.ts";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { orbStatusText, useOrbState } from "../state/use-orb-state.ts";
 import { ArrowDownIcon, PanelRightCloseIcon } from "../ui/icons.tsx";
+import { CopyButton } from "../ui/CopyButton.tsx";
 import { Markdown } from "../ui/Markdown.tsx";
 import { RequestCard, SettledRequest } from "./AttentionCard.tsx";
 import type { ConversationEntry } from "../../shared/protocol.ts";
@@ -182,9 +183,12 @@ function ToolLine({ entry }: { entry: ConversationEntry }) {
         {output?.failed && <span className="ml-auto shrink-0 font-sans text-failed">Failed</span>}
       </button>
       {isOpen && (
-        <pre className={`max-h-72 overflow-auto rounded-inner border bg-tray px-2.5 py-2 font-mono text-small break-words whitespace-pre-wrap text-ink shadow-tray ${output?.failed ? "border-failed/50" : "border-line"}`}>
-          {output ? output.text || "No output." : "Running…"}
-        </pre>
+        <div className="relative">
+          <pre className={`max-h-72 overflow-y-auto rounded-inner border bg-tray py-2 pr-9 pl-2.5 font-mono text-small break-words whitespace-pre-wrap [overflow-wrap:anywhere] text-ink shadow-tray ${output?.failed ? "border-failed/50" : "border-line"}`}>
+            {output ? output.text || "No output." : "Running…"}
+          </pre>
+          {output?.text && <CopyButton text={() => output.text} className="absolute top-1 right-1" />}
+        </div>
       )}
     </div>
   );

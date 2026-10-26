@@ -62,7 +62,7 @@ function SidebarPanel({ onOpenSetup, className = "flex" }: { onOpenSetup: () => 
         </RailButton>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto px-3 pb-3">
         <section className="flex flex-col gap-0.5">
           <SectionHeading
             title="Sessions"
@@ -308,17 +308,13 @@ function NewSessionPicker({ onDone }: { onDone: () => void }) {
   const installedAgents = useMemo(() => (agents ?? []).filter((agent) => agent.version), [agents]);
   const [filter, setFilter] = useState("");
   const [agent, setAgent] = useState<AgentKind>("claude");
+  const agentOptions = [...installedAgents.map((installed) => ({ value: installed.kind, label: installed.label.replace(" CLI", "").replace(" Code", "") })), { value: "shell" as AgentKind, label: "Terminal" }];
   const shown = projects.filter((project) => project.includes(filter.toLowerCase())).slice(0, 10);
   return (
     <Tray className="enter-rise mb-1 flex flex-col gap-1 p-1">
       {/* A plain terminal needs nothing installed, so there is always a choice to make here. */}
-      <Segmented
-        label="Agent"
-        stretch
-        value={agent}
-        onChange={setAgent}
-        options={[...installedAgents.map((installed) => ({ value: installed.kind, label: installed.label.replace(" CLI", "").replace(" Code", "") })), { value: "shell" as AgentKind, label: "Terminal" }]}
-      />
+      {/* Up to three choices fit one row of the sidebar; more go into rows of three. */}
+      <Segmented label="Agent" stretch columns={agentOptions.length > 3 ? 3 : undefined} value={agent} onChange={setAgent} options={agentOptions} />
       <input
         autoFocus
         value={filter}
