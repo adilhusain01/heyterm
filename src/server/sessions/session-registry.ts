@@ -43,7 +43,8 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   }
 
   restore(sessions: SessionView[], recentlyClosed: SessionView[]): void {
-    for (const session of sessions) this.sessions.set(session.name, session);
+    const now = Date.now();
+    for (const session of sessions) this.sessions.set(session.name, SessionLifecycle.afterHeldRequestLost(session, now));
     // Older versions let closed sessions share a name; the newest keeps it, older ones get a number.
     const takenNames = new Set(this.sessions.keys());
     this.recentlyClosed = recentlyClosed.map((closed) => {

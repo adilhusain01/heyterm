@@ -81,8 +81,11 @@ To see the Claude sessions you start in your own terminals as well, open Setup a
 | | |
 | --- | --- |
 | `heyterm` | starts it and opens the page, or opens the one already running |
+| `heyterm restart` | restarts it in about a second; every session keeps running |
 | `heyterm stop`, Ctrl+C, Quit in Setup, or closing the last HeyTerm page | stops it and every session in it; they wait under Recently closed, and Bring back resumes the conversation |
 | `heyterm uninstall` | stops it, takes its hooks out of your Claude settings and moves `~/.heyterm` to the Trash; then `npm uninstall -g heyterm` removes the command |
+
+The sessions' terminals belong to a small keeper process that the `heyterm` command runs, not to HeyTerm's server, so the server can restart without them noticing. A new version on disk (an update, or `npm run build` in a clone) restarts the server by itself, and so does a crash; a page-only change just reloads the page. Only stopping HeyTerm ends the sessions.
 
 Closing the page stops HeyTerm after 15 seconds, so a reload never does. A page that only lost its connection (the Mac slept, the browser dropped it, the tab sat in the background) never stops it: the page reconnects by itself and redraws every terminal from HeyTerm's copy of the screen, and after 5 seconds without a connection it says so. Setup has **Keep running without the page** if you want it to stay up.
 
@@ -115,7 +118,7 @@ Not there yet: starting a session on the server from the Mac, line counts in "wh
 
 ## How it works
 
-- **Sessions run in HeyTerm's own terminals** (pseudo-terminals it owns, the same on macOS, Linux and Windows), with a copy of each screen so the assistant can read it and a page opened later sees it.
+- **Sessions run in HeyTerm's own terminals** (pseudo-terminals it owns, the same on macOS, Linux and Windows), with a copy of each screen so the assistant can read it and a page opened later sees it. A keeper process holds them and runs the server as its child, over Node's own channel between the two, so the server restarts into new code while the sessions run on.
 - **Agent hooks report every state**, so nothing is guessed from the screen. Claude Code gets them through a settings file for its session; Codex through config overrides for that run (Codex asks once to trust them; say "trust it"). Your own `~/.codex` and Claude settings are not changed.
 - **Grok Build and Cursor read hooks only from global files**, so while HeyTerm runs it writes `~/.grok/hooks/heyterm.json` and adds its entries to `~/.cursor/hooks.json` (backed up first), and takes them out again when it stops or is uninstalled. They only report what happens; nothing in them can approve or block a tool, so each agent's own permission rules stay in charge, and sessions HeyTerm did not start are ignored. Grok's permission card shows as waiting in its terminal: say "go to" the session and answer there.
 - **A second session in a folder another one uses gets its own git worktree**, on a branch named `heyterm/<session>`, from the last commit, in `~/.heyterm/worktrees`, so two agents never edit the same files. Its work stays on that branch for you to merge. Outside git the folder is shared, and HeyTerm says so.

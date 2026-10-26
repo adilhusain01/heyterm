@@ -16,7 +16,7 @@ import { AgentAdapters, type AgentLaunchContext } from "../agents/agent-adapters
 import { HookCommands } from "../hooks/hook-commands.ts";
 import { LaunchCommand } from "../terminals/launch-command.ts";
 import type { SessionRegistry } from "./session-registry.ts";
-import type { TerminalHost } from "../terminals/terminal-host.ts";
+import type { Terminals } from "../terminals/terminals.ts";
 import type { AgentKind, SessionState, SessionView, SessionWorktree } from "../../shared/types.ts";
 
 const execFileAsync = promisify(execFile);
@@ -45,7 +45,7 @@ const adoptExitWaitMilliseconds = 8_000;
 
 export class SessionLauncher {
   constructor(
-    private readonly host: TerminalHost,
+    private readonly host: Terminals,
     private readonly registry: SessionRegistry,
     private readonly paths: LauncherPaths,
     private readonly worktrees?: SessionWorktrees,
@@ -189,9 +189,9 @@ export class SessionLauncher {
     return (await secondConfirmation) ? "submitted" : "failed";
   }
 
-  isCommandRunning(name: string): boolean {
+  async isCommandRunning(name: string): Promise<boolean> {
     const session = this.registry.get(name);
-    return session?.agent === "shell" && ShellRules.isCommandRunning(this.host.foregroundProgram(name), AgentAdapters.get("shell").program);
+    return session?.agent === "shell" && ShellRules.isCommandRunning(await this.host.foregroundProgram(name), AgentAdapters.get("shell").program);
   }
 
   // For the assistant: runs a command in a terminal session and waits, up to a limit, for the shell
@@ -200,8 +200,8 @@ export class SessionLauncher {
     if ((await this.deliverText(name, command)) === "failed") return { finished: false, screen: "" };
     await delay(commandStartMilliseconds);
     const startedAt = Date.now();
-    while (this.isCommandRunning(name) && Date.now() - startedAt < longestWaitMilliseconds) await delay(commandPollMilliseconds);
-    const finished = !this.isCommandRunning(name);
+    while ((await this.isCommandRunning(name)) && Date.now() - startedAt < longestWaitMilliseconds) await delay(commandPollMilliseconds);
+    const finished = !(await this.isCommandRunning(name));
     await delay(commandStartMilliseconds);
     return { finished, screen: await this.host.captureScreen(name) };
   }
@@ -216,10 +216,13 @@ export class SessionLauncher {
     return status.length > 0;
   }
 
-  // HeyTerm's own sessions ended with it. Sessions in the user's terminal stay, names and all:
-  // ClaudeSessionWatcher closes the ones whose Claude has gone.
-  restoreAfterStart(): void {
-    for (const session of this.registry.localSessions()) if (session.origin !== "external") this.registry.remove(session.name);
+  // HeyTerm's own sessions whose terminals the keeper kept through a restart carry on; the others
+  // ended with HeyTerm. Sessions in the user's terminal stay, names and all: ClaudeSessionWatcher
+  // closes the ones whose Claude has gone.
+  restoreAfterStart(runningTerminalNames: string[] = []): void {
+    for (const session of this.registry.localSessions()) {
+      if (session.origin !== "external" && !runningTerminalNames.includes(session.name)) this.registry.remove(session.name);
+    }
   }
 
   // HeyTerm is stopping: every session of this computer's ends and waits under "Recently closed" for

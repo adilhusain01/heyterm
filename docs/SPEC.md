@@ -49,6 +49,16 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 - When something newly needs the user, the assistant is told and says what the session wants and the exact reply, in a sentence or two, without reading commands, paths or code aloud. If it has not answered in 9 seconds, a plain line is said instead.
 - Replies are spoken up to a line of `---`; anything after it is shown only. The conversation column shows what the user said, the replies, the assistant's steps and what happened in the sessions.
 
+## Restarts that keep the sessions
+
+- The `heyterm` command runs a terminal keeper: it owns every terminal (with the screen copies) and runs the server as its child, talking over Node's child process channel, which works on every system. Its process id is in `~/.heyterm/keeper.pid`.
+- When the server exits, the keeper decides (`KeeperRules`): exit 0 (heyterm stop, Quit, the last page closed, Ctrl+C) ends every terminal and the keeper; the restart code (75, from `heyterm restart` or new code on disk) starts the server again at once; anything else is a crash, and the server starts again after 0.5, 2, 5 and then 30 seconds, counting crashes over the last two minutes. A crash never ends the terminals. A first start that fails with nothing to keep (the port taken) is not retried.
+- The keeper watches the server's built code by content, so a build that writes the same code again restarts nothing. A page-only build restarts nothing either: the server names the page build on disk in every snapshot, so an open page from the older build reloads itself.
+- After a restart the server takes over the terminals still running and keeps their sessions; the others go to Recently closed. A permission or question the old server was holding is shown as waiting in the session's terminal, since the agent asked there when the hook's connection ended.
+- `heyterm stop` reaches the keeper by its process id when the server is not answering. `HEYTERM_NO_KEEPER=1` runs the server alone, with the terminals ending with it, as before.
+- Changes to the keeper itself take effect at the next stop and start; the two sides check one protocol version and say so when they differ.
+- Checked live on 26 October 2026 with a counter in a terminal session: heyterm restart (0.3 seconds), a rebuild with new server code, a page-only rebuild, kill -9 of the server, an open page's pane through a restart, heyterm stop and Ctrl+C (both end everything), and a held permission across a restart.
+
 ## Sessions started outside HeyTerm
 
 - Setup's **Connect my sessions** adds HeyTerm's hooks to `~/.claude/settings.json`, after copying the file to `~/.heyterm/backups`. **Disconnect** removes exactly those entries. A settings file that is not valid JSON is refused, never overwritten.

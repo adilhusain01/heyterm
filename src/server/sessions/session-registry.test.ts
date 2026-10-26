@@ -295,3 +295,17 @@ describe("SessionRegistry with sessions from another computer", () => {
     expect(registry.get("vps/voice-sticky")?.hostUnreachable).toBeUndefined();
   });
 });
+
+describe("SessionRegistry.restore after the server restarted", () => {
+  // Seen on 26 October 2026: a permission held when HeyTerm restarted still showed Approve, which
+  // answered nothing, because the held request ended with the old server and Claude asked in its terminal.
+  it("shows a request the old server was holding as waiting in the session's terminal", () => {
+    const registry = makeRegistry();
+    const pending = { kind: "permission" as const, requestId: "r1", toolName: "Bash", toolInput: {}, summary: "npm test", risk: "low" as const, riskReasons: [], createdAt: 0 };
+    registry.restore([session("whisker", { agent: "claude", state: "needs_permission", pending }), session("synqed", { agent: "claude", state: "working" })], []);
+    expect(registry.get("whisker")).toMatchObject({ state: "asked", blockedByTerminalDialog: true });
+    expect(registry.get("whisker")?.pending).toBeUndefined();
+    expect(registry.get("synqed")).toMatchObject({ state: "working" });
+    expect(registry.get("synqed")?.blockedByTerminalDialog).toBeUndefined();
+  });
+});

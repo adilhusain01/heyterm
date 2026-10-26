@@ -30,7 +30,8 @@ export class EventHub {
     private readonly setup: SetupService,
     private readonly macVoice: MacVoice,
     private readonly assistant: Assistant,
-    private readonly pageEntry?: string,
+    // The page build on disk now, so an open page from an older build reloads itself.
+    private readonly pageEntry?: () => string | undefined,
   ) {
     assistant.on("conversation", (entries) => this.broadcast({ type: "conversation", entries }));
     assistant.on("say", (text) => this.broadcast({ type: "say", text }));
@@ -140,7 +141,7 @@ export class EventHub {
       projects: this.projectNames,
       control: this.executor.controlState(),
       serverTime: Date.now(),
-      ...(this.pageEntry ? { pageEntry: this.pageEntry } : {}),
+      ...(this.pageEntry?.() ? { pageEntry: this.pageEntry() } : {}),
     };
   }
 

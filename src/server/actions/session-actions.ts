@@ -134,7 +134,7 @@ export class SessionActions {
   async closeWarning(sessionName: string): Promise<string | undefined> {
     const session = this.registry.get(sessionName);
     if (!session) return undefined;
-    if (session.agent === "shell") return this.launcher.isCommandRunning(sessionName) ? "is still running a command" : undefined;
+    if (session.agent === "shell") return (await this.launcher.isCommandRunning(sessionName)) ? "is still running a command" : undefined;
     if (session.state === "working") return "is still working";
     return (await this.hasUncommittedChanges(sessionName)) ? "has uncommitted changes" : undefined;
   }

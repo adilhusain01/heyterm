@@ -2,7 +2,7 @@
 // only stops watching; the session keeps running.
 
 import type { WebSocket } from "ws";
-import type { TerminalHost } from "../terminals/terminal-host.ts";
+import type { Terminals } from "../terminals/terminals.ts";
 
 type TerminalClientMessage = { type: "input"; data: string } | { type: "resize"; columns: number; rows: number };
 
@@ -17,7 +17,7 @@ export interface RemoteTerminals {
 
 export class TerminalBridge {
   constructor(
-    private readonly host: TerminalHost,
+    private readonly host: Terminals,
     private readonly remote?: RemoteTerminals,
   ) {}
 

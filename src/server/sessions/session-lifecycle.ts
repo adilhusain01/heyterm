@@ -121,6 +121,13 @@ export class SessionLifecycle {
     return SessionLifecycle.moveTo(withMessage, endsWithQuestion(lastMessage) ? "asked" : "done", event.receivedAt);
   }
 
+  // A permission or question is held open by the server that received it. After a restart nothing
+  // holds it: the agent asked in its own terminal instead, so that is where it waits.
+  static afterHeldRequestLost(session: SessionView, now: number): SessionView {
+    if (!session.pending) return session;
+    return SessionLifecycle.moveTo({ ...session, pending: undefined, blockedByTerminalDialog: true }, "asked", now);
+  }
+
   private static moveTo(session: SessionView, state: SessionState, now: number): SessionView {
     const leavingWait = statesWaitingOnUser.includes(session.state) && !statesWaitingOnUser.includes(state);
     const waitedMillisecondsToday = leavingWait

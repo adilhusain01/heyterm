@@ -1,9 +1,11 @@
 // Starts HeyTerm: hooks, terminals, sessions, the assistant and the local server. Every way of
 // stopping (the stop command, Ctrl+C, Quit in the page, closing the last page) ends in stop().
+// Run by the terminal keeper (keeper/terminal-keeper.ts), it can also restart(): the server goes
+// and comes back with new code while the keeper keeps the terminals, and the sessions in them, running.
 
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -13,7 +15,6 @@ import { SessionActions } from "./actions/session-actions.ts";
 import { createAssistant } from "./conductor/create-assistant.ts";
 import { AssistantMemory } from "./conductor/assistant-memory.ts";
 import { loadConfig } from "./config.ts";
-import { PageBuild } from "../shared/page-build.ts";
 import { RemoteHosts } from "./remote/remote-hosts.ts";
 import { PagePresence } from "./http/page-presence.ts";
 import { AttachmentRules } from "./attachments/attachment-rules.ts";
@@ -23,6 +24,9 @@ import { HeldHookRequests } from "./hooks/held-hook-requests.ts";
 import { AgentHookFiles } from "./hooks/agent-hook-files.ts";
 import { HookInstaller } from "./hooks/hook-installer.ts";
 import { HeyTermHttpServer } from "./http/heyterm-http-server.ts";
+import { PageEntryOnDisk } from "./http/page-entry-on-disk.ts";
+import { KeeperRules } from "./keeper/keeper-rules.ts";
+import type { KeptTerminals } from "./keeper/kept-terminals.ts";
 import { EventHub } from "./http/event-hub.ts";
 import { PairingTickets } from "./http/pairing-tickets.ts";
 import { RequestGuard } from "./http/request-guard.ts";
@@ -57,7 +61,13 @@ export interface RunningHeyTerm {
   stop(reason: string): Promise<void>;
 }
 
-export async function startHeyTerm(): Promise<RunningHeyTerm> {
+export interface KeeperConnection {
+  terminals: KeptTerminals;
+  // The terminals that outlived the last server: their sessions carry on.
+  runningTerminalNames: string[];
+}
+
+export async function startHeyTerm(keeper?: KeeperConnection): Promise<RunningHeyTerm> {
   // A stray rejected promise is logged, not allowed to take every running session down with the server.
   process.on("unhandledRejection", (reason) => console.error("HeyTerm caught an unexpected error:", reason instanceof Error ? reason.message : reason));
   const config = await loadConfig();
@@ -82,7 +92,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   }, 30_000);
   await stopSessionsFromOlderVersion(config.tmuxSocketName);
 
-  const host = new TerminalHost();
+  const host = keeper?.terminals ?? new TerminalHost();
   const heldRequests = new HeldHookRequests();
   const store = new StateStore(config.dataDirectory);
   const registry = new SessionRegistry(store, heldRequests);
@@ -91,7 +101,9 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   registry.useTurnChangeTracker(new TurnChangeTracker());
 
   const launcher = new SessionLauncher(host, registry, { claudeSettingsPath: hooks.settingsPath, forwardScriptPath: hooks.forwardScriptPath }, new SessionWorktrees(config.dataDirectory));
-  launcher.restoreAfterStart();
+  launcher.restoreAfterStart(keeper?.runningTerminalNames ?? []);
+  const keptCount = keeper?.runningTerminalNames.filter((name) => registry.get(name)).length ?? 0;
+  if (keptCount > 0) console.log(`${keptCount === 1 ? "One session" : `${keptCount} sessions`} kept running through the restart.`);
   const trustWatcher = new TrustDialogWatcher(host, registry);
   trustWatcher.start();
   const claudeSessionWatcher = new ClaudeSessionWatcher(registry);
@@ -125,8 +137,8 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   if (showOwnTerminalSessions) await connector.connect().catch((error: Error) => console.error(error.message));
 
   const setup = new SetupService(projects, userConfig, connector, config.routerModel);
-  const pageEntry = PageBuild.entryFromIndexHtml(await readFile(path.join(config.webDirectory, "index.html"), "utf8").catch(() => ""));
-  const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant, pageEntry);
+  const pageEntry = new PageEntryOnDisk(config.webDirectory);
+  const hub = new EventHub(registry, executor, projects, setup, new MacVoice(), assistant, () => pageEntry.current());
   hub.inputLog = new InputLog(config.dataDirectory);
   const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin, config.acceptedHostNames);
   const tickets = new PairingTickets(hooks.token);
@@ -159,6 +171,26 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   };
   const stopAndExit = (reason: string) => void stop(reason).then(() => process.exit(0));
 
+  // The server goes and the keeper starts it again with the code on disk. The terminals, their hooks
+  // and the settings stay as they are; only what this process holds is let go of.
+  const restartAndExit = (reason: string) => {
+    if (!keeper) return stopAndExit(reason);
+    stopping ??= (async () => {
+      console.log(`\nRestarting HeyTerm (${reason}). The sessions keep running.`);
+      clearTimeout(closedPageTimer);
+      clearInterval(hookRepairTimer);
+      clearInterval(quietTimer);
+      trustWatcher.stop();
+      claudeSessionWatcher.stop();
+      assistant.close();
+      remoteHosts?.stop();
+      await registry.saveNow().catch(() => undefined);
+      await server.close();
+    })();
+    void stopping.then(() => process.exit(KeeperRules.restartExitCode));
+  };
+  keeper?.terminals.on("restart", () => restartAndExit("its code changed on disk"));
+
   let pageWasOpen = false;
   hub.onPageCountChange = (count, lastPageLeftOnPurpose) => {
     clearTimeout(closedPageTimer);
@@ -176,6 +208,7 @@ export async function startHeyTerm(): Promise<RunningHeyTerm> {
   };
   hub.onQuitRequest = () => stopAndExit("Quit in the page");
   server.onShutdownRequest = () => stopAndExit("heyterm stop");
+  if (keeper) server.onRestartRequest = () => restartAndExit("heyterm restart");
   server.onAttachment = async (sessionName, bytes, contentType) => {
     if (remoteHosts?.isRemote(sessionName)) return remoteHosts.attach(sessionName, bytes, contentType);
     const session = registry.get(sessionName);

@@ -29,3 +29,17 @@ describe("SessionLauncher with sessions from another computer", () => {
     expect(registry.list().map((open) => open.name)).toEqual(["vps/voice-sticky"]);
   });
 });
+
+describe("SessionLauncher after a restart that kept the terminals", () => {
+  // With the terminals kept outside the server (26 October 2026), a restart no longer ends them.
+  it("keeps the sessions whose terminals still run and closes only the rest", () => {
+    const registry = new SessionRegistry({ save: async () => undefined } as unknown as StateStore, { letGoAllFor: () => undefined } as unknown as HeldHookRequests);
+    registry.add(session("whisker", { state: "working" }));
+    registry.add(session("synqed", { state: "idle" }));
+    registry.add(session("own", { origin: "external" }));
+    launcherWith(registry).restoreAfterStart(["whisker"]);
+    expect(registry.list().map((open) => open.name)).toEqual(["whisker", "own"]);
+    expect(registry.get("whisker")?.state).toBe("working");
+    expect(registry.recentlyClosedSessions().map((closed) => closed.name)).toEqual(["synqed"]);
+  });
+});

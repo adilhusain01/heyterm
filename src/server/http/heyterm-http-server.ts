@@ -24,6 +24,8 @@ export class HeyTermHttpServer {
   private readonly sockets = new WebSocketServer({ noServer: true, maxPayload: largestSocketMessageBytes });
   // Called when someone with the token asks HeyTerm to stop.
   onShutdownRequest: () => void = () => undefined;
+  // Set only when a terminal keeper runs this server, since only then do the sessions survive it.
+  onRestartRequest: (() => void) | undefined;
   // Saves an image for a session and gives it to that session; main.ts sets it.
   onAttachment: (sessionName: string, bytes: Buffer, contentType: string) => Promise<{ ok: boolean; text: string }> = async () => ({ ok: false, text: "Attachments are not set up." });
   private readonly serveWeb: ((request: IncomingMessage, response: ServerResponse) => void) | undefined;
@@ -115,6 +117,12 @@ export class HeyTermHttpServer {
       if (!this.guard.hasToken(request)) return respond(response, 401, "");
       respond(response, 200, "stopping");
       return this.onShutdownRequest();
+    }
+    if (url.pathname === "/restart" && request.method === "POST") {
+      if (!this.guard.hasToken(request)) return respond(response, 401, "");
+      if (!this.onRestartRequest) return respond(response, 409, "This HeyTerm runs without its terminal keeper, so a restart would end its sessions. Stop it and start it again.");
+      respond(response, 200, "restarting");
+      return this.onRestartRequest();
     }
     if (this.serveWeb) return this.serveWeb(request, response);
     respond(response, 404, "The web UI is not built yet. Run npm run build, or npm run dev while working on HeyTerm.");
