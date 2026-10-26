@@ -22,8 +22,8 @@ describe("RemotesFile", () => {
     expect(await remotes.list()).toEqual([]);
   });
 
-  // It holds each computer's token.
-  it("keeps the file readable by this user only", async () => {
+  // It holds each computer's token. Windows has no such mode bits, as in data-folder.test.ts.
+  it.skipIf(process.platform === "win32")("keeps the file readable by this user only", async () => {
     const { remotes, folder } = file();
     await remotes.add({ name: "vps", url: "https://vps.example.ts.net:8443", token: "secret" });
     expect(statSync(path.join(folder, "remotes.json")).mode & 0o077).toBe(0);
