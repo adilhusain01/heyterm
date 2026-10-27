@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SessionRegistry } from "./session-registry.ts";
 import type { HeldHookRequests } from "../hooks/held-hook-requests.ts";
 import type { StateStore } from "./state-store.ts";
+import type { ClaudeSessionRecord } from "./claude-session-status.ts";
 import type { SessionView } from "../../shared/types.ts";
 
 function makeRegistry(): SessionRegistry {
@@ -307,5 +308,37 @@ describe("SessionRegistry.restore after the server restarted", () => {
     expect(registry.get("whisker")?.pending).toBeUndefined();
     expect(registry.get("synqed")).toMatchObject({ state: "working" });
     expect(registry.get("synqed")?.blockedByTerminalDialog).toBeUndefined();
+  });
+});
+
+describe("SessionRegistry.discoverOutsideSessions", () => {
+  const running = (overrides: Partial<ClaudeSessionRecord>): ClaudeSessionRecord => ({ pid: 1, sessionId: "7afa1836-aaaa", status: "busy", entrypoint: "cli", kind: "bg", cwd: "/root/Projects", ...overrides });
+
+  it("lists a running Claude session found only in its record, as one of the developer's own", () => {
+    const registry = makeRegistry();
+    registry.discoverOutsideSessions([running({ name: "kernel-cve-patch", nameSource: "user" }), running({ sessionId: "94dc5feb-bbbb", name: "94dc5feb", status: "idle" })], () => true, [], 1_000);
+    expect(registry.list().map((known) => [known.name, known.origin, known.state, known.agentSessionId])).toEqual([
+      ["kernel-cve-patch", "external", "working", "7afa1836-aaaa"],
+      ["projects", "external", "idle", "94dc5feb-bbbb"],
+    ]);
+  });
+
+  it("leaves out sessions it already knows and the ones it is told to ignore", () => {
+    const registry = makeRegistry();
+    registry.add(session("whisker", { agent: "claude", agentSessionId: "8fd9f8e2" }));
+    registry.discoverOutsideSessions([running({ sessionId: "8fd9f8e2" }), running({ sessionId: "assistant-id" })], () => true, ["assistant-id"], 1_000);
+    expect(registry.list().map((known) => known.name)).toEqual(["whisker"]);
+  });
+
+  it("follows the record's status until the session's own hooks report", async () => {
+    const registry = makeRegistry();
+    registry.discoverOutsideSessions([running({ status: "busy" })], () => true, [], 1_000);
+    const name = registry.list()[0]!.name;
+    registry.discoverOutsideSessions([running({ status: "idle" })], () => true, [], 2_000);
+    expect(registry.get(name)?.state).toBe("idle");
+    await registry.applyExternalHookEvent("UserPromptSubmit", { session_id: "7afa1836-aaaa", cwd: "/root/Projects", prompt: "go on" }, 3_000);
+    expect(registry.get(name)?.state).toBe("working");
+    registry.discoverOutsideSessions([running({ status: "idle" })], () => true, [], 4_000);
+    expect(registry.get(name)?.state).toBe("working");
   });
 });

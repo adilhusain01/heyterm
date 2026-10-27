@@ -51,7 +51,12 @@ export class ClaudeSessionWatcher {
   private polling = false;
   private hasPolled = false;
 
-  constructor(private readonly registry: SessionRegistry) {}
+  // shouldDiscover: whether running sessions found only in the records are listed (Setup's "Show
+  // your own sessions"); they join as the developer's own, like sessions their hooks report.
+  constructor(
+    private readonly registry: SessionRegistry,
+    private readonly shouldDiscover: () => Promise<boolean> = async () => false,
+  ) {}
 
   start(): void {
     this.timer = setInterval(() => void this.poll(), pollMilliseconds);
@@ -68,7 +73,10 @@ export class ClaudeSessionWatcher {
       const records = await ClaudeSessionRecords.read();
       // A Claude Code too old to keep records tells HeyTerm nothing. Sessions kept from before a
       // restart cannot be checked then, so they go, as they always did; hooks bring live ones back.
-      if (records) this.registry.reconcileClaudeSessions(records, ClaudeSessionRecords.processIsRunning, Date.now());
+      if (records) {
+        this.registry.reconcileClaudeSessions(records, ClaudeSessionRecords.processIsRunning, Date.now());
+        if (await this.shouldDiscover()) this.registry.discoverOutsideSessions(records.values(), ClaudeSessionRecords.processIsRunning, [], Date.now());
+      }
       else if (!this.hasPolled) this.registry.forgetExternalSessions();
       this.hasPolled = true;
     } finally {

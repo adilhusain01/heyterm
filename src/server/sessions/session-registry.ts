@@ -25,6 +25,8 @@ const recentlyClosedLimit = 20;
 export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   private readonly sessions = new Map<string, SessionView>();
   private recentlyClosed: SessionView[] = [];
+  // Sessions found in Claude Code's records whose state follows the record, by conversation id.
+  private readonly followingRecords = new Set<string>();
   // Closed sessions another computer's HeyTerm reports, by that computer (remote-host-rules.ts).
   private readonly hostRecentlyClosed = new Map<string, SessionView[]>();
   private readonly promptWaiters = new Map<string, Set<() => void>>();
@@ -248,9 +250,36 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
   }
 
   // An event from a session the user started in their own terminal, known by its Claude session id.
+  // Running Claude sessions that only Claude Code's records know about join as the developer's own,
+  // in the state their record shows, and follow it until their own hooks report.
+  discoverOutsideSessions(records: Iterable<ClaudeSessionRecord>, processIsRunning: (pid: number) => boolean, ignoredSessionIds: string[], now: number): void {
+    const recordList = [...records];
+    const knownSessionIds = new Set([...this.localSessions().map((known) => known.agentSessionId).filter((id): id is string => Boolean(id)), ...ignoredSessionIds]);
+    let changed = false;
+    for (const record of ClaudeSessionStatus.undiscovered(recordList, knownSessionIds, processIsRunning, now)) {
+      const shownName = ClaudeSessionStatus.shownName(record);
+      const state = ClaudeSessionStatus.stateFromStatus(record.status);
+      const found = this.newExternalSession(record.sessionId, { cwd: record.cwd, ...(shownName ? { session_title: shownName } : {}) }, now);
+      this.sessions.set(found.name, { ...found, state, ...(state === "asked" ? { blockedByTerminalDialog: true } : {}) });
+      this.followingRecords.add(record.sessionId);
+      changed = true;
+    }
+    for (const record of recordList) {
+      if (!this.followingRecords.has(record.sessionId)) continue;
+      const known = this.localSessions().find((session) => session.agentSessionId === record.sessionId);
+      const state = ClaudeSessionStatus.stateFromStatus(record.status);
+      if (!known || known.state === state) continue;
+      this.sessions.set(known.name, { ...known, state, stateSince: now, blockedByTerminalDialog: state === "asked" ? true : undefined });
+      changed = true;
+    }
+    if (changed) this.announceChange();
+  }
+
   async applyExternalHookEvent(name: HookEventName, payload: Record<string, unknown>, receivedAt: number): Promise<string> {
     const agentSessionId = typeof payload.session_id === "string" ? payload.session_id : "";
     if (!agentSessionId) return "";
+    // Its hooks report now, so its record no longer decides its state.
+    this.followingRecords.delete(agentSessionId);
     let session = this.localSessions().find((known) => known.origin === "external" && known.agentSessionId === agentSessionId);
     if (!session) {
       if (name === "SessionEnd") return "";

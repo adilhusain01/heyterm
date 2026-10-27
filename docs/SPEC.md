@@ -72,6 +72,8 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 
 ## Sessions started outside HeyTerm
 
+- With Show your own sessions on, a running Claude session HeyTerm has not heard from is listed from Claude Code's records (`~/.claude/sessions`): command-line runs only (interactive, or `bg` jobs as claude-keep makes), never print runs or SDK sessions such as HeyTerm's assistant, and only ten seconds after it started, by which time a session HeyTerm started itself has reported its id. It is named as it was named (`claude -n`), else after its folder, and its state follows the record (busy is working, waiting is asked in its terminal) until its own hooks report. Seen missing on the VPS on 26 October 2026: seven running sessions, none listed.
+
 - Setup's **Connect my sessions** adds HeyTerm's hooks to `~/.claude/settings.json`, after copying the file to `~/.heyterm/backups`. **Disconnect** removes exactly those entries. A settings file that is not valid JSON is refused, never overwritten.
 - Those hooks run a second script that reports only sessions HeyTerm did not start (and never the router's own calls), so no session reports twice.
 - An outside session appears under its title or folder name. Its permissions and questions can be answered by voice and it is announced like any other, but HeyTerm does not type into it and does not close it; it says so when asked.

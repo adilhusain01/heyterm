@@ -86,7 +86,8 @@ describe("ClaudeSessionStatus.verdict", () => {
 describe("ClaudeSessionStatus.parseRecord", () => {
   it("reads the fields it needs from a record Claude Code 2.1.310 wrote", () => {
     const text = JSON.stringify({ pid: 8515, sessionId: "70c7482b", cwd: "/p/synqed", kind: "bg", status: "shell", updatedAt: 1792929058440, statusUpdatedAt: 1792929058440, version: "2.1.309" });
-    expect(ClaudeSessionStatus.parseRecord(text)).toEqual({ pid: 8515, sessionId: "70c7482b", status: "shell", statusUpdatedAt: 1792929058440 });
+    // Since 27 October 2026 the folder and kind are needed too, to list sessions found only in records.
+    expect(ClaudeSessionStatus.parseRecord(text)).toEqual({ pid: 8515, sessionId: "70c7482b", status: "shell", statusUpdatedAt: 1792929058440, cwd: "/p/synqed", kind: "bg" });
   });
 
   it("refuses a record without a process or a session id", () => {
@@ -109,5 +110,54 @@ describe("ClaudeSessionStatus.recordsCanBeTrusted", () => {
 
   it("trusts records it can read, even beside one it cannot", () => {
     expect(ClaudeSessionStatus.recordsCanBeTrusted(3, 2)).toBe(true);
+  });
+});
+
+describe("ClaudeSessionStatus for sessions HeyTerm has not heard from", () => {
+  // Seen on 26 October 2026: the VPS's HeyTerm showed none of its seven running Claude sessions,
+  // because sessions are found only by their hooks, and these had sent none since it started.
+  it("reads a record's name, folder and kind of session", () => {
+    const text = JSON.stringify({ pid: 3834, sessionId: "7afa1836-aaaa", status: "idle", name: "kernel-cve-patch", nameSource: "user", cwd: "/root/Projects", kind: "bg", entrypoint: "cli" });
+    expect(ClaudeSessionStatus.parseRecord(text)).toEqual({ pid: 3834, sessionId: "7afa1836-aaaa", status: "idle", name: "kernel-cve-patch", nameSource: "user", cwd: "/root/Projects", kind: "bg", entrypoint: "cli" });
+  });
+
+  it("finds the running command-line sessions it does not know yet", () => {
+    const records = [
+      record({ sessionId: "running", pid: 1, entrypoint: "cli", kind: "interactive", cwd: "/p/a" }),
+      record({ sessionId: "background", pid: 2, entrypoint: "cli", kind: "bg", cwd: "/root/Projects" }),
+      record({ sessionId: "gone", pid: 3, entrypoint: "cli", kind: "interactive", cwd: "/p/b" }),
+      record({ sessionId: "known", pid: 4, entrypoint: "cli", kind: "interactive", cwd: "/p/c" }),
+      // HeyTerm's own assistant runs on the Agent SDK; other programs' SDK sessions are theirs too.
+      record({ sessionId: "assistant", pid: 5, entrypoint: "sdk-ts", kind: "interactive", cwd: "/Users/adil" }),
+      record({ sessionId: "print", pid: 6, entrypoint: "cli", kind: "print", cwd: "/p/d" }),
+      record({ sessionId: "nowhere", pid: 7, entrypoint: "cli", kind: "interactive" }),
+    ];
+    const found = ClaudeSessionStatus.undiscovered(records, new Set(["known"]), (pid) => pid !== 3);
+    expect(found.map((found) => found.sessionId)).toEqual(["running", "background"]);
+  });
+
+  it("gives a found session the state its record shows", () => {
+    expect(ClaudeSessionStatus.stateFromStatus("busy")).toBe("working");
+    expect(ClaudeSessionStatus.stateFromStatus("idle")).toBe("idle");
+    expect(ClaudeSessionStatus.stateFromStatus("shell")).toBe("idle");
+    expect(ClaudeSessionStatus.stateFromStatus("waiting")).toBe("asked");
+    expect(ClaudeSessionStatus.stateFromStatus(undefined)).toBe("idle");
+  });
+
+  // "87195547" is the conversation's id, which says nothing; the folder says more.
+  it("names a found session by the name given to it, else by its folder", () => {
+    expect(ClaudeSessionStatus.shownName(record({ sessionId: "87195547-1111", name: "kernel-cve-patch", nameSource: "user" }))).toBe("kernel-cve-patch");
+    expect(ClaudeSessionStatus.shownName(record({ sessionId: "87195547-1111", name: "87195547" }))).toBeUndefined();
+    expect(ClaudeSessionStatus.shownName(record({ sessionId: "aaaa", name: "adilhusain-90", nameSource: "derived" }))).toBeUndefined();
+  });
+});
+
+describe("ClaudeSessionStatus.undiscovered and a session HeyTerm just started", () => {
+  // A session HeyTerm starts writes its record before its first hook tells HeyTerm its id.
+  it("waits ten seconds after a session started before listing it as one found in its record", () => {
+    const now = 100_000;
+    const fresh = record({ sessionId: "fresh", pid: 1, entrypoint: "cli", kind: "interactive", cwd: "/p/a", startedAt: now - 3_000 });
+    const settled = record({ sessionId: "settled", pid: 2, entrypoint: "cli", kind: "interactive", cwd: "/p/b", startedAt: now - 30_000 });
+    expect(ClaudeSessionStatus.undiscovered([fresh, settled], new Set(), () => true, now).map((found) => found.sessionId)).toEqual(["settled"]);
   });
 });

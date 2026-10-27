@@ -74,7 +74,7 @@ Then:
 3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…", "open gemini in…", "start a grok session in…" or "open cursor in…" for the other agents. Or press **+**: pick a project, type any folder's path (`~/` shows the folders to go into, as in VS Code's Open Folder), or use **Choose a folder…** for your system's folder dialog (on Windows the newer one when PowerShell 7 is installed; on Linux zenity or KDE's kdialog).
 4. Use headphones, so HeyTerm's spoken alerts never end up in your own dictation.
 
-To see the Claude sessions you start in your own terminals as well, open Setup and press **Show them** under Your own Claude sessions. While HeyTerm runs, its hooks sit in `~/.claude/settings.json` (backed up first in `~/.heyterm/backups`); they come out when HeyTerm stops. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.
+To see the Claude sessions you start in your own terminals as well, open Setup and press **Show them** under Your own Claude sessions. Sessions already running then show up within a few seconds, read from Claude Code's own records, even before they report anything. While HeyTerm runs, its hooks sit in `~/.claude/settings.json` (backed up first in `~/.heyterm/backups`); they come out when HeyTerm stops. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.
 
 ## Starting, stopping and removing it
 
@@ -100,7 +100,7 @@ npx heyterm --remote-host --allow-host vps.your-tailnet.ts.net
 tailscale serve --bg --https=8443 http://127.0.0.1:4747
 ```
 
-`--remote-host` keeps it running with no page open, keeps it quiet, and shows the server's own Claude sessions, including the ones `claude-keep` holds open. It still listens on 127.0.0.1 only. `tailscale serve` is what reaches it, and `--allow-host` lets through requests that name that address.
+`--remote-host` keeps it running with no page open, keeps it quiet, and shows the server's own Claude sessions, including the ones `claude-keep` holds open, as soon as they are running. It still listens on 127.0.0.1 only. `tailscale serve` is what reaches it, and `--allow-host` lets through requests that name that address.
 
 On the Mac, add the server once and restart HeyTerm:
 
