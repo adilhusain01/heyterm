@@ -2,10 +2,12 @@
 
 import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { ChangeSummary, type ChangeSummaryResult } from "../../shared/change-summary.ts";
 import { CatchUpDigest, type SessionDigest } from "../../shared/catch-up.ts";
+import { FolderByName } from "../projects/folder-by-name.ts";
 import { SessionLifecycle } from "../sessions/session-lifecycle.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { RemoteSessionGateway } from "../remote/remote-gateway.ts";
@@ -19,6 +21,8 @@ type SessionAction = Extract<RouterAction, { type: "spawn" | "resume" | "interru
 
 export class SessionActions {
   private remote: RemoteSessionGateway | undefined;
+  // Where a folder named out loud ("a terminal in downloads") is looked for.
+  homeFolder = os.homedir();
 
   constructor(
     private readonly registry: SessionRegistry,
@@ -151,11 +155,12 @@ export class SessionActions {
   }
 
   private async spawn(action: Extract<SessionAction, { type: "spawn" }>, focus: (sessionName: string) => void): Promise<Feedback> {
-    const project = await this.projects.find(action.project);
-    if (!project) return { text: `I could not find a project called ${action.project}.`, tone: "warning", speak: true };
+    if (action.host) return this.spawnOnAnotherComputer(action);
+    const project = await this.projectOrNamedFolder(action.project);
+    if ("problem" in project) return { text: project.problem, tone: "warning", speak: true };
     let session;
     try {
-      session = await this.launcher.start(project.path, project.name, action.task, action.agent);
+      session = await this.launcher.start(project.path, project.name, action.task, action.agent, { sharedFolder: action.sharedFolder === true });
     } catch (error) {
       return { text: error instanceof Error ? error.message : String(error), tone: "warning", speak: true };
     }
@@ -166,8 +171,26 @@ export class SessionActions {
       return { text: `Starting ${session.name} in a copy of the folder of its own, on a new branch, so it and the other session there cannot change each other's files. It starts from the last commit.${taskNote}`, tone: "success", speak: true };
     }
     const sharing = this.registry.localSessions().find((other) => other.name !== session.name && other.projectPath === session.projectPath);
+    if (sharing && action.sharedFolder) return { text: `Starting ${session.name} in the same folder as ${sharing.name}, as asked, so the two can change each other's files.${taskNote}`, tone: "warning", speak: true };
     if (sharing) return { text: `Starting ${session.name}. It shares ${sharing.name}'s folder, which is not a git repository, so the two can change each other's files.${taskNote}`, tone: "warning", speak: true };
     return { text: `Starting ${session.name}.${taskNote}`, tone: "success", speak: false };
+  }
+
+  // A project by name, a folder by path, or else a folder of that name in the home folder.
+  private async projectOrNamedFolder(nameOrPath: string): Promise<{ name: string; path: string } | { problem: string }> {
+    const project = await this.projects.find(nameOrPath);
+    if (project) return project;
+    const named = await FolderByName.find(nameOrPath, this.homeFolder);
+    if (named.found) return { name: path.basename(named.found).toLowerCase(), path: named.found };
+    if (named.several) return { problem: `There are ${named.several.length} folders called ${nameOrPath}: ${named.several.join(", ")}. Which one?` };
+    return { problem: `I could not find a project or folder called ${nameOrPath}.` };
+  }
+
+  private async spawnOnAnotherComputer(action: Extract<SessionAction, { type: "spawn" }>): Promise<Feedback> {
+    const host = action.host!;
+    if (!this.remote?.hasHost(host)) return { text: `HeyTerm does not know a computer called ${host}. Add it with heyterm remote add ${host} <address>.`, tone: "warning", speak: true };
+    const feedback = await this.remote.perform(action);
+    return feedback.tone === "warning" ? feedback : { ...feedback, text: `${feedback.text.replace(/\.$/, "")} on ${host}.` };
   }
 
   private async resume(sessionName: string, focus: (sessionName: string) => void): Promise<Feedback> {

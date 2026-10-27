@@ -1,6 +1,7 @@
 // Puts the assistant together: its Claude conversation, its tools, and the check that holds its
 // own risky commands for a spoken "confirm".
 
+import type { AssistantPermissionChoice } from "./assistant-permissions.ts";
 import { Assistant } from "./assistant.ts";
 import type { AssistantMemory } from "./assistant-memory.ts";
 import { Conductor } from "./conductor.ts";
@@ -31,6 +32,7 @@ interface AssistantDependencies {
   audit: AuditLog;
   // Sessions on another computer's HeyTerm (vps/name); reading their screen goes there.
   remote?: RemoteSessionGateway;
+  permissionChoice?: AssistantPermissionChoice;
 }
 
 export function createAssistant(dependencies: AssistantDependencies): Assistant {
@@ -61,6 +63,7 @@ export function createAssistant(dependencies: AssistantDependencies): Assistant 
     tools: createConductorTools(dependencies),
     beforeTool,
     askDeveloper,
+    ...(dependencies.permissionChoice ? { permissionChoice: dependencies.permissionChoice } : {}),
     ...(dependencies.memory ? { memory: dependencies.memory } : {}),
   });
   assistant = new Assistant(conductor, () => executor.situation(), () => executor.currentMode());

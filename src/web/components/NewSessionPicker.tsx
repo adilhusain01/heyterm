@@ -60,6 +60,13 @@ export function NewSessionPicker({ onDone }: { onDone: () => void }) {
       {/* A plain terminal needs nothing installed, so there is always a choice to make here. */}
       {/* Up to three choices fit one row of the sidebar; more go into rows of three. */}
       <Segmented label="Agent" stretch columns={agentOptions.length > 3 ? 3 : undefined} value={agent} onChange={setAgent} options={agentOptions} />
+      {/* Adil, 27 October 2026: choosing a folder comes first, the projects after it. */}
+      {folderDialogAvailable && (
+        <button type="button" disabled={isDialogOpen} onClick={() => void startFromDialog()} className={`${rowClass} font-sans disabled:cursor-default disabled:text-ink-faint disabled:hover:bg-transparent`}>
+          <FolderIcon size={16} className="shrink-0" />
+          <span className="truncate">{isDialogOpen ? "Pick the folder in the dialog…" : "Choose a folder…"}</span>
+        </button>
+      )}
       <input
         ref={inputRef}
         autoFocus
@@ -69,7 +76,7 @@ export function NewSessionPicker({ onDone }: { onDone: () => void }) {
           if (event.key === "Escape") onDone();
           if (event.key === "Enter") startWithEnter();
         }}
-        placeholder="Find a project, or type a path like ~/"
+        placeholder={folderDialogAvailable ? "Find a project" : "Find a project, or type a path like ~/"}
         aria-label="Project or folder"
         className="h-8 rounded-tiny border border-line bg-panel px-2.5 text-meta text-ink outline-none placeholder:text-ink-faint focus:border-line-strong"
       />
@@ -85,12 +92,6 @@ export function NewSessionPicker({ onDone }: { onDone: () => void }) {
           ))}
           {shownProjects.length === 0 && <p className="px-2.5 py-1.5 text-meta text-ink-faint">No project matches. Type a path like ~/ to open any folder.</p>}
         </>
-      )}
-      {folderDialogAvailable && (
-        <button type="button" disabled={isDialogOpen} onClick={() => void startFromDialog()} className={`${rowClass} border-t border-line font-sans text-ink-muted hover:text-ink disabled:cursor-default disabled:text-ink-faint disabled:hover:bg-transparent`}>
-          <FolderIcon size={16} className="shrink-0" />
-          <span className="truncate">{isDialogOpen ? "Pick the folder in the dialog…" : "Choose a folder…"}</span>
-        </button>
       )}
     </Tray>
   );

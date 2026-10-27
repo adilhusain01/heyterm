@@ -8,8 +8,9 @@ import type { AgentKind, SessionView } from "../../shared/types.ts";
 export class WorktreePlan {
   // A terminal works in the folder itself, and an open terminal does not count as using one: a shell
   // edits nothing unless the developer runs something in it.
-  static needsOwnWorktree(projectPath: string, openSessions: Array<Pick<SessionView, "projectPath" | "state"> & { agent?: AgentKind }>, newSessionAgent: AgentKind = "claude"): boolean {
-    if (newSessionAgent === "shell") return false;
+  // sharedFolder: the developer asked for the same folder, knowing the sessions can change each other's files.
+  static needsOwnWorktree(projectPath: string, openSessions: Array<Pick<SessionView, "projectPath" | "state"> & { agent?: AgentKind }>, newSessionAgent: AgentKind = "claude", options: { sharedFolder?: boolean } = {}): boolean {
+    if (newSessionAgent === "shell" || options.sharedFolder) return false;
     return openSessions.some((session) => session.agent !== "shell" && session.state !== "stopped" && foldersOverlap(session.projectPath, projectPath));
   }
 

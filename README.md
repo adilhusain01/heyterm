@@ -32,7 +32,7 @@ python3 scripts/measure-waits.py
 | "what did api change?" | names the files api changed in its last task, with line counts |
 | "be quiet" / "mute" / "talk to me" | announcements for questions and permissions only, sounds only, or everything |
 
-Those happen at once on your computer. Everything else goes to the assistant in the middle: Claude (Opus 5.5 at low effort) on the Agent SDK, through your own Claude Code login, so there is no API key to set up. Ask it anything ("what is everyone doing?", "what changed in heyterm today?", "start a session in portfolio and fix the header", "what time is it in Germany?") and it answers out loud, reads sessions, sends them work, and does anything Claude Code can on your Mac: runs commands, installs tools, writes files, searches the web and looks at your screen when you ask. Coding in a project still goes to that project's session, so you can follow it. It does whatever your Claude Code permission mode allows, asks you out loud whenever Claude Code would ask, and remembers your conversation across restarts. When a session needs you, the assistant tells you what it wants and what to say, in plain words, without reading the command out.
+Those happen at once on your computer. Everything else goes to the assistant in the middle: Claude (Opus 5.5 at low effort) on the Agent SDK, through your own Claude Code login, so there is no API key to set up. Ask it anything ("what is everyone doing?", "what changed in heyterm today?", "start a session in portfolio and fix the header", "what time is it in Germany?") and it answers out loud, reads sessions, sends them work, and does anything Claude Code can on your Mac: runs commands, installs tools, writes files, searches the web and looks at your screen when you ask. Coding in a project still goes to that project's session, so you can follow it. It opens sessions and terminals anywhere: a project, any folder by path or by name ("open a terminal in downloads"), the same folder as another session when you say so, or another computer such as your VPS. It does whatever your Claude Code permission mode allows and asks you out loud whenever Claude Code would ask; Setup's **Full access** lets it act without asking. Either way it never touches a PrivateKeys folder. It remembers your conversation across restarts. When a session needs you, the assistant tells you what it wants and what to say, in plain words, without reading the command out.
 
 HeyTerm speaks with your Mac's own voice (whatever is set in System Settings, Accessibility, Spoken Content; Siri voices work there), or the browser's voice if you pick it in Setup.
 
@@ -71,7 +71,7 @@ Then:
 
 1. Click anywhere on the page once, so the browser lets HeyTerm speak.
 2. Open Setup and check your project folders. HeyTerm looks in `~/Documents/Projects`, `~/Projects`, `~/code`, `~/dev`, `~/src` and `~/Developer` by default, and the assistant can start a session in any folder you name.
-3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…", "open gemini in…", "start a grok session in…" or "open cursor in…" for the other agents. Or press **+**: pick a project, type any folder's path (`~/` shows the folders to go into, as in VS Code's Open Folder), or use **Choose a folder…** for your system's folder dialog.
+3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…", "open gemini in…", "start a grok session in…" or "open cursor in…" for the other agents. Or press **+**: pick a project, type any folder's path (`~/` shows the folders to go into, as in VS Code's Open Folder), or use **Choose a folder…** for your system's folder dialog (on Windows the newer one when PowerShell 7 is installed; on Linux zenity or KDE's kdialog).
 4. Use headphones, so HeyTerm's spoken alerts never end up in your own dictation.
 
 To see the Claude sessions you start in your own terminals as well, open Setup and press **Show them** under Your own Claude sessions. While HeyTerm runs, its hooks sit in `~/.claude/settings.json` (backed up first in `~/.heyterm/backups`); they come out when HeyTerm stops. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.
@@ -114,7 +114,7 @@ The token comes in on standard input, so it stays out of your shell history, and
 
 The server's sessions keep running while the Mac sleeps. When the Mac cannot reach the server, they show "vps not reachable" and nothing is sent there; HeyTerm keeps trying, and redraws them when the server answers again. A session from the server's own terminal can be answered but not typed into, the same as on the Mac, until "open X here" moves it into the server's HeyTerm.
 
-Not there yet: starting a session on the server from the Mac, line counts in "what did X change" for a server's session, and reading a command's output in a server's terminal any sooner than a fixed 4 seconds.
+To start a session there, ask the assistant ("open a terminal on vps in ~/Projects/notes"). Not there yet: line counts in "what did X change" for a server's session, and reading a command's output in a server's terminal any sooner than a fixed 4 seconds.
 
 ## How it works
 

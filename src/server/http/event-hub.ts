@@ -79,6 +79,12 @@ export class EventHub {
       if (message.type === "connect_existing_sessions") await this.connectExistingSessions(message.connected === true);
       if (message.type === "quit") return this.onQuitRequest();
       if (message.type === "input_diagnostics" && Array.isArray(message.records)) this.inputLog?.record(message.records);
+      if (message.type === "set_assistant_permissions") {
+        const choice = message.choice === "full" ? "full" : "ask";
+        await this.setup.setAssistantPermissions(choice);
+        this.assistant.setPermissionChoice(choice);
+        await this.sendSetup();
+      }
       if (message.type === "set_keep_running") {
         await this.setup.setKeepRunningWithoutPage(message.keepRunning === true);
         await this.sendSetup();

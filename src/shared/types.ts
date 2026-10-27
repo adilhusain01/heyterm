@@ -160,7 +160,8 @@ export type RouterAction =
   | { type: "catch_up"; session?: string }
   | { type: "status"; session: string }
   | { type: "focus"; session: string }
-  | { type: "spawn"; project: string; task?: string; agent?: AgentKind }
+  // host: start it on another computer's HeyTerm; sharedFolder: no worktree copy, even beside another session.
+  | { type: "spawn"; project: string; task?: string; agent?: AgentKind; host?: string; sharedFolder?: boolean }
   | { type: "close"; session: string; confirmed: boolean }
   | { type: "resume"; session: string }
   | { type: "rename"; session: string; newName: string }

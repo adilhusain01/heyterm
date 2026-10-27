@@ -54,12 +54,13 @@ export class SessionLauncher {
     host.on("exit", (name) => this.registry.remove(name));
   }
 
-  async start(projectPath: string, projectName: string, task?: string, agent: AgentKind = "claude"): Promise<SessionView> {
+  // sharedFolder: the same folder even beside another session, when the developer asked for it.
+  async start(projectPath: string, projectName: string, task?: string, agent: AgentKind = "claude", options: { sharedFolder?: boolean } = {}): Promise<SessionView> {
     await this.ensureInstalled(agent);
     const isTerminal = agent === "shell";
     const name = this.uniqueName(isTerminal ? ShellRules.sessionName(projectName) : projectName);
     // A second agent in a folder another open session uses works in a git worktree of its own.
-    const sharesAFolder = WorktreePlan.needsOwnWorktree(projectPath, this.registry.localSessions(), agent);
+    const sharesAFolder = WorktreePlan.needsOwnWorktree(projectPath, this.registry.localSessions(), agent, options);
     const made = sharesAFolder && this.worktrees ? await this.worktrees.create(projectPath, name) : undefined;
     const now = Date.now();
     const session: SessionView = {

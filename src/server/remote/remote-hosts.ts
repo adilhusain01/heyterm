@@ -60,6 +60,10 @@ export class RemoteHosts extends EventEmitter<{ feedback: [Feedback] }> {
     }
   }
 
+  hasHost(host: string): boolean {
+    return this.connections.has(host);
+  }
+
   isRemote(sessionName: string): boolean {
     const split = RemoteHostRules.split(sessionName);
     return split !== undefined && this.connections.has(split.host);
@@ -68,7 +72,8 @@ export class RemoteHosts extends EventEmitter<{ feedback: [Feedback] }> {
   // Sends one action on a "host/name" session to its computer, and returns what that computer said.
   async perform(action: RouterAction): Promise<Feedback> {
     const forwarded = RemoteHostRules.forwardedAction(action);
-    const hostName = "session" in action && typeof action.session === "string" ? RemoteHostRules.split(action.session)?.host : undefined;
+    // A new session names its computer; anything else names a "host/name" session.
+    const hostName = action.type === "spawn" ? action.host : "session" in action && typeof action.session === "string" ? RemoteHostRules.split(action.session)?.host : undefined;
     const connection = hostName ? this.connections.get(hostName) : undefined;
     if (!forwarded || !connection) return { text: "That cannot be done on another computer's session.", tone: "warning", speak: true };
     if (!connection.connected || connection.socket?.readyState !== WebSocket.OPEN) return unreachable(connection.host.name);

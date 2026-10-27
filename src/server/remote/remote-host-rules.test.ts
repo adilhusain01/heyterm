@@ -74,3 +74,14 @@ describe("RemoteHostRules.readRemotes", () => {
     expect(RemoteHostRules.socketUrl("http://127.0.0.1:4860", "/pty?session=a", "t")).toBe("ws://127.0.0.1:4860/pty?session=a&token=t");
   });
 });
+
+describe("RemoteHostRules.forwardedAction for a new session", () => {
+  // Starting a session on the VPS from the Mac was the gap left in 0.1.11.
+  it("sends a new session to the computer it names, without the computer's name", () => {
+    expect(RemoteHostRules.forwardedAction({ type: "spawn", host: "vps", project: "voice-sticky", agent: "shell", task: "ls" })).toEqual({ type: "spawn", project: "voice-sticky", agent: "shell", task: "ls" });
+  });
+
+  it("keeps a new session on this computer when it names none", () => {
+    expect(RemoteHostRules.forwardedAction({ type: "spawn", project: "voice-sticky" })).toBeUndefined();
+  });
+});

@@ -52,7 +52,13 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 ## Starting a session in any folder
 
 - The + picker finds a project by name, or takes a folder's path: text starting with `~`, `/` or a drive letter lists the folders it could go on to (GET `/folders`, token only; folders only, hidden ones only when the typed name starts with a dot, at most 30). The typed folder itself is offered as "Start here"; Enter starts there, and the session is named after the folder.
-- **Choose a folder…** opens the system's folder dialog on the computer HeyTerm runs on (POST `/folders/choose`, token only, one at a time): macOS `choose folder`, Windows' folder browser through PowerShell, Linux `zenity` when a desktop has it. The row shows only where one is available (`folderDialogAvailable` in Setup), so never on a server.
+- **Choose a folder…** comes first in the picker, then the projects (Adil, 27 October 2026). It opens the system's folder dialog on the computer HeyTerm runs on (POST `/folders/choose`, token only, one at a time): macOS `choose folder`; Windows' folder browser through PowerShell 7 when installed (its .NET dialog is Explorer's own) or Windows PowerShell; Linux `zenity`, else KDE's `kdialog`, only with a display. The row shows only where one is available (`folderDialogAvailable` in Setup), so never on a server; there the search box suggests typing a path.
+
+## The assistant's reach
+
+- start_session takes a project, a path, or a folder's name, looked for in the home folder up to three levels down (hidden folders and dependencies skipped); the shallowest matches win, and several are named back so the assistant asks which. `same_folder` puts a second session in the folder itself instead of a worktree copy. `computer` (vps) starts it on that computer's HeyTerm, which names it; it shows here as `vps/<name>`.
+- When asked to type into or close a session in the developer's own terminal, the assistant offers to move it here with open_session_here first.
+- Setup's "The assistant" chooses "Asks like Claude Code" (auto mode, the default) or "Full access" (bypassPermissions, saved as `assistantPermissions` in `~/.heyterm/config.json`). The conversation starts with skipping permissions allowed and switches mode live with setPermissionMode, so the choice applies at once. The PrivateKeys hook applies in both: checked live on 27 October 2026 with a stand-in folder in full access, where the hook refused the call.
 
 ## Restarts that keep the sessions
 

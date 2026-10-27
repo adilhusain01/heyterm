@@ -18,4 +18,16 @@ describe("FolderDialog", () => {
     expect(FolderDialog.chosenPath("", "darwin")).toBeUndefined();
     expect(FolderDialog.chosenPath("  \n", "win32")).toBeUndefined();
   });
+
+  // Adil, 27 October 2026: a real folder dialog on Windows and Linux too.
+  it("uses the newer Windows dialog when PowerShell 7 is installed", () => {
+    expect(FolderDialog.command("win32", ["pwsh"])?.program).toBe("pwsh");
+    expect(FolderDialog.command("win32", [])?.program).toBe("powershell.exe");
+  });
+
+  it("uses KDE's own dialog on Linux when zenity is missing, and none when neither is there", () => {
+    expect(FolderDialog.command("linux", ["zenity", "kdialog"])?.program).toBe("zenity");
+    expect(FolderDialog.command("linux", ["kdialog"])?.program).toBe("kdialog");
+    expect(FolderDialog.command("linux", [])).toBeUndefined();
+  });
 });

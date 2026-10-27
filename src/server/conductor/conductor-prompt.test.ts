@@ -74,4 +74,12 @@ describe("ConductorTurnText", () => {
     expect(conductorSystemPrompt).toContain("misheard");
     expect(conductorSystemPrompt).toContain("nothing they did not ask for");
   });
+
+  // Adil, 27 October 2026: the assistant should open terminals and sessions wherever he says.
+  it("tells the assistant it can start anywhere: a folder by name, the same folder, another computer", () => {
+    expect(conductorSystemPrompt).toContain("same_folder");
+    expect(conductorSystemPrompt).toContain("computer");
+    expect(conductorSystemPrompt).toContain("a folder's name");
+    expect(conductorSystemPrompt).toContain("offer to move it here");
+  });
 });

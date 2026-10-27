@@ -113,6 +113,7 @@ function SetupSections({ setup }: { setup: SetupStatus }) {
       <VoiceSection />
       <ProjectFoldersSection setup={setup} />
       <ExistingSessionsSection connected={setup.existingSessionsConnected} />
+      <AssistantSection choice={setup.assistantPermissions ?? "ask"} />
       <RunningSection keepRunning={setup.keepRunningWithoutPage} />
       <Section
         title="The assistant"
@@ -227,6 +228,31 @@ function ExistingSessionsSection({ connected }: { connected: boolean }) {
           <PanelButton onClick={() => connection.send({ type: "connect_existing_sessions", connected: !connected })}>{connected ? "Hide them" : "Show them"}</PanelButton>
         </span>
       </div>
+    </Section>
+  );
+}
+
+function AssistantSection({ choice }: { choice: "ask" | "full" }) {
+  const { connection } = useHeyTerm();
+  return (
+    <Section
+      title="The assistant"
+      help={
+        <>
+          <span>The assistant can run commands, change files and use your tools, like Claude Code. By default it asks you out loud whenever Claude Code would ask.</span>
+          <span>With full access it never asks. Nothing it does touches a PrivateKeys folder either way.</span>
+        </>
+      }
+    >
+      <Segmented
+        label="The assistant's permissions"
+        value={choice}
+        onChange={(value) => connection.send({ type: "set_assistant_permissions", choice: value })}
+        options={[
+          { value: "ask", label: "Asks like Claude Code" },
+          { value: "full", label: "Full access" },
+        ]}
+      />
     </Section>
   );
 }

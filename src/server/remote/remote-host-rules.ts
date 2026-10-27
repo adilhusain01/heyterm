@@ -57,6 +57,12 @@ export class RemoteHostRules {
   // The action as the other HeyTerm should see it: its own session name, and confirmed, because any
   // preview or "say confirm" already happened on this computer.
   static forwardedAction(action: RouterAction): RouterAction | undefined {
+    // A new session names its computer instead of a session; that computer starts it as its own.
+    if (action.type === "spawn") {
+      if (!action.host) return undefined;
+      const { host: _computer, ...onThatComputer } = action;
+      return onThatComputer;
+    }
     if (!forwardedTypes.has(action.type) || !("session" in action) || typeof action.session !== "string") return undefined;
     const split = RemoteHostRules.split(action.session);
     if (!split) return undefined;

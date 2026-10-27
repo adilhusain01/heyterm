@@ -39,7 +39,9 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
     return reply(session ? await act(session) : `There is no session called ${name}. Sessions: ${registry.list().map((known) => known.name).join(", ") || "none"}.`);
   };
   const ownSessionOnly = (session: SessionView, act: () => Promise<string>) =>
-    session.origin === "external" ? Promise.resolve(`${session.name} runs in the developer's own terminal. HeyTerm cannot type into it or close it; tell the developer to do it there.`) : act();
+    session.origin === "external"
+      ? Promise.resolve(`${session.name} runs in the developer's own terminal, so HeyTerm cannot type into it or close it there. Offer to move it into HeyTerm with open_session_here (its conversation carries on, and its terminal window closes), then do this; or the developer does it in that terminal.`)
+      : act();
 
   return createSdkMcpServer({
     name: "heyterm",
@@ -116,14 +118,19 @@ export function createConductorTools(dependencies: ConductorToolDependencies): M
       ),
       tool(
         "start_session",
-        "Start a new coding agent session in a folder, with its first task if there is one. The folder is a project name from list_projects or any folder path on this Mac, such as ~/Documents/Projects. The agent is Claude Code unless the developer asks for Codex, Gemini, Grok (Grok Build) or Cursor. Agent shell is a plain terminal, the developer's login shell with no agent: use it when they ask to open a terminal or a shell; its task, if any, is a shell command to run.",
+        "Start a new coding agent session in a folder, with its first task if there is one. The folder is a project name from list_projects, any folder path such as ~/Documents/Projects, or a folder's name, such as downloads, found in the home folder (when several have the name, ask which). The agent is Claude Code unless the developer asks for Codex, Gemini, Grok (Grok Build) or Cursor. Agent shell is a plain terminal, the developer's login shell with no agent: use it when they ask to open a terminal or a shell; its task, if any, is a shell command to run. A second agent in a folder another session works in gets its own git worktree copy, unless same_folder: only when the developer asks for the same folder. computer starts it on another computer's HeyTerm, such as vps, where the folder is that computer's.",
         {
-          project: z.string().describe("A project name, or a folder path"),
+          project: z.string().describe("A project name, a folder path, or a folder's name"),
           task: z.string().optional(),
           agent: z.enum(["claude", "codex", "gemini", "grok", "cursor", "shell"]).optional(),
+          same_folder: z.boolean().optional().describe("Work in the folder itself even beside another session, instead of a worktree copy"),
+          computer: z.string().optional().describe("Another computer's name, such as vps, to start it there"),
         },
-        async ({ project, task, agent }) =>
-          reply((await sessionActions.perform({ type: "spawn", project, ...(task ? { task } : {}), ...(agent ? { agent } : {}) }, (sessionName) => executor.setFocus(sessionName))).text),
+        async ({ project, task, agent, same_folder, computer }) =>
+          reply(
+            (await sessionActions.perform({ type: "spawn", project, ...(task ? { task } : {}), ...(agent ? { agent } : {}), ...(same_folder ? { sharedFolder: true } : {}), ...(computer ? { host: computer } : {}) }, (sessionName) => executor.setFocus(sessionName)))
+              .text,
+          ),
       ),
       tool("close_session", "Close a session. Ask the developer first when it is working or has uncommitted changes.", { name: z.string(), confirmed: z.boolean().optional() }, ({ name, confirmed }) =>
         withSession(name, (session) =>

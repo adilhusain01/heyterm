@@ -11,6 +11,8 @@ export interface UserConfigValues {
   showOwnTerminalSessions?: boolean;
   // Keep running after the last HeyTerm page is closed. Off by default: closing HeyTerm closes it.
   keepRunningWithoutPage?: boolean;
+  // How the assistant's own tool calls are allowed: "ask" (as Claude Code would) or "full" access.
+  assistantPermissions?: "ask" | "full";
 }
 
 export class UserConfig {

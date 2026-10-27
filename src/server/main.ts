@@ -121,7 +121,7 @@ export async function startHeyTerm(keeper?: KeeperConnection): Promise<RunningHe
     decisions.useRemoteHosts(remoteHosts);
   }
   const executor = new ActionExecutor(registry, projects, new FastPathRouter({ sendUnaddressedWordsToFocusedSession: false }), decisions, sessionActions);
-  const assistant = createAssistant({ model: config.routerModel, workingDirectory: os.homedir(), memory: new AssistantMemory(config.dataDirectory), registry, launcher, projects, sessionActions, decisions, executor, audit, ...(remoteHosts ? { remote: remoteHosts } : {}) });
+  const assistant = createAssistant({ permissionChoice: savedChoices.assistantPermissions ?? "ask", model: config.routerModel, workingDirectory: os.homedir(), memory: new AssistantMemory(config.dataDirectory), registry, launcher, projects, sessionActions, decisions, executor, audit, ...(remoteHosts ? { remote: remoteHosts } : {}) });
   executor.attachAssistant(assistant);
   executor.on("feedback", (feedback) => assistant.recordOutcome(feedback.text));
   // A HeyTerm serving another one has nobody to talk to: the other one's assistant does the talking.

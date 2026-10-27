@@ -1,6 +1,7 @@
 // The assistant as the rest of HeyTerm sees it: it hears what the user said, tells the user what
 // happened in the sessions, and keeps the conversation the UI shows.
 
+import type { AssistantPermissionChoice } from "./assistant-permissions.ts";
 import { ToolOutput } from "./tool-output.ts";
 import { EventEmitter } from "node:events";
 import { ConductorTurnText, type Situation } from "./conductor-prompt.ts";
@@ -63,6 +64,10 @@ export class Assistant extends EventEmitter<AssistantEvents> {
 
   recordOutcome(text: string): void {
     this.record("event", text);
+  }
+
+  setPermissionChoice(choice: AssistantPermissionChoice): void {
+    this.conductor.setPermissionChoice(choice);
   }
 
   close(): void {

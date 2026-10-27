@@ -43,3 +43,13 @@ describe("WorktreePlan.needsOwnWorktree for terminals", () => {
     expect(WorktreePlan.needsOwnWorktree("/p/api", [{ ...open("/p/api", "idle"), agent: "shell" }])).toBe(false);
   });
 });
+
+describe("WorktreePlan with the folder shared on purpose", () => {
+  // The assistant made whisker-2, whisker-4 and synqed-4 as worktree copies with no way to say
+  // "in the same folder" (seen in its conversation, 27 October 2026).
+  it("puts a second session in the same folder when the developer asked for that", () => {
+    const open = [{ projectPath: "/p/whisker", state: "working" as const, agent: "claude" as const }];
+    expect(WorktreePlan.needsOwnWorktree("/p/whisker", open, "claude")).toBe(true);
+    expect(WorktreePlan.needsOwnWorktree("/p/whisker", open, "claude", { sharedFolder: true })).toBe(false);
+  });
+});

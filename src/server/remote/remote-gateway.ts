@@ -6,6 +6,8 @@ import type { RouterAction } from "../../shared/types.ts";
 
 export interface RemoteSessionGateway {
   isRemote(sessionName: string): boolean;
+  // Whether a computer of that name is set up (remotes.json), for starting a session there.
+  hasHost(host: string): boolean;
   perform(action: RouterAction): Promise<Feedback>;
   readScreen(sessionName: string): Promise<string>;
 }

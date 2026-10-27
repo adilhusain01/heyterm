@@ -73,6 +73,8 @@ export interface SetupStatus {
   // Missing from an older server, which has none.
   folderDialogAvailable?: boolean;
   keepRunningWithoutPage: boolean;
+  // "ask": the assistant asks when Claude Code would; "full": it never asks. Missing from an older server.
+  assistantPermissions?: "ask" | "full";
 }
 
 // A folder the picker offers for a new session (GET /folders), shown with "~" for the home folder.
@@ -142,6 +144,7 @@ export type ClientMessage =
   | { type: "set_project_roots"; roots: string[] }
   | { type: "connect_existing_sessions"; connected: boolean }
   | { type: "set_keep_running"; keepRunning: boolean }
+  | { type: "set_assistant_permissions"; choice: "ask" | "full" }
   // How text reached the page (kinds and lengths, never words), for when dictation seems lost.
   | { type: "input_diagnostics"; records: Array<Record<string, unknown>> }
   // Stop HeyTerm and every session in it.

@@ -1,6 +1,7 @@
 // The assistant between the user and their sessions: one long-lived Claude conversation on the
 // user's own Claude Code login, fed what the user says and what happens in the sessions.
 
+import { AssistantPermissions, type AssistantPermissionChoice } from "./assistant-permissions.ts";
 import { ToolOutput } from "./tool-output.ts";
 import { query, type HookCallback, type McpSdkServerConfigWithInstance, type Query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { execFileSync } from "node:child_process";
@@ -22,6 +23,8 @@ interface ConductorOptions {
   askDeveloper: (toolName: string, toolInput: Record<string, unknown>) => Promise<boolean>;
   // Where the conversation's id is kept, so it resumes after a timeout, a crash or a restart.
   memory?: { sessionId(): string | undefined; rememberSession(sessionId: string): void; forgetSession(): void };
+  // The developer's choice in Setup: ask when Claude Code would, or full access (assistant-permissions.ts).
+  permissionChoice?: AssistantPermissionChoice;
 }
 
 interface QueuedTurn {
@@ -57,6 +60,12 @@ export class Conductor extends EventEmitter<ConductorEvents> {
   }
 
   // HeyTerm is stopping: end the assistant's process and fail anything still waiting.
+  // Applied at once to a running conversation; a new one starts with it.
+  setPermissionChoice(choice: AssistantPermissionChoice): void {
+    this.options.permissionChoice = choice;
+    void this.session?.setPermissionMode(AssistantPermissions.mode(choice)).catch((error: Error) => console.error(`Could not change the assistant's permissions: ${error.message}`));
+  }
+
   close(): void {
     const session = this.session;
     this.session = undefined;
@@ -122,9 +131,11 @@ export class Conductor extends EventEmitter<ConductorEvents> {
         ...(this.options.memory?.sessionId() ? { resume: this.options.memory.sessionId() } : {}),
         tools: { type: "preset", preset: "claude_code" },
         mcpServers: { heyterm: this.options.tools },
-        // The mode the developer's own Claude Code sessions run in (their plan's default), so the
-        // assistant asks exactly when Claude Code would.
-        permissionMode: "auto",
+        // By default the mode the developer's own Claude Code sessions run in, so the assistant asks
+        // exactly when Claude Code would; with full access it never asks. Skipping permissions is
+        // allowed from the start so the choice can change without a new conversation.
+        permissionMode: AssistantPermissions.mode(this.options.permissionChoice),
+        allowDangerouslySkipPermissions: true,
         hooks: { PreToolUse: [{ hooks: [this.options.beforeTool], timeout: 120 }] },
         // The assistant asks the developer in words, not with an on-screen question.
         disallowedTools: ["AskUserQuestion"],

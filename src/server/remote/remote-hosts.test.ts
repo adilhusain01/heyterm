@@ -104,6 +104,19 @@ describe("RemoteHosts", () => {
     expect(paneClosed).toBe(true);
   });
 
+  it("starts a new session on the other computer when one is asked for there", async () => {
+    const port = 44_600 + Math.floor(Math.random() * 300);
+    const received: unknown[] = [];
+    await fakeRemote(port, received);
+    const sessions = registry();
+    const hosts = new RemoteHosts(sessions, [{ name: "vps", url: `http://127.0.0.1:${port}`, token: "remote-token" }]);
+    hostsToStop.push(hosts);
+    hosts.start();
+    await waitFor(() => sessions.get("vps/voice-sticky") !== undefined);
+    await hosts.perform({ type: "spawn", host: "vps", project: "~/Projects/notes", agent: "shell" });
+    expect(received).toContainEqual({ type: "action", action: { type: "spawn", project: "~/Projects/notes", agent: "shell" } });
+  });
+
   it("says so when the other computer cannot be reached, instead of pretending it worked", async () => {
     const sessions = registry();
     const hosts = new RemoteHosts(sessions, [{ name: "vps", url: "http://127.0.0.1:44999", token: "remote-token" }]);

@@ -55,6 +55,7 @@ export class SetupService {
       macVoiceAvailable: process.platform === "darwin",
       folderDialogAvailable: await FolderDialog.isAvailable(),
       keepRunningWithoutPage: saved.keepRunningWithoutPage ?? false,
+      assistantPermissions: saved.assistantPermissions ?? "ask",
     };
   }
 
@@ -72,6 +73,10 @@ export class SetupService {
     await this.userConfig.update({ showOwnTerminalSessions: connected });
     if (connected) await this.connector.connect();
     else await this.connector.disconnect();
+  }
+
+  async setAssistantPermissions(choice: "ask" | "full"): Promise<void> {
+    await this.userConfig.update({ assistantPermissions: choice });
   }
 
   async setKeepRunningWithoutPage(keepRunning: boolean): Promise<void> {
