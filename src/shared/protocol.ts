@@ -69,7 +69,22 @@ export interface SetupStatus {
   routerModel: string;
   // The server runs on a Mac and can speak with the system voice.
   macVoiceAvailable: boolean;
+  // The computer HeyTerm runs on has a folder dialog to open ("Choose a folder…" in the picker).
+  // Missing from an older server, which has none.
+  folderDialogAvailable?: boolean;
   keepRunningWithoutPage: boolean;
+}
+
+// A folder the picker offers for a new session (GET /folders), shown with "~" for the home folder.
+export interface FolderChoice {
+  path: string;
+  shownPath: string;
+}
+
+export interface FolderSuggestionList {
+  // The typed folder itself, when it exists, so a session can start right there.
+  folder?: FolderChoice;
+  suggestions: FolderChoice[];
 }
 
 export type ConversationEntryKind = "user" | "assistant" | "tool" | "event" | "request" | "error";

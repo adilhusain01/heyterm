@@ -49,6 +49,11 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 - When something newly needs the user, the assistant is told and says what the session wants and the exact reply, in a sentence or two, without reading commands, paths or code aloud. If it has not answered in 9 seconds, a plain line is said instead.
 - Replies are spoken up to a line of `---`; anything after it is shown only. The conversation column shows what the user said, the replies, the assistant's steps and what happened in the sessions.
 
+## Starting a session in any folder
+
+- The + picker finds a project by name, or takes a folder's path: text starting with `~`, `/` or a drive letter lists the folders it could go on to (GET `/folders`, token only; folders only, hidden ones only when the typed name starts with a dot, at most 30). The typed folder itself is offered as "Start here"; Enter starts there, and the session is named after the folder.
+- **Choose a folder…** opens the system's folder dialog on the computer HeyTerm runs on (POST `/folders/choose`, token only, one at a time): macOS `choose folder`, Windows' folder browser through PowerShell, Linux `zenity` when a desktop has it. The row shows only where one is available (`folderDialogAvailable` in Setup), so never on a server.
+
 ## Restarts that keep the sessions
 
 - The `heyterm` command runs a terminal keeper: it owns every terminal (with the screen copies) and runs the server as its child, talking over Node's child process channel, which works on every system. Its process id is in `~/.heyterm/keeper.pid`.

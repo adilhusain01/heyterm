@@ -10,14 +10,13 @@ import { useServerNow } from "../state/use-server-now.ts";
 import { HelpTip, SayThis } from "../ui/HelpTip.tsx";
 import { RailLabel } from "../ui/RailLabel.tsx";
 import { BringBackIcon, CloseIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PencilIcon, PlusIcon, SettingsIcon, SpeakerIcon, SpeakerMutedIcon, SpeakerQuietIcon } from "../ui/icons.tsx";
-import { Segmented } from "../ui/Segmented.tsx";
 import { avatarRadius, SessionAvatar } from "../ui/SessionAvatar.tsx";
-import { Tray } from "../ui/Surfaces.tsx";
+import { NewSessionPicker } from "./NewSessionPicker.tsx";
 import { RenameField, RowActionButton, RowActions, SessionDetailsCard } from "./SessionDetails.tsx";
 import { SessionIdentity } from "./session-identity.ts";
 import { agentTag, displayFor, isWaitingOnUser, shortDuration } from "./session-display.ts";
 import type { ClosedSessionView } from "../../shared/protocol.ts";
-import type { AgentKind, AnnouncementMode, SessionView } from "../../shared/types.ts";
+import type { AnnouncementMode, SessionView } from "../../shared/types.ts";
 
 const nextMode: Record<AnnouncementMode, AnnouncementMode> = { speak: "quiet", quiet: "mute", mute: "speak" };
 const modeLabel: Record<AnnouncementMode, string> = { speak: "Speaking", quiet: "Quiet", mute: "Muted" };
@@ -298,48 +297,6 @@ function useTakenNames(): string[] {
   const sessions = useHeyTermStore((state) => state.sessions);
   const recentlyClosed = useHeyTermStore((state) => state.recentlyClosed);
   return useMemo(() => [...sessions.map((session) => session.name), ...recentlyClosed.map((closed) => closed.name)], [sessions, recentlyClosed]);
-}
-
-function NewSessionPicker({ onDone }: { onDone: () => void }) {
-  const { perform } = useHeyTerm();
-  const projects = useHeyTermStore((state) => state.projects);
-  // Selected whole and filtered here: a selector returning a new array each time re-renders forever.
-  const agents = useHeyTermStore((state) => state.setup?.agents);
-  const installedAgents = useMemo(() => (agents ?? []).filter((agent) => agent.version), [agents]);
-  const [filter, setFilter] = useState("");
-  const [agent, setAgent] = useState<AgentKind>("claude");
-  const agentOptions = [...installedAgents.map((installed) => ({ value: installed.kind, label: installed.label.replace(" CLI", "").replace(" Code", "") })), { value: "shell" as AgentKind, label: "Terminal" }];
-  const shown = projects.filter((project) => project.includes(filter.toLowerCase())).slice(0, 10);
-  return (
-    <Tray className="enter-rise mb-1 flex flex-col gap-1 p-1">
-      {/* A plain terminal needs nothing installed, so there is always a choice to make here. */}
-      {/* Up to three choices fit one row of the sidebar; more go into rows of three. */}
-      <Segmented label="Agent" stretch columns={agentOptions.length > 3 ? 3 : undefined} value={agent} onChange={setAgent} options={agentOptions} />
-      <input
-        autoFocus
-        value={filter}
-        onChange={(event) => setFilter(event.target.value)}
-        onKeyDown={(event) => event.key === "Escape" && onDone()}
-        placeholder="Find a project"
-        className="h-8 rounded-tiny border border-line bg-panel px-2.5 text-meta text-ink outline-none placeholder:text-ink-faint focus:border-line-strong"
-      />
-      {shown.map((project) => (
-        <button
-          key={project}
-          type="button"
-          onClick={() => {
-            perform({ type: "spawn", project, ...(agent === "claude" ? {} : { agent }) });
-            onDone();
-          }}
-          className="flex cursor-pointer items-center gap-2 rounded-tiny px-2 py-1.5 text-left font-mono text-meta text-ink transition-colors duration-150 hover:bg-raised"
-        >
-          <SessionAvatar name={project} size={18} />
-          {project}
-        </button>
-      ))}
-      {shown.length === 0 && <p className="px-2.5 py-1.5 text-meta text-ink-faint">No project matches. Add folders in Setup.</p>}
-    </Tray>
-  );
 }
 
 function SidebarFooter({ onOpenSetup }: { onOpenSetup: () => void }) {

@@ -130,4 +130,24 @@ describe("HeyTermHttpServer", () => {
     expect(received).toEqual([{ session: "api", bytes: 8, type: "image/png" }]);
     await server.close();
   });
+
+  // The picker's folder search and "Choose a folder…" (27 October 2026) read this computer's
+  // folders, so they answer only the page that holds the token.
+  it("suggests folders and opens the folder dialog only for the token holder", async () => {
+    const home = mkdtempSync(path.join(tmpdir(), "heyterm-home-"));
+    mkdirSync(path.join(home, "Projects"));
+    const port = 44_000 + Math.floor(Math.random() * 1_000);
+    const server = new HeyTermHttpServer(port, "/no/web", new RequestGuard(port, "token"), {} as SessionRegistry, {} as EventHub, {} as TerminalBridge, new PairingTickets("token"));
+    server.homeFolder = home;
+    server.onChooseFolder = async () => path.join(home, "Projects");
+    await server.listen();
+    const withToken = { headers: { "X-HeyTerm-Token": "token" } };
+    expect((await fetch(`http://127.0.0.1:${port}/folders?path=${encodeURIComponent("~/Pro")}`)).status).toBe(401);
+    const suggestions = await (await fetch(`http://127.0.0.1:${port}/folders?path=${encodeURIComponent("~/Pro")}`, withToken)).json();
+    expect(suggestions.suggestions).toEqual([{ path: path.join(home, "Projects"), shownPath: "~/Projects" }]);
+    expect((await fetch(`http://127.0.0.1:${port}/folders/choose`, { method: "POST" })).status).toBe(401);
+    expect(await (await fetch(`http://127.0.0.1:${port}/folders/choose`, { method: "POST", ...withToken })).json()).toEqual({ path: path.join(home, "Projects") });
+    await server.close();
+    rmSync(home, { recursive: true, force: true });
+  });
 });

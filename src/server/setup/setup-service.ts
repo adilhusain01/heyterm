@@ -8,6 +8,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { AgentAdapters } from "../agents/agent-adapters.ts";
 import type { ExistingSessionConnector } from "../hooks/existing-session-connector.ts";
+import { FolderDialog } from "../projects/folder-dialog.ts";
 import type { ProjectCatalog } from "../projects/project-catalog.ts";
 import type { UserConfig } from "./user-config.ts";
 import type { SetupStatus } from "../../shared/protocol.ts";
@@ -52,6 +53,7 @@ export class SetupService {
       routerSource: process.env.ANTHROPIC_API_KEY ? "api" : "claude-code",
       routerModel: this.routerModel,
       macVoiceAvailable: process.platform === "darwin",
+      folderDialogAvailable: await FolderDialog.isAvailable(),
       keepRunningWithoutPage: saved.keepRunningWithoutPage ?? false,
     };
   }

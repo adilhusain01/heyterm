@@ -31,6 +31,7 @@ import { EventHub } from "./http/event-hub.ts";
 import { PairingTickets } from "./http/pairing-tickets.ts";
 import { RequestGuard } from "./http/request-guard.ts";
 import { TerminalBridge } from "./http/terminal-bridge.ts";
+import { FolderDialog } from "./projects/folder-dialog.ts";
 import { ProjectCatalog } from "./projects/project-catalog.ts";
 import { FastPathRouter } from "./router/fast-path-router.ts";
 import { AuditLog } from "./safety/audit-log.ts";
@@ -208,6 +209,7 @@ export async function startHeyTerm(keeper?: KeeperConnection): Promise<RunningHe
   };
   hub.onQuitRequest = () => stopAndExit("Quit in the page");
   server.onShutdownRequest = () => stopAndExit("heyterm stop");
+  server.onChooseFolder = () => FolderDialog.choose();
   if (keeper) server.onRestartRequest = () => restartAndExit("heyterm restart");
   server.onAttachment = async (sessionName, bytes, contentType) => {
     if (remoteHosts?.isRemote(sessionName)) return remoteHosts.attach(sessionName, bytes, contentType);

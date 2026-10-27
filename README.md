@@ -71,7 +71,7 @@ Then:
 
 1. Click anywhere on the page once, so the browser lets HeyTerm speak.
 2. Open Setup and check your project folders. HeyTerm looks in `~/Documents/Projects`, `~/Projects`, `~/code`, `~/dev`, `~/src` and `~/Developer` by default, and the assistant can start a session in any folder you name.
-3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…", "open gemini in…", "start a grok session in…" or "open cursor in…" for the other agents.
+3. Hold your dictation key (Fn for Wispr Flow) and say "start a session in" followed by a project name. Say "start a codex session in…", "open gemini in…", "start a grok session in…" or "open cursor in…" for the other agents. Or press **+**: pick a project, type any folder's path (`~/` shows the folders to go into, as in VS Code's Open Folder), or use **Choose a folder…** for your system's folder dialog.
 4. Use headphones, so HeyTerm's spoken alerts never end up in your own dictation.
 
 To see the Claude sessions you start in your own terminals as well, open Setup and press **Show them** under Your own Claude sessions. While HeyTerm runs, its hooks sit in `~/.claude/settings.json` (backed up first in `~/.heyterm/backups`); they come out when HeyTerm stops. It can answer those sessions' permissions and questions and tell you when they finish, but it can only type into sessions it started.

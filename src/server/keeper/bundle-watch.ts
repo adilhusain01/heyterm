@@ -20,15 +20,20 @@ export class BundleWatch {
   start(): void {
     this.knownHash = this.hash();
     // Polling works the same on every system and survives the file being replaced by a build.
-    watchFile(this.filePath, { interval: pollMilliseconds }, () => {
-      clearTimeout(this.settleTimer);
-      this.settleTimer = setTimeout(() => this.checkForChange(), this.settleMilliseconds);
-    });
+    watchFile(this.filePath, { interval: pollMilliseconds }, () => this.checkOnceSettled());
+    // watchFile takes its first reading a moment after this, and a write in between would become
+    // its starting point and never be reported; one check after the settle time catches it.
+    this.checkOnceSettled();
   }
 
   stop(): void {
     clearTimeout(this.settleTimer);
     unwatchFile(this.filePath);
+  }
+
+  private checkOnceSettled(): void {
+    clearTimeout(this.settleTimer);
+    this.settleTimer = setTimeout(() => this.checkForChange(), this.settleMilliseconds);
   }
 
   private checkForChange(): void {

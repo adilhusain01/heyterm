@@ -1,11 +1,13 @@
 // The local server: hook events in, the web UI out, and a WebSocket per terminal pane.
 
 import { existsSync } from "node:fs";
+import os from "node:os";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import sirv from "sirv";
 import { WebSocketServer, type WebSocket } from "ws";
 import { AttachmentRules } from "../attachments/attachment-rules.ts";
 import { forwardedHookEvents } from "../hooks/hook-installer.ts";
+import { FolderSuggestions } from "../projects/folder-suggestions.ts";
 import type { EventHub } from "./event-hub.ts";
 import type { PairingTickets } from "./pairing-tickets.ts";
 import type { RequestGuard } from "./request-guard.ts";
@@ -24,6 +26,10 @@ export class HeyTermHttpServer {
   private readonly sockets = new WebSocketServer({ noServer: true, maxPayload: largestSocketMessageBytes });
   // Called when someone with the token asks HeyTerm to stop.
   onShutdownRequest: () => void = () => undefined;
+  // Where "~" points in a typed folder path, and the system's folder dialog (folder-dialog.ts).
+  homeFolder = os.homedir();
+  onChooseFolder: () => Promise<string | undefined> = async () => undefined;
+  private isChoosingFolder = false;
   // Set only when a terminal keeper runs this server, since only then do the sessions survive it.
   onRestartRequest: (() => void) | undefined;
   // Saves an image for a session and gives it to that session; main.ts sets it.
@@ -111,6 +117,8 @@ export class HeyTermHttpServer {
     }
     if (url.pathname.startsWith("/hooks/") && request.method === "POST") return this.handleHook(request, response, url);
     if (url.pathname === "/attachments" && request.method === "POST") return this.handleAttachment(request, response, url);
+    if (url.pathname === "/folders" && request.method === "GET") return this.handleFolderSuggestions(request, response, url);
+    if (url.pathname === "/folders/choose" && request.method === "POST") return this.handleChooseFolder(request, response);
     // Says it is HeyTerm, so a second "heyterm" can tell it is already running.
     if (url.pathname === "/health") return respond(response, 200, JSON.stringify({ ok: true, app: "heyterm" }), "application/json");
     if (url.pathname === "/shutdown" && request.method === "POST") {
@@ -137,6 +145,25 @@ export class HeyTermHttpServer {
     if (!bytes) return respond(response, 413, JSON.stringify({ ok: false, text: "That image is over 20 MB." }), "application/json");
     const result = await this.onAttachment(url.searchParams.get("session") ?? "", bytes, contentType);
     respond(response, result.ok ? 200 : 409, JSON.stringify(result), "application/json");
+  }
+
+  private async handleFolderSuggestions(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
+    if (!this.guard.hasToken(request)) return respond(response, 401, "");
+    const suggestions = await FolderSuggestions.list(url.searchParams.get("path") ?? "", this.homeFolder);
+    respond(response, 200, JSON.stringify(suggestions), "application/json");
+  }
+
+  // One dialog at a time: a second press while one is open would stack another behind it.
+  private async handleChooseFolder(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    if (!this.guard.hasToken(request)) return respond(response, 401, "");
+    if (this.isChoosingFolder) return respond(response, 409, JSON.stringify({ error: "A folder dialog is already open." }), "application/json");
+    this.isChoosingFolder = true;
+    try {
+      const chosen = await this.onChooseFolder();
+      respond(response, 200, JSON.stringify(chosen ? { path: chosen } : { cancelled: true }), "application/json");
+    } finally {
+      this.isChoosingFolder = false;
+    }
   }
 
   private async handleHook(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
