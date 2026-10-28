@@ -37,9 +37,12 @@ export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: {
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
         <span className={`shrink-0 whitespace-nowrap text-small ${display.textClass}`}>{display.label}</span>
         {isWaitingOnUser(session.state) && <span className="shrink-0 font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
-        {/* The least needed words here: in a narrow pane they give up their room before the name does. */}
-        <span title={whereItRuns} className="ml-auto min-w-0 shrink-[100] truncate text-small text-ink-faint">
-          {whereItRuns}
+        {/* The least needed words here, sized by the room the name leaves: whole, then the sidebar's
+            short "own terminal", then nothing, never a stub like "in your …". */}
+        <span title={whereItRuns} className="@container ml-auto flex min-w-0 flex-1 justify-end text-small text-ink-faint">
+          {/* Widths measured at this text size: 117px alone, 157px with "on vps", 75px for the short form. */}
+          <span className={`hidden truncate ${session.host ? "@min-[10rem]:block" : "@min-[7.5rem]:block"}`}>{whereItRuns}</span>
+          <span className={`hidden whitespace-nowrap @min-[5rem]:block ${session.host ? "@min-[10rem]:hidden" : "@min-[7.5rem]:hidden"}`}>own terminal</span>
         </span>
         {/* Closes it in that terminal and reopens the same conversation here, with a live screen. */}
         <Key size="small" className="shrink-0" onClick={() => perform({ type: "adopt", session: session.name, confirmed: false })}>
