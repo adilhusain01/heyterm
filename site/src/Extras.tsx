@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AssistantOrb } from "../../src/web/ui/AssistantOrb.tsx";
 import { ArrowDownIcon, BringBackIcon, CheckIcon, CloseIcon, PencilIcon } from "../../src/web/ui/icons.tsx";
 import { Face } from "./Face.tsx";
+import { AnyFolderPiece, FullAccessPiece, ServerSessionsPiece, UpdatesKeepSessionsPiece } from "./ReachPieces.tsx";
 import { ThemeToggle } from "./pieces.tsx";
 
 type Span = "wide" | "narrow" | "narrow-last";
@@ -47,6 +48,12 @@ export function Extras() {
         <Card title="A plain terminal too" span="wide" piece={<PlainTerminalPiece />}>
           Your own shell in a pane. You or the assistant can run commands in it.
         </Card>
+        <Card title="Any folder" span="wide" piece={<AnyFolderPiece />}>
+          Pick a folder, or just say its name.
+        </Card>
+        <Card title="Your server's sessions too" span="wide" piece={<ServerSessionsPiece />}>
+          Run HeyTerm on your VPS and its sessions show up here.
+        </Card>
         <Card title="Tell them apart" span="narrow" piece={<DetailsPiece />}>
           Hover for the details. Rename by voice or click.
         </Card>
@@ -77,6 +84,12 @@ export function Extras() {
       <Group title="Yours, and easy to leave">
         <Card title="Closing means closed" span="wide" piece={<BringBackPiece />}>
           Bring any session back where it left off.
+        </Card>
+        <Card title="Updates keep your sessions" span="wide" piece={<UpdatesKeepSessionsPiece />}>
+          Update or restart HeyTerm. Your sessions keep working.
+        </Card>
+        <Card title="Full access, if you want it" span="wide" piece={<FullAccessPiece />}>
+          Let the assistant act without asking, or keep it asking.
         </Card>
         <Card title="Gruvbox, light or dark" span="wide" piece={<ThemePiece />}>
           Warm colors, in light or dark.
