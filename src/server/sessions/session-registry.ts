@@ -189,6 +189,20 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     return undefined;
   }
 
+  // The first free name of its kind among open sessions. A closed session holding it moves to the next
+  // free number, so names stay unique and a new session does not skip past every closed one.
+  nameForNewSession(base: string): string {
+    const heldByOpenSessions = new Set([...this.sessions.keys(), ...this.reservedLaunchNames()]);
+    const name = freeName(base, heldByOpenSessions);
+    const closedIndex = this.recentlyClosed.findIndex((closed) => closed.name === name);
+    if (closedIndex !== -1) {
+      const closed = this.recentlyClosed[closedIndex]!;
+      const newClosedName = freeName(base, new Set([...heldByOpenSessions, ...this.recentlyClosed.map((other) => other.name)]));
+      this.recentlyClosed[closedIndex] = { ...closed, name: newClosedName, faceSeed: closed.faceSeed ?? closed.name };
+    }
+    return name;
+  }
+
   // Taken by an open or listed closed session, or kept for a renamed one HeyTerm cannot yet tell apart by id.
   isNameInUse(name: string): boolean {
     return this.sessions.has(name) || this.reservedLaunchNames().includes(name) || this.recentlyClosed.some((closed) => closed.name === name);
@@ -336,8 +350,7 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     // A conversation listed before comes back under the name it had, and leaves Recently closed.
     const listedBefore = this.recentlyClosed.find((closed) => closed.agentSessionId === agentSessionId && !this.sessions.has(closed.name));
     if (listedBefore) this.recentlyClosed = this.recentlyClosed.filter((closed) => closed !== listedBefore);
-    const takenNames = [...this.sessions.keys(), ...this.reservedLaunchNames(), ...this.recentlyClosed.map((closed) => closed.name)];
-    const name = listedBefore?.name ?? ExternalSessionNaming.nameFor({ sessionTitle, workingDirectory }, takenNames);
+    const name = listedBefore?.name ?? this.nameForNewSession(ExternalSessionNaming.nameFor({ sessionTitle, workingDirectory }, []));
     return {
       name,
       origin: "external",
@@ -413,6 +426,10 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
 
 function localDayKey(time: number): string {
   return new Date(time).toDateString();
+}
+
+function freeName(base: string, takenNames: Set<string>): string {
+  return takenNames.has(base) ? freeNameLike(base, takenNames) : base;
 }
 
 function freeNameLike(name: string, takenNames: Set<string>): string {

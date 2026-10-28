@@ -18,6 +18,7 @@ export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: {
   const { perform } = useHeyTerm();
   const now = useServerNow();
   const display = displayFor(session);
+  const whereItRuns = `in your own terminal${session.host ? ` on ${session.host}` : ""}`;
   return (
     <section
       // HeyTerm cannot type into a session in the user's own terminal, so a dropped image is answered with how to move it here.
@@ -34,9 +35,12 @@ export function ExternalSessionPane({ session, isExpanded, onToggleExpanded }: {
       <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
         <SessionAvatar name={session.name} state={session.state} size={22} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
-        <span className={`text-small ${display.textClass}`}>{display.label}</span>
-        {isWaitingOnUser(session.state) && <span className="font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
-        <span className="ml-auto text-small text-ink-faint">in your own terminal{session.host ? ` on ${session.host}` : ""}</span>
+        <span className={`shrink-0 whitespace-nowrap text-small ${display.textClass}`}>{display.label}</span>
+        {isWaitingOnUser(session.state) && <span className="shrink-0 font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
+        {/* The least needed words here: in a narrow pane they give up their room before the name does. */}
+        <span title={whereItRuns} className="ml-auto min-w-0 shrink-[100] truncate text-small text-ink-faint">
+          {whereItRuns}
+        </span>
         {/* Closes it in that terminal and reopens the same conversation here, with a live screen. */}
         <Key size="small" className="shrink-0" onClick={() => perform({ type: "adopt", session: session.name, confirmed: false })}>
           Open here

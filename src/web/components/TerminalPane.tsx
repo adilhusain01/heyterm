@@ -157,11 +157,11 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
       <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-line bg-panel px-3">
         <SessionAvatar name={session.name} state={session.state} size={22} />
         <span className="truncate font-mono text-meta text-ink">{session.name}</span>
-        <span className={`text-small ${display.textClass}`}>{display.label}</span>
-        {isWaitingOnUser(session.state) && <span className="font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
-        <div className="ml-auto flex items-center gap-0.5">
+        <span className={`shrink-0 whitespace-nowrap text-small ${display.textClass}`}>{display.label}</span>
+        {isWaitingOnUser(session.state) && <span className="shrink-0 font-mono text-small text-ink-muted tabular-nums">{shortDuration(now - session.stateSince)}</span>}
+        <div className="ml-auto flex shrink-0 items-center gap-0.5">
           {isTyping && (
-            <span className="mr-1 flex items-center gap-1 text-small text-ink-muted">
+            <span className="mr-1 flex items-center gap-1 whitespace-nowrap text-small text-ink-muted">
               <KeyboardIcon size={13} /> Typing here
             </span>
           )}

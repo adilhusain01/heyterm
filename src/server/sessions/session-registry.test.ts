@@ -152,11 +152,36 @@ describe("Session names stay unique across open and closed sessions", () => {
     ]);
   });
 
-  it("names a new session from the user's terminal apart from closed ones", async () => {
+  // Adil, 28 October 2026: the VPS showed projects-6 and projects-7 because closed sessions held
+  // projects to projects-5. A new session takes the first free name; the closed one moves along.
+  it("gives a new session from the user's terminal a closed session's name, and the closed one the next free number", async () => {
     const registry = makeRegistry();
     registry.restore([], [session("mine", { agent: "claude", agentSessionId: "old" })]);
     await registry.applyExternalHookEvent("SessionStart", { session_id: "new", cwd: "/Users/adil/Projects/mine" }, 10);
-    expect(registry.list().map((open) => open.name)).toEqual(["mine-2"]);
+    expect(registry.list().map((open) => open.name)).toEqual(["mine"]);
+    expect(registry.recentlyClosedSessions().map((closed) => [closed.name, closed.agentSessionId, closed.faceSeed])).toEqual([["mine-2", "old", "mine"]]);
+  });
+
+  it("gives the first free number to a session found in Claude's records, past open sessions only", () => {
+    const registry = makeRegistry();
+    registry.restore(
+      [session("projects-2", { origin: "external", agent: "claude", agentSessionId: "open" })],
+      ["projects", "projects-3", "projects-4"].map((name) => session(name, { agent: "claude", agentSessionId: name })),
+    );
+    registry.discoverOutsideSessions([{ pid: 1, sessionId: "87195547", name: "87195547", status: "idle", entrypoint: "cli", kind: "bg", cwd: "/root/Projects" }], () => true, [], 20_000);
+    expect(registry.get("projects")?.agentSessionId).toBe("87195547");
+    const names = [...registry.list(), ...registry.recentlyClosedSessions()].map((known) => known.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(registry.recentlyClosedSessions().find((closed) => closed.agentSessionId === "projects")?.name).toBe("projects-5");
+  });
+
+  it("keeps a closed session listed when a new session HeyTerm starts takes its name", () => {
+    const registry = makeRegistry();
+    registry.restore([], [session("api", { agent: "claude", agentSessionId: "old" })]);
+    const name = registry.nameForNewSession("api");
+    registry.add(session(name, { agent: "claude" }));
+    expect(name).toBe("api");
+    expect(registry.recentlyClosedSessions().map((closed) => [closed.name, closed.agentSessionId])).toEqual([["api-2", "old"]]);
   });
 
   it("counts a closed session's name as taken for new sessions", () => {

@@ -289,11 +289,7 @@ export class SessionLauncher {
 
   private uniqueName(projectName: string): string {
     const base = projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "session";
-    if (!this.registry.isNameInUse(base)) return base;
-    for (let suffix = 2; ; suffix += 1) {
-      const candidate = `${base}-${suffix}`;
-      if (!this.registry.isNameInUse(candidate)) return candidate;
-    }
+    return this.registry.nameForNewSession(base);
   }
 }
 

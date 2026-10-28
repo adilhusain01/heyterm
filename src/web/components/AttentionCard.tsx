@@ -27,9 +27,9 @@ function ChatRequest({ item, session }: { item: AttentionItem; session: SessionV
     <section aria-live="polite" aria-label={`${session.name}: ${whatItWants(item, session)}`} className="flex flex-col gap-2.5 rounded-outer border border-line-strong bg-canvas p-3">
       <header className="flex items-center gap-2 text-meta">
         <SessionAvatar name={session.name} state={session.state} size={22} />
-        <span className="font-mono text-ink">{session.name}</span>
-        <span className={display.textClass}>{display.label}</span>
-        <span className="ml-auto font-mono text-small text-ink-faint tabular-nums">{shortDuration(now - item.since)}</span>
+        <span title={session.name} className="min-w-0 truncate font-mono text-ink">{session.name}</span>
+        <span className={`shrink-0 whitespace-nowrap ${display.textClass}`}>{display.label}</span>
+        <span className="ml-auto shrink-0 font-mono text-small text-ink-faint tabular-nums">{shortDuration(now - item.since)}</span>
       </header>
       <p className="text-body text-ink">{whatItWants(item, session)}</p>
       <RequestActions item={item} session={session} showDetail />
@@ -55,13 +55,15 @@ export function SettledRequest({ text, sessionName }: { text: string; sessionNam
 
 function BarRequest({ item, session }: { item: AttentionItem; session: SessionView }) {
   const detail = barDetail(item, session);
+  const wants = whatItWants(item, session);
   return (
     <section aria-live="polite" className="flex min-h-11 items-center gap-2.5 py-1.5 pr-1.5 pl-2.5">
       <SessionAvatar name={session.name} state={session.state} size={24} />
-      <p className="flex min-w-0 flex-1 items-baseline gap-2 text-meta">
-        <span className="shrink-0 font-mono text-ink">{session.name}</span>
-        <span className="shrink-0 text-ink">{whatItWants(item, session)}</span>
-        {detail && <span className="truncate font-mono text-small text-ink-faint">{detail}</span>}
+      {/* One row on a phone too: the detail gives up its room first, then the request, and the name keeps up to half. */}
+      <p title={`${session.name} ${wants}`} className="flex min-w-0 flex-1 items-baseline gap-2 text-meta">
+        <span className="max-w-[50%] shrink-0 truncate font-mono text-ink">{session.name}</span>
+        <span className="min-w-0 truncate text-ink">{wants}</span>
+        {detail && <span className="min-w-0 shrink-[100] truncate font-mono text-small text-ink-faint">{detail}</span>}
       </p>
       <RequestKeys item={item} session={session} />
     </section>
