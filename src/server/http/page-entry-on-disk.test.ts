@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, utimesSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -16,6 +16,21 @@ describe("PageEntryOnDisk", () => {
     expect(await entry.current()).toBe("index-old.js");
     writeFileSync(path.join(folder, "index.html"), page("index-new.js"));
     expect(await entry.current()).toBe("index-new.js");
+  });
+
+  // Windows CI, 28 October 2026: a build written in the same clock tick as the last read kept the
+  // same modified time, and the old build was still named.
+  it("names a build written in the same clock tick as the last read", () => {
+    const folder = mkdtempSync(path.join(os.tmpdir(), "heyterm-web-"));
+    const indexPath = path.join(folder, "index.html");
+    const sameTick = new Date();
+    writeFileSync(indexPath, page("index-old.js"));
+    utimesSync(indexPath, sameTick, sameTick);
+    const entry = new PageEntryOnDisk(folder);
+    expect(entry.current()).toBe("index-old.js");
+    writeFileSync(indexPath, page("index-new.js"));
+    utimesSync(indexPath, sameTick, sameTick);
+    expect(entry.current()).toBe("index-new.js");
   });
 
   it("names nothing when there is no built page", async () => {
