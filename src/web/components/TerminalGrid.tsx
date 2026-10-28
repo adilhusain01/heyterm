@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useHeyTerm } from "../app-context.tsx";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { ExternalSessionPane } from "./ExternalSessionPane.tsx";
+import { GridPanes } from "./grid-panes.ts";
 import { TerminalPane } from "./TerminalPane.tsx";
 import type { SessionView } from "../../shared/types.ts";
 
@@ -16,9 +17,11 @@ const scrollingRowHeight = 420;
 const gap = 8;
 
 export function TerminalGrid() {
-  const sessions = useHeyTermStore((state) => state.sessions);
+  const allSessions = useHeyTermStore((state) => state.sessions);
   const arrangement = useHeyTermStore((state) => state.layout.arrangement);
   const focusedSession = useHeyTermStore((state) => state.focusedSession);
+  const sessions = GridPanes.shown(allSessions, focusedSession);
+  const leftOutCount = allSessions.length - sessions.length;
   const focused = sessions.find((session) => session.name === focusedSession) ?? sessions[0];
   // One session is already shown on its own, so there is nothing to expand.
   const showFocus = arrangement === "focus" && focused !== undefined && sessions.length > 1;
@@ -29,6 +32,10 @@ export function TerminalGrid() {
         <div className="flex min-h-0 flex-1 p-2">
           <SessionPane session={focused} isExpanded canExpand />
         </div>
+      ) : sessions.length === 0 ? (
+        <p className="m-auto px-6 text-center text-meta text-ink-faint">
+          {leftOutCount === 1 ? "A session in your own terminal is" : `${leftOutCount} sessions in your own terminal are`} in the sidebar. They show here when they need you, or when you pick one.
+        </p>
       ) : (
         <AutoGrid sessions={sessions} canExpand={sessions.length > 1} />
       )}
