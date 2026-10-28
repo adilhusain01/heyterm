@@ -5,12 +5,15 @@
 import pty, { type IPty } from "@lydell/node-pty";
 import serializeModule from "@xterm/addon-serialize";
 import headlessModule from "@xterm/headless";
+import { execFile } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { promisify } from "node:util";
 import { withoutInheritedMarkers } from "./environment.ts";
 import { TerminalInput } from "./terminal-input.ts";
 
 // Both packages are CommonJS; Node's ES module loader only gives their default export.
 const { Terminal } = headlessModule;
+const execFileAsync = promisify(execFile);
 const { SerializeAddon } = serializeModule;
 type Terminal = InstanceType<typeof Terminal>;
 type SerializeAddon = InstanceType<typeof SerializeAddon>;
@@ -122,6 +125,21 @@ export class TerminalHost extends EventEmitter<{ exit: [string] }> {
     const hosted = this.terminals.get(name);
     if (!hosted || process.platform === "win32") return undefined;
     return hosted.process.process;
+  }
+
+  // The programs running on the terminal's own screen (its tty), with their command lines: a Claude
+  // started there by hand is known by them (terminal-links.ts). Windows has no ttys to ask about.
+  async processesOnScreen(name: string): Promise<Array<{ pid: number; args: string }>> {
+    const hosted = this.terminals.get(name);
+    if (!hosted || process.platform === "win32") return [];
+    const tty = (await execFileAsync("ps", ["-o", "tty=", "-p", String(hosted.process.pid)], { timeout: 3_000 }).catch(() => ({ stdout: "" }))).stdout.trim();
+    if (!tty || tty === "?" || tty === "??") return [];
+    const listing = (await execFileAsync("ps", ["-t", tty, "-o", "pid=,args="], { timeout: 3_000 }).catch(() => ({ stdout: "" }))).stdout;
+    return listing
+      .split("\n")
+      .map((line) => /^\s*(\d+)\s+(.*)$/.exec(line))
+      .filter((match): match is RegExpExecArray => match !== null)
+      .map((match) => ({ pid: Number(match[1]), args: match[2]! }));
   }
 
   // The visible screen as plain text. Async so callers wait for output still being parsed.

@@ -75,6 +75,10 @@ function situationBlock(situation: Situation): string {
 
 function describeSessionForAssistant(session: SessionView): string {
   const where = session.origin === "external" ? "; runs in the developer's own terminal, so you cannot type into it or close it" : "";
-  const kind = session.agent === "shell" ? "; a plain terminal: what you send runs as a command" : "";
+  const kind = session.claudeInside
+    ? "; a terminal with Claude running in it, started there by hand: what you send goes to that Claude as a prompt"
+    : session.agent === "shell"
+      ? "; a plain terminal: what you send runs as a command"
+      : "";
   return `${describeSession(session)}${where}${kind}`;
 }

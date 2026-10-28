@@ -121,3 +121,12 @@ posixOnly("TerminalHost", () => {
     expect(host.listSessions()).toEqual([]);
   });
 });
+
+posixOnly("TerminalHost.processesOnScreen", () => {
+  // What runs in a pane, so a Claude started in it by hand is known to be that pane's.
+  it("lists the programs running on a terminal's own screen", async () => {
+    const host = makeHost();
+    host.createSession({ name: "front", workingDirectory: process.cwd(), program: "/bin/sh", args: ["-c", "sleep 30"], environment: {} });
+    await waitFor(async () => (await host.processesOnScreen("front")).some((found) => found.args.includes("sleep 30")));
+  }, 20_000);
+});

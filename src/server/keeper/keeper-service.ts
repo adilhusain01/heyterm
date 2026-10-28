@@ -62,6 +62,8 @@ export class KeeperService {
         return this.host.pressKeys(message.name, message.keys);
       case "foreground":
         return channel.send({ type: "reply", requestId: message.requestId, result: this.host.foregroundProgram(message.name) });
+      case "processes":
+        return channel.send({ type: "reply", requestId: message.requestId, result: JSON.stringify(await this.host.processesOnScreen(message.name)) });
       case "capture":
         return channel.send({ type: "reply", requestId: message.requestId, result: await this.host.captureScreen(message.name) });
       case "attach": {

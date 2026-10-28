@@ -32,7 +32,9 @@ export function displayFor(session: Pick<SessionView, "state" | "host" | "hostUn
 const waitingStates: SessionState[] = ["needs_permission", "asked", "needs_trust", "done", "failed"];
 
 // The word beside a session's name saying what runs in it. Claude Code is the default and goes unsaid.
-export function agentTag(agent: AgentKind): string | undefined {
+export function agentTag(agent: AgentKind, session: { claudeInside?: boolean } = {}): string | undefined {
+  // A terminal with Claude started in it by hand: Claude answers there now.
+  if (session.claudeInside) return "claude";
   if (agent === "claude") return undefined;
   return agent === "shell" ? "terminal" : agent;
 }

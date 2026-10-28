@@ -280,22 +280,64 @@ export class SessionRegistry extends EventEmitter<{ changed: [] }> {
     if (!agentSessionId) return "";
     // Its hooks report now, so its record no longer decides its state.
     this.followingRecords.delete(agentSessionId);
-    let session = this.localSessions().find((known) => known.origin === "external" && known.agentSessionId === agentSessionId);
+    let session = this.localSessions().find((known) => (known.origin === "external" || known.claudeInside) && known.agentSessionId === agentSessionId);
     if (!session) {
       if (name === "SessionEnd") return "";
       session = this.newExternalSession(agentSessionId, payload, receivedAt);
       this.set(session);
     }
     const answer = await this.applyHookEvent({ name, sessionName: session.name, payload, receivedAt });
-    if (name === "SessionEnd") this.remove(session.name);
+    if (name === "SessionEnd") {
+      // A Claude that ran in one of HeyTerm's terminals ends; the terminal goes on.
+      if (session.claudeInside) this.unlinkFromTerminal(session.name, receivedAt);
+      else this.remove(session.name);
+    }
     return answer;
+  }
+
+  // A Claude found running in one of HeyTerm's terminals becomes that terminal's: the session it was
+  // listed as goes (not to Recently closed), and its state and any held request move to the terminal.
+  linkIntoTerminal(terminalName: string, agentSessionId: string, now: number): void {
+    const terminal = this.sessions.get(terminalName);
+    if (!terminal || terminal.agent !== "shell") return;
+    if (terminal.claudeInside && terminal.agentSessionId === agentSessionId) return;
+    const listedApart = this.localSessions().find((known) => known.origin === "external" && known.agentSessionId === agentSessionId);
+    if (listedApart) {
+      this.sessions.delete(listedApart.name);
+      this.heldRequests.renameSession(listedApart.name, terminalName);
+    }
+    this.sessions.set(terminalName, {
+      ...terminal,
+      agentSessionId,
+      claudeInside: true,
+      state: listedApart?.state ?? "idle",
+      stateSince: now,
+      pending: listedApart?.pending,
+      blockedByTerminalDialog: listedApart?.blockedByTerminalDialog,
+      ...(listedApart?.lastPrompt ? { lastPrompt: listedApart.lastPrompt } : {}),
+      ...(listedApart?.lastMessage ? { lastMessage: listedApart.lastMessage } : {}),
+    });
+    this.announceChange();
+  }
+
+  // The Claude in a terminal ended: the terminal is a plain shell again.
+  unlinkFromTerminal(terminalName: string, now: number): void {
+    const terminal = this.sessions.get(terminalName);
+    if (!terminal?.claudeInside) return;
+    this.heldRequests.letGoAllFor(terminalName);
+    if (terminal.agentSessionId) this.followingRecords.delete(terminal.agentSessionId);
+    this.sessions.set(terminalName, { ...terminal, agentSessionId: undefined, claudeInside: undefined, pending: undefined, blockedByTerminalDialog: undefined, state: "idle", stateSince: now });
+    this.announceChange();
   }
 
   private newExternalSession(agentSessionId: string, payload: Record<string, unknown>, now: number): SessionView {
     const workingDirectory = typeof payload.cwd === "string" ? payload.cwd : "";
     const sessionTitle = typeof payload.session_title === "string" ? payload.session_title : undefined;
+    // A conversation listed before comes back under the name it had, and leaves Recently closed.
+    const listedBefore = this.recentlyClosed.find((closed) => closed.agentSessionId === agentSessionId && !this.sessions.has(closed.name));
+    if (listedBefore) this.recentlyClosed = this.recentlyClosed.filter((closed) => closed !== listedBefore);
     const takenNames = [...this.sessions.keys(), ...this.reservedLaunchNames(), ...this.recentlyClosed.map((closed) => closed.name)];
-    const name = ExternalSessionNaming.nameFor({ sessionTitle, workingDirectory }, takenNames);
+    const name = listedBefore?.name ?? ExternalSessionNaming.nameFor({ sessionTitle, workingDirectory }, takenNames);
     return {
       name,
       origin: "external",

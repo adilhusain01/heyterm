@@ -36,3 +36,10 @@ describe("displayFor", () => {
     expect(display.needsYou).toBe(false);
   });
 });
+
+describe("agentTag for a terminal with Claude running in it", () => {
+  it("tags it claude, since that is what answers there now", () => {
+    expect(agentTag("shell", { claudeInside: true })).toBe("claude");
+    expect(agentTag("shell")).toBe("terminal");
+  });
+});

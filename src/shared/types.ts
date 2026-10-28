@@ -95,6 +95,9 @@ export interface SessionView {
   pending?: PendingRequest;
   // A dialog HeyTerm was holding when it restarted: it is on screen in the terminal, and typed text would land in it.
   blockedByTerminalDialog?: boolean;
+  // A terminal session with a Claude running in it, started there by hand: the Claude's state,
+  // requests and conversation id are the terminal's until it ends (terminal-links.ts).
+  claudeInside?: boolean;
   agentSessionId?: string;
   // Files the session's own edits touched since its last prompt, relative to its folder.
   filesChangedInLastTask?: string[];

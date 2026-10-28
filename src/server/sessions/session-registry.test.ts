@@ -342,3 +342,43 @@ describe("SessionRegistry.discoverOutsideSessions", () => {
     expect(registry.get(name)?.state).toBe("working");
   });
 });
+
+describe("SessionRegistry with a Claude inside one of HeyTerm's terminals", () => {
+  it("shows the Claude's state and requests on the terminal, not as a second session", async () => {
+    const registry = makeRegistry();
+    registry.add(session("web-terminal", { agent: "shell", state: "idle", origin: "heyterm" }));
+    await registry.applyExternalHookEvent("UserPromptSubmit", { session_id: "4450a7ab", cwd: "/p/web", prompt: "fix it" }, 1_000);
+    registry.linkIntoTerminal("web-terminal", "4450a7ab", 2_000);
+    expect(registry.list().map((known) => known.name)).toEqual(["web-terminal"]);
+    expect(registry.recentlyClosedSessions()).toEqual([]);
+    expect(registry.get("web-terminal")).toMatchObject({ agent: "shell", state: "working", agentSessionId: "4450a7ab", claudeInside: true });
+    // Held open until answered, as the real hook is; the state shows while it waits.
+    void registry.applyExternalHookEvent("PermissionRequest", { session_id: "4450a7ab", cwd: "/p/web", tool_name: "Bash", tool_input: { command: "npm test" } }, 3_000);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(registry.list().map((known) => known.name)).toEqual(["web-terminal"]);
+    expect(registry.get("web-terminal")?.state).toBe("needs_permission");
+  });
+
+  it("turns back into a plain terminal when the Claude in it ends", () => {
+    const registry = makeRegistry();
+    registry.add(session("web-terminal", { agent: "shell", state: "idle", origin: "heyterm" }));
+    registry.linkIntoTerminal("web-terminal", "4450a7ab", 1_000);
+    registry.unlinkFromTerminal("web-terminal", 2_000);
+    expect(registry.get("web-terminal")).toMatchObject({ agent: "shell", state: "idle" });
+    expect(registry.get("web-terminal")?.agentSessionId).toBeUndefined();
+    expect(registry.get("web-terminal")?.claudeInside).toBeUndefined();
+  });
+});
+
+describe("SessionRegistry with a conversation that comes back", () => {
+  // projects, then projects-2, -3 and -4 for one conversation (28 October 2026).
+  it("gives a returning conversation the name it had before", async () => {
+    const registry = makeRegistry();
+    await registry.applyExternalHookEvent("SessionStart", { session_id: "4450a7ab", cwd: "/root/Projects" }, 1_000);
+    const firstName = registry.list()[0]!.name;
+    registry.remove(firstName);
+    await registry.applyExternalHookEvent("UserPromptSubmit", { session_id: "4450a7ab", cwd: "/root/Projects", prompt: "go on" }, 2_000);
+    expect(registry.list().map((known) => known.name)).toEqual([firstName]);
+    expect(registry.recentlyClosedSessions().map((closed) => closed.name)).not.toContain(firstName);
+  });
+});

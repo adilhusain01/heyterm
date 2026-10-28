@@ -14,6 +14,7 @@ export interface Terminals {
   pressKeys(name: string, keys: string[]): void;
   foregroundProgram(name: string): string | undefined | Promise<string | undefined>;
   captureScreen(name: string): Promise<string>;
+  processesOnScreen(name: string): Promise<Array<{ pid: number; args: string }>>;
   attach(name: string, viewer: TerminalViewer, columns: number, rows: number): TerminalAttachment | undefined;
   shutdown(): void;
 }

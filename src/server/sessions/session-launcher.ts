@@ -118,9 +118,13 @@ export class SessionLauncher {
   async adopt(name: string): Promise<SessionView> {
     const session = this.registry.get(name);
     if (!session || session.origin !== "external") throw new Error(`${name} is not a session in your own terminal.`);
-    const pid = ConversationOwner.liveProcess(session, await ClaudeSessionRecords.read(), ClaudeSessionRecords.processIsRunning);
+    const records = await ClaudeSessionRecords.read();
+    const pid = ConversationOwner.liveProcess(session, records, ClaudeSessionRecords.processIsRunning);
     if (pid !== undefined) {
-      process.kill(pid, "SIGTERM");
+      // A background session is stopped through Claude, since its daemon starts it again after a signal.
+      const stop = ConversationOwner.stopCommand(records!.get(session.agentSessionId!)!);
+      if (stop) await execFileAsync(stop.program, stop.args, { timeout: 15_000, shell: process.platform === "win32" }).catch(() => undefined);
+      else process.kill(pid, "SIGTERM");
       for (let waited = 0; waited < adoptExitWaitMilliseconds && ClaudeSessionRecords.processIsRunning(pid); waited += 200) await new Promise((resolve) => setTimeout(resolve, 200));
       if (ClaudeSessionRecords.processIsRunning(pid)) throw new Error(`${name} did not close in your terminal. Quit it there, then say "bring back ${name}".`);
     }

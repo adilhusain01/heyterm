@@ -79,6 +79,13 @@ export class KeptTerminals extends EventEmitter<{ exit: [string]; restart: [] }>
     );
   }
 
+  processesOnScreen(name: string): Promise<Array<{ pid: number; args: string }>> {
+    return this.request<string | undefined>((requestId) => ({ type: "processes", requestId, name })).then(
+      (listing) => (listing ? (JSON.parse(listing) as Array<{ pid: number; args: string }>) : []),
+      () => [],
+    );
+  }
+
   attach(name: string, viewer: TerminalViewer, columns: number, rows: number): TerminalAttachment | undefined {
     if (!this.names.has(name)) return undefined;
     const attachId = this.nextId++;

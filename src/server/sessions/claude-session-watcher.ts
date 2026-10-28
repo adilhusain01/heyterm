@@ -6,7 +6,9 @@ import { readdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { ClaudeSessionStatus, type ClaudeSessionRecord } from "./claude-session-status.ts";
+import { TerminalLinks } from "./terminal-links.ts";
 import type { SessionRegistry } from "./session-registry.ts";
+import type { Terminals } from "../terminals/terminals.ts";
 
 const pollMilliseconds = 2_000;
 
@@ -56,6 +58,8 @@ export class ClaudeSessionWatcher {
   constructor(
     private readonly registry: SessionRegistry,
     private readonly shouldDiscover: () => Promise<boolean> = async () => false,
+    // HeyTerm's terminals, to tell a Claude started by hand in one of them (terminal-links.ts).
+    private readonly terminals?: Pick<Terminals, "processesOnScreen">,
   ) {}
 
   start(): void {
@@ -74,6 +78,7 @@ export class ClaudeSessionWatcher {
       // A Claude Code too old to keep records tells HeyTerm nothing. Sessions kept from before a
       // restart cannot be checked then, so they go, as they always did; hooks bring live ones back.
       if (records) {
+        await this.linkClaudesInTerminals(records);
         this.registry.reconcileClaudeSessions(records, ClaudeSessionRecords.processIsRunning, Date.now());
         if (await this.shouldDiscover()) this.registry.discoverOutsideSessions(records.values(), ClaudeSessionRecords.processIsRunning, [], Date.now());
       }
@@ -81,6 +86,20 @@ export class ClaudeSessionWatcher {
       this.hasPolled = true;
     } finally {
       this.polling = false;
+    }
+  }
+
+  private async linkClaudesInTerminals(records: Map<string, ClaudeSessionRecord>): Promise<void> {
+    if (!this.terminals) return;
+    const terminalSessions = this.registry.localSessions().filter((session) => session.agent === "shell" && session.origin !== "external");
+    const terminals = await Promise.all(terminalSessions.map(async (session) => ({ name: session.name, processes: await this.terminals!.processesOnScreen(session.name) })));
+    const links = TerminalLinks.find(terminals, [...records.values()]);
+    const now = Date.now();
+    for (const link of links) this.registry.linkIntoTerminal(link.terminal, link.agentSessionId, now);
+    // Only a terminal that was read (its shell is always listed) can be said to have no Claude left.
+    for (const terminal of terminals) {
+      const wasLinked = this.registry.get(terminal.name)?.claudeInside === true;
+      if (wasLinked && terminal.processes.length > 0 && !links.some((link) => link.terminal === terminal.name)) this.registry.unlinkFromTerminal(terminal.name, now);
     }
   }
 }

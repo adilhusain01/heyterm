@@ -72,6 +72,9 @@ From Adil's own Claude Code transcripts, 10 to 24 October 2026: 179 times a sess
 
 ## Sessions started outside HeyTerm
 
+- A Claude started by hand in one of HeyTerm's terminals is that terminal's, not a second session (Adil, 28 October 2026): every poll reads the processes on each terminal's tty, and a Claude whose process runs there, or that something there names (`claude attach <id>`, as claude-keep runs in screen on the VPS, or `--resume <id>`), is linked to the terminal (`TerminalLinks`). The terminal then shows that Claude's state, requests and questions, tagged "claude"; the separate entry goes, not to Recently closed; when the Claude ends, the terminal is a plain shell again. Windows has no ttys to read, so there it still shows apart.
+- Open here on a background session (`kind: bg`, held by Claude's daemon) stops it with `claude stop <id>`, since the daemon starts it again after a signal; on 28 October 2026 a SIGTERM let it come back as vps/projects-4 after its HeyTerm copy was closed. A conversation listed again keeps the name it had.
+
 - With Show your own sessions on, a running Claude session HeyTerm has not heard from is listed from Claude Code's records (`~/.claude/sessions`): command-line runs only (interactive, or `bg` jobs as claude-keep makes), never print runs or SDK sessions such as HeyTerm's assistant, and only ten seconds after it started, by which time a session HeyTerm started itself has reported its id. It is named as it was named (`claude -n`), else after its folder, and its state follows the record (busy is working, waiting is asked in its terminal) until its own hooks report. Seen missing on the VPS on 26 October 2026: seven running sessions, none listed.
 
 - Setup's **Connect my sessions** adds HeyTerm's hooks to `~/.claude/settings.json`, after copying the file to `~/.heyterm/backups`. **Disconnect** removes exactly those entries. A settings file that is not valid JSON is refused, never overwritten.

@@ -107,7 +107,7 @@ export async function startHeyTerm(keeper?: KeeperConnection): Promise<RunningHe
   if (keptCount > 0) console.log(`${keptCount === 1 ? "One session" : `${keptCount} sessions`} kept running through the restart.`);
   const trustWatcher = new TrustDialogWatcher(host, registry);
   trustWatcher.start();
-  const claudeSessionWatcher = new ClaudeSessionWatcher(registry, async () => (await userConfig.load()).showOwnTerminalSessions === true);
+  const claudeSessionWatcher = new ClaudeSessionWatcher(registry, async () => (await userConfig.load()).showOwnTerminalSessions === true, host);
   claudeSessionWatcher.start();
 
   const projects = new ProjectCatalog(config.projectRoots);

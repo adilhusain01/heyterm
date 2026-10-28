@@ -67,6 +67,12 @@ describe("ConductorTurnText", () => {
     expect(text).toContain("a plain terminal");
   });
 
+  it("marks a terminal with a Claude running in it, so what the assistant sends there is a prompt", () => {
+    const text = ConductorTurnText.forUtterance("tell it to go on", { sessions: [{ ...session, name: "web-terminal", agent: "shell", state: "working", claudeInside: true }], projectNames: [], recentlyClosedNames: [] });
+    expect(text).toContain("Claude running in it");
+    expect(text).not.toContain("runs as a command");
+  });
+
   // "tell whisker to go on" now reaches the assistant rather than whisker; it must send a clear
   // instruction built from what the session last said, keep to what was asked, and ask when unsure.
   it("tells the assistant how to pass on what the developer wants a session told", () => {

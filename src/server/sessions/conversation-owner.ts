@@ -24,4 +24,10 @@ export class ConversationOwner {
     const record = records.get(session.agentSessionId);
     return record && processIsRunning(record.pid) ? record.pid : undefined;
   }
+
+  // A background session (claude --bg, as claude-keep starts) belongs to Claude's daemon, which starts
+  // it again after a signal; Claude's own stop command ends it for good. Others end with a signal.
+  static stopCommand(record: ClaudeSessionRecord): { program: string; args: string[] } | undefined {
+    return record.kind === "bg" ? { program: "claude", args: ["stop", record.sessionId] } : undefined;
+  }
 }

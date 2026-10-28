@@ -14,6 +14,7 @@ export type ServerMessage =
   | { type: "keys"; name: string; keys: string[] }
   | { type: "foreground"; requestId: number; name: string }
   | { type: "capture"; requestId: number; name: string }
+  | { type: "processes"; requestId: number; name: string }
   | { type: "attach"; attachId: number; name: string; columns: number; rows: number }
   | { type: "write"; attachId: number; data: string }
   | { type: "resize"; attachId: number; columns: number; rows: number }

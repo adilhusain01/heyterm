@@ -158,7 +158,7 @@ function RailSession({ session, isHead }: { session: SessionView; isHead: boolea
     <>
       <span className="flex items-center gap-1.5">
         <span className="font-mono text-ink">{session.name}</span>
-        {agentTag(session.agent) && <span className="text-small text-ink-faint">{agentTag(session.agent)}</span>}
+        {agentTag(session.agent, session) && <span className="text-small text-ink-faint">{agentTag(session.agent, session)}</span>}
         {session.origin === "external" && <span className="text-small text-ink-faint">own terminal</span>}
       </span>
       <span className="flex items-center gap-1.5 text-small">
@@ -238,7 +238,7 @@ function SessionRow({ session }: { session: SessionView }) {
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="flex items-center gap-1.5">
               <span className="truncate font-mono text-meta text-ink">{session.name}</span>
-              {agentTag(session.agent) && <span className="shrink-0 text-small text-ink-faint">{agentTag(session.agent)}</span>}
+              {agentTag(session.agent, session) && <span className="shrink-0 text-small text-ink-faint">{agentTag(session.agent, session)}</span>}
               {session.origin === "external" && <span className="shrink-0 text-small text-ink-faint">own terminal</span>}
             </span>
             <span className="flex items-center gap-1.5 text-small">
