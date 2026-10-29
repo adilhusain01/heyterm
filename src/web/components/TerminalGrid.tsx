@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useHeyTerm } from "../app-context.tsx";
 import { useHeyTermStore } from "../state/heyterm-store.ts";
 import { ExternalSessionPane } from "./ExternalSessionPane.tsx";
+import { GridLayout } from "./grid-layout.ts";
 import { GridPanes } from "./grid-panes.ts";
 import { TerminalPane } from "./TerminalPane.tsx";
 import type { SessionView } from "../../shared/types.ts";
@@ -53,7 +54,8 @@ function AutoGrid({ sessions, canExpand }: { sessions: SessionView[]; canExpand:
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
-  const columns = Math.max(1, Math.min(sessions.length, Math.floor((size.width + gap) / (narrowestPaneWidth + gap))));
+  const widestColumns = Math.floor((size.width + gap) / (narrowestPaneWidth + gap));
+  const columns = GridLayout.columns(sessions.length, widestColumns);
   const rows = Math.ceil(sessions.length / columns);
   const rowHeight = rows <= 2 ? Math.max(300, (size.height - gap * (rows - 1)) / rows) : scrollingRowHeight;
   return (
