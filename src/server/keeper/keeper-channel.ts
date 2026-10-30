@@ -67,7 +67,9 @@ export class ProcessChannel {
   static toServer(child: ChildProcess): KeeperEnd {
     return {
       send: (message) => {
-        if (child.connected) child.send(message);
+        // A server that just went away fails the write. With no callback Node raises that as an
+        // error that ends the keeper and every terminal; its exit is handled where it was started.
+        if (child.connected) child.send(message, () => undefined);
       },
       onMessage: (listener) => child.on("message", (message) => listener(message as ServerMessage)),
       onClose: (listener) => child.once("disconnect", listener),

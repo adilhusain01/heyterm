@@ -85,7 +85,7 @@ async function runCli(args: string[]): Promise<void> {
     return;
   }
   await DataFolder.ensurePrivate(dataDirectory());
-  new TerminalKeeper({ entryScript: process.argv[1]!, serverBundle: fileURLToPath(import.meta.url), pidFile: keeperPidFile(), openPageOnFirstStart: open }).start();
+  new TerminalKeeper({ entryScript: TerminalKeeper.serverEntryScript(process.argv[1]!), serverBundle: fileURLToPath(import.meta.url), pidFile: keeperPidFile(), openPageOnFirstStart: open }).start();
 }
 
 // The server, run by the terminal keeper: it takes over the terminals that outlived the last one.

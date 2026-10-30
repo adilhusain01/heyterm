@@ -4,7 +4,7 @@
 // (heyterm stop, Quit, the page closed, Ctrl+C) still ends every terminal. Rules in keeper-rules.ts.
 
 import { fork, type ChildProcess } from "node:child_process";
-import { rmSync, writeFileSync } from "node:fs";
+import { realpathSync, rmSync, writeFileSync } from "node:fs";
 import { BundleWatch } from "./bundle-watch.ts";
 import { ProcessChannel } from "./keeper-channel.ts";
 import { KeeperRules } from "./keeper-rules.ts";
@@ -37,6 +37,17 @@ export class TerminalKeeper {
     this.bundleWatch = new BundleWatch(options.serverBundle, () => this.startNewCode());
   }
 
+  // The package's own script behind the command that was run. npm makes the command's link
+  // (/usr/local/bin/heyterm) last when it updates the package, so a server started through it after
+  // new code lands is not found for seconds (VPS, 30 October 2026).
+  static serverEntryScript(launchedScript: string): string {
+    try {
+      return realpathSync(launchedScript);
+    } catch {
+      return launchedScript;
+    }
+  }
+
   start(): void {
     writeFileSync(this.options.pidFile, String(process.pid), { mode: 0o600 });
     for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) process.on(signal, () => this.stopOnSignal(signal));
@@ -50,6 +61,8 @@ export class TerminalKeeper {
       stdio: "inherit",
     });
     this.server = server;
+    // Whatever goes wrong with the server ends up in its exit; it must never end the keeper.
+    server.on("error", (error) => console.error(`HeyTerm's server process reported: ${error.message}`));
     this.service.serve(ProcessChannel.toServer(server));
     server.on("message", (message: { type?: string }) => {
       if (message.type === "listening") this.hasServerStartedOnce = true;
