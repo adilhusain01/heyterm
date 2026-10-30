@@ -64,7 +64,9 @@ export class HeyTermHttpServer {
         if (url.pathname === "/pty") {
           const columns = Number(url.searchParams.get("columns"));
           const rows = Number(url.searchParams.get("rows"));
-          return this.terminals.connect(webSocket, url.searchParams.get("session") ?? "", columns, rows);
+          // Sent by a tab in the background, whose pane gets no say in the terminal's size.
+          const isInUse = url.searchParams.get("background") !== "1";
+          return this.terminals.connect(webSocket, url.searchParams.get("session") ?? "", columns, rows, { isInUse });
         }
         webSocket.close(4404, "unknown path");
       });

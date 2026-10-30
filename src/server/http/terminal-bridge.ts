@@ -4,6 +4,7 @@
 import type { WebSocket } from "ws";
 import type { SuspendRescue } from "../terminals/suspend-rescue.ts";
 import type { Terminals } from "../terminals/terminals.ts";
+import { TerminalSizes, type PaneSize } from "./terminal-sizes.ts";
 
 type TerminalClientMessage = { type: "input"; data: string } | { type: "resize"; columns: number; rows: number };
 
@@ -17,13 +18,16 @@ export interface RemoteTerminals {
 }
 
 export class TerminalBridge {
+  private readonly sizes = new TerminalSizes();
+
   constructor(
     private readonly host: Terminals,
     private readonly remote?: RemoteTerminals,
     private readonly suspendRescue?: SuspendRescue,
   ) {}
 
-  connect(socket: WebSocket, sessionName: string, columns: number, rows: number): void {
+  // A pane opened by a tab in the background (a reconnect) leaves the terminal at the size of the pane in use.
+  connect(socket: WebSocket, sessionName: string, columns: number, rows: number, { isInUse = true }: { isInUse?: boolean } = {}): void {
     if (this.remote?.isRemote(sessionName)) return this.connectRemote(socket, sessionName, columns, rows);
     const viewer = {
       send: (data: string) => {
@@ -36,17 +40,28 @@ export class TerminalBridge {
       socket.close(4404, "no such session");
       return;
     }
+    const pane = { columns, rows };
+    const resizeTo = (size: PaneSize | undefined) => size && attachment.resize(size.columns, size.rows);
+    resizeTo(this.sizes.opened(sessionName, pane, { isInUse }));
     socket.on("message", (raw) => {
       const text = raw.toString();
       if (text.length > largestInputBytes) return;
       const message = parseMessage(text);
       if (message?.type === "input") {
+        resizeTo(this.sizes.used(sessionName, pane));
         attachment.write(message.data);
         void this.suspendRescue?.afterInput(sessionName, message.data);
       }
-      if (message?.type === "resize") attachment.resize(message.columns, message.rows);
+      if (message?.type === "resize") {
+        pane.columns = message.columns;
+        pane.rows = message.rows;
+        resizeTo(this.sizes.used(sessionName, pane));
+      }
     });
-    socket.on("close", () => attachment.detach());
+    socket.on("close", () => {
+      resizeTo(this.sizes.closed(sessionName, pane));
+      attachment.detach();
+    });
   }
 
   // A pane for a session on another computer talks to that computer's terminal through this one:

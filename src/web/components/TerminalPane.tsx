@@ -100,8 +100,16 @@ export function TerminalPane({ session, isExpanded, onToggleExpanded }: Terminal
       channel.resize(terminal.cols, terminal.rows);
     });
     resizeObserver.observe(container);
+    // Another tab may have sized the terminal meanwhile; the tab shown again takes it back.
+    const takeBackSize = () => {
+      if (document.visibilityState === "visible") channel.resize(terminal.cols, terminal.rows);
+    };
+    document.addEventListener("visibilitychange", takeBackSize);
+    window.addEventListener("focus", takeBackSize);
     return () => {
       resizeObserver.disconnect();
+      document.removeEventListener("visibilitychange", takeBackSize);
+      window.removeEventListener("focus", takeBackSize);
       input.dispose();
       keys.dispose();
       channel.close();

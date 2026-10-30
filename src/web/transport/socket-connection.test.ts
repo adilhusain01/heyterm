@@ -95,3 +95,19 @@ describe("A terminal pane's connection", () => {
     expect(lost).toEqual(["remote", "remote"]);
   });
 });
+
+describe("A terminal pane's size", () => {
+  // Seen on 30 October 2026: a tab in the background with heyterm alone at 218 columns resized the
+  // terminal under the tab in use, whose 106-column pane then showed every line cut in two.
+  it("tells the server when the pane opens in a tab in the background, which gets no say in the terminal's size", () => {
+    vi.stubGlobal("window", { setTimeout, clearTimeout, location: { protocol: "http:", host: "127.0.0.1:4747" }, document: { visibilityState: "hidden" } });
+    new SocketConnection().openTerminal("heyterm", 218, 44);
+    expect(new URL(FakeSocket.opened[0]!.url).searchParams.get("background")).toBe("1");
+  });
+
+  it("opens without the flag in the tab in front", () => {
+    vi.stubGlobal("window", { setTimeout, clearTimeout, location: { protocol: "http:", host: "127.0.0.1:4747" }, document: { visibilityState: "visible" } });
+    new SocketConnection().openTerminal("heyterm", 106, 44);
+    expect(new URL(FakeSocket.opened[0]!.url).searchParams.get("background")).toBeNull();
+  });
+});

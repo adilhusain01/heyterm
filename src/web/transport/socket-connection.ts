@@ -191,6 +191,8 @@ class ReconnectingTerminal {
 
   private open(): void {
     const query = new URLSearchParams({ session: this.sessionName, columns: String(this.columns), rows: String(this.rows) });
+    // A tab in the background reconnects too; it must not resize the terminal under the tab in use.
+    if (window.document?.visibilityState === "hidden") query.set("background", "1");
     const socket = new WebSocket(socketUrl(`/pty?${query.toString()}`));
     this.socket = socket;
     const isReconnect = this.hasOpened;
