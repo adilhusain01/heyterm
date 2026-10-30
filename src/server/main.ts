@@ -46,6 +46,7 @@ import { DataFolder } from "./setup/data-folder.ts";
 import { SetupService } from "./setup/setup-service.ts";
 import { InputLog } from "./setup/input-log.ts";
 import { UserConfig } from "./setup/user-config.ts";
+import { SuspendRescue, SystemTerminalState } from "./terminals/suspend-rescue.ts";
 import { TerminalHost } from "./terminals/terminal-host.ts";
 import { MacVoice } from "./voice/mac-voice.ts";
 
@@ -143,7 +144,7 @@ export async function startHeyTerm(keeper?: KeeperConnection): Promise<RunningHe
   hub.inputLog = new InputLog(config.dataDirectory);
   const guard = new RequestGuard(config.port, hooks.token, config.developmentOrigin, config.acceptedHostNames);
   const tickets = new PairingTickets(hooks.token);
-  const server = new HeyTermHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host, remoteHosts), tickets);
+  const server = new HeyTermHttpServer(config.port, config.webDirectory, guard, registry, hub, new TerminalBridge(host, remoteHosts, new SuspendRescue(new SystemTerminalState(host))), tickets);
   await server.listen();
   remoteHosts?.on("feedback", (feedback) => hub.tellPages(feedback));
   remoteHosts?.start();

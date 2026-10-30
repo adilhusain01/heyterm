@@ -2,6 +2,7 @@
 // only stops watching; the session keeps running.
 
 import type { WebSocket } from "ws";
+import type { SuspendRescue } from "../terminals/suspend-rescue.ts";
 import type { Terminals } from "../terminals/terminals.ts";
 
 type TerminalClientMessage = { type: "input"; data: string } | { type: "resize"; columns: number; rows: number };
@@ -19,6 +20,7 @@ export class TerminalBridge {
   constructor(
     private readonly host: Terminals,
     private readonly remote?: RemoteTerminals,
+    private readonly suspendRescue?: SuspendRescue,
   ) {}
 
   connect(socket: WebSocket, sessionName: string, columns: number, rows: number): void {
@@ -38,7 +40,10 @@ export class TerminalBridge {
       const text = raw.toString();
       if (text.length > largestInputBytes) return;
       const message = parseMessage(text);
-      if (message?.type === "input") attachment.write(message.data);
+      if (message?.type === "input") {
+        attachment.write(message.data);
+        void this.suspendRescue?.afterInput(sessionName, message.data);
+      }
       if (message?.type === "resize") attachment.resize(message.columns, message.rows);
     });
     socket.on("close", () => attachment.detach());
