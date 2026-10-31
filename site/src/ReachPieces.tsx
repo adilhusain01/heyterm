@@ -1,7 +1,9 @@
-// Slices of the interface for what came after 0.1.11: any folder, a server's sessions, updates that
-// keep the sessions, and the assistant's permissions. Two answer a press the way the app does.
+// Slices of the interface for how far HeyTerm reaches: any folder, a server's sessions, an even grid,
+// a terminal that fits the pane in use, updates that keep the sessions, and the assistant's
+// permissions. Some answer a press the way the app does.
 
 import { useEffect, useRef, useState } from "react";
+import { GridLayout } from "../../src/web/components/grid-layout.ts";
 import { CheckIcon, FolderIcon } from "../../src/web/ui/icons.tsx";
 import { Segmented } from "../../src/web/ui/Segmented.tsx";
 import { Face } from "./Face.tsx";
@@ -48,6 +50,64 @@ export function ServerSessionsPiece() {
   );
 }
 
+const gridSessions = ["api", "docs", "shop", "web", "mobile", "tests"];
+const widestGridColumns = 3;
+
+// The app's own rule picks the columns, so the rows come out as they do in the grid.
+export function EvenGridPiece() {
+  const [paneCount, setPaneCount] = useState("4");
+  const panes = gridSessions.slice(0, Number(paneCount));
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2.5">
+        <span className="text-small text-ink-faint">Sessions</span>
+        <div className="min-w-0 flex-1">
+          <Segmented label="How many sessions" value={paneCount} onChange={setPaneCount} options={["3", "4", "5", "6"].map((count) => ({ value: count, label: count }))} stretch />
+        </div>
+      </div>
+      <div className="grid h-[76px] auto-rows-fr gap-1" style={{ gridTemplateColumns: `repeat(${GridLayout.columns(panes.length, widestGridColumns)}, minmax(0, 1fr))` }} aria-hidden="true">
+        {panes.map((name) => (
+          <span key={name} className="flex min-w-0 items-center justify-center rounded-small border border-line-strong bg-terminal">
+            <Face name={name} size={20} />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Columns measured on a Mac: one session half-width in the grid, and alone at full width in another tab.
+const paneSizes = {
+  half: { columns: 106, name: "This tab" },
+  full: { columns: 218, name: "Another tab" },
+} as const;
+
+// One session open in two tabs. The terminal takes the size of the one typed in last.
+export function FollowsThePanePiece() {
+  const [typingIn, setTypingIn] = useState<keyof typeof paneSizes>("half");
+  const { columns, name } = paneSizes[typingIn];
+  return (
+    <div className="flex flex-col gap-3">
+      <Segmented
+        label="Which tab you type in"
+        value={typingIn}
+        onChange={setTypingIn}
+        options={[
+          { value: "half", label: "Half-width pane" },
+          { value: "full", label: "Full-width pane" },
+        ]}
+        stretch
+      />
+      <div className="rounded-small bg-tray p-1 shadow-tray" aria-hidden="true">
+        <span className="block h-8 rounded-tiny border border-line-strong bg-terminal transition-[width] duration-200 ease-out motion-reduce:transition-none" style={{ width: `${(columns / paneSizes.full.columns) * 100}%` }} />
+      </div>
+      <p key={typingIn} className="status-swap text-small text-ink-muted" aria-live="polite">
+        {name} is in use: the terminal is {columns} columns wide.
+      </p>
+    </div>
+  );
+}
+
 type UpdateStage = "running" | "restarting" | "updated";
 
 // An update restarts HeyTerm's server; the sessions, held by its keeper, keep working through it.
@@ -61,8 +121,8 @@ export function UpdatesKeepSessionsPiece() {
     timers.current = [window.setTimeout(() => setStage("updated"), 1200)];
   };
   const words: Record<UpdateStage, string> = {
-    running: "HeyTerm 0.1.11",
-    restarting: "Restarting into 0.1.13…",
+    running: "A new version is ready.",
+    restarting: "Restarting into it…",
     updated: "Updated. Every session kept working.",
   };
   return (

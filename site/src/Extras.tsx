@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AssistantOrb } from "../../src/web/ui/AssistantOrb.tsx";
 import { ArrowDownIcon, BringBackIcon, CheckIcon, CloseIcon, PencilIcon } from "../../src/web/ui/icons.tsx";
 import { Face } from "./Face.tsx";
-import { AnyFolderPiece, FullAccessPiece, ServerSessionsPiece, UpdatesKeepSessionsPiece } from "./ReachPieces.tsx";
+import { AnyFolderPiece, EvenGridPiece, FollowsThePanePiece, FullAccessPiece, ServerSessionsPiece, UpdatesKeepSessionsPiece } from "./ReachPieces.tsx";
 import { ThemeToggle } from "./pieces.tsx";
 
 type Span = "wide" | "narrow" | "narrow-last";
@@ -43,7 +43,7 @@ export function Extras() {
     <div className="mt-6 flex flex-col gap-16 border-t border-line pt-16">
       <Group title="Every kind of session, side by side">
         <Card title="Your own terminals too" span="wide" piece={<OwnTerminalPiece />}>
-          Claude sessions from your own terminal show up too. Open here moves one in.
+          Claude sessions from your own terminal get a pane when they need you. Open here moves one in.
         </Card>
         <Card title="A plain terminal too" span="wide" piece={<PlainTerminalPiece />}>
           Your own shell in a pane. You or the assistant can run commands in it.
@@ -53,6 +53,12 @@ export function Extras() {
         </Card>
         <Card title="Your server's sessions too" span="wide" piece={<ServerSessionsPiece />}>
           Run HeyTerm on your VPS and its sessions show up here.
+        </Card>
+        <Card title="A grid that stays even" span="wide" piece={<EvenGridPiece />}>
+          Four sessions sit two by two, never three and one.
+        </Card>
+        <Card title="Fits the pane you use" span="wide" piece={<FollowsThePanePiece />}>
+          Open a session in two tabs. The terminal follows the one you type in.
         </Card>
         <Card title="Tell them apart" span="narrow" piece={<DetailsPiece />}>
           Hover for the details. Rename by voice or click.
@@ -78,7 +84,7 @@ export function Extras() {
           Five quiet minutes, and it tells you.
         </Card>
         <Card title="It recovers by itself" span="narrow-last" piece={<RecoverPiece />}>
-          Sleep the Mac. The page reconnects on its own.
+          Sleep the Mac, or press Ctrl+Z in a session. Both come back on their own.
         </Card>
       </Group>
       <Group title="Yours, and easy to leave">
